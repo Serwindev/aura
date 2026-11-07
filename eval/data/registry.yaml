@@ -1,0 +1,24 @@
+# SYNTHETIC beneficiary registry for eval and demo. Invented people; no real data.
+# Babies without a given name are referred to through their mother ("सुनीता की बच्ची").
+people:
+  - {id: w01, names: ["सुनीता देवी", "Sunita Devi"], category: other, label_hi: "सुनीता देवी", label_en: "Sunita Devi"}
+  - {id: c01, names: [], category: newborn, mother_id: w01, dob: 2026-11-08, delivery_place: institution, label_hi: "सुनीता की बच्ची", label_en: "Baby girl of Sunita"}
+  - {id: w02, names: ["रेखा", "Rekha"], category: other, label_hi: "रेखा", label_en: "Rekha"}
+  - {id: c02, names: [], category: newborn, mother_id: w02, dob: 2026-11-04, delivery_place: home, label_hi: "रेखा का बेटा", label_en: "Baby boy of Rekha"}
+  - {id: w03, names: ["पूजा यादव", "Pooja Yadav"], category: pregnant, label_hi: "पूजा यादव", label_en: "Pooja Yadav"}
+  - {id: w04, names: ["कविता", "Kavita"], category: other, label_hi: "कविता", label_en: "Kavita"}
+  - {id: c04, names: ["आरव", "Aarav"], category: child, mother_id: w04, dob: 2026-02-10, label_hi: "आरव", label_en: "Aarav"}
+  - {id: w05, names: ["मीना", "Meena"], category: other, label_hi: "मीना", label_en: "Meena"}
+  - {id: c05, names: ["अनन्या", "Ananya"], category: child, mother_id: w05, dob: 2026-08-31, label_hi: "अनन्या", label_en: "Ananya"}
+  - {id: w06, names: ["गीता", "Geeta"], category: pregnant, label_hi: "गीता", label_en: "Geeta"}
+  - {id: w07, names: ["अनीता", "Anita"], category: other, label_hi: "अनीता", label_en: "Anita"}
+  - {id: c07, names: [], category: newborn, mother_id: w07, dob: 2026-10-27, delivery_place: institution, label_hi: "अनीता का बच्चा", label_en: "Baby of Anita"}
+  - {id: w08, names: ["राधा", "Radha"], category: other, label_hi: "राधा", label_en: "Radha"}
+  - {id: c08, names: ["ईशान", "Ishaan"], category: child, mother_id: w08, dob: 2025-11-08, label_hi: "ईशान", label_en: "Ishaan"}
+  - {id: w09, names: ["सरिता", "Sarita"], category: pregnant, label_hi: "सरिता", label_en: "Sarita"}
+  - {id: w10, names: ["ममता", "Mamta"], category: other, label_hi: "ममता", label_en: "Mamta"}
+  - {id: c10, names: [], category: newborn, mother_id: w10, dob: 2026-11-01, delivery_place: institution, label_hi: "ममता का बेटा", label_en: "Baby boy of Mamta"}
+  - {id: w11, names: ["लक्ष्मी", "Lakshmi"], category: other, label_hi: "लक्ष्मी", label_en: "Lakshmi"}
+  - {id: c11, names: ["प्रिया", "Priya"], category: child, mother_id: w11, dob: 2026-05-10, label_hi: "प्रिया", label_en: "Priya"}
+  - {id: w12, names: ["शबनम", "Shabnam"], category: other, label_hi: "शबनम", label_en: "Shabnam"}
+  - {id: c12, names: ["आयान", "Ayaan"], category: child, mother_id: w12, dob: 2026-09-28, label_hi: "आयान", label_en: "Ayaan"}

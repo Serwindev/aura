@@ -61,8 +61,6 @@ for _i, _names in enumerate([
     for _n in _f(_names):
         _WEEKDAYS[_n] = _i
 
-_NUMERIC_DMY = re.compile(r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b")
-_ISO = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 
 
 def _safe_date(y: int, m: int, d: int) -> date | None:
@@ -91,71 +89,108 @@ def _day_month(day: int, month: int, year: int | None, ref: date, direction: Dir
 
 def resolve_date(text: str, ref: date, direction: Direction) -> date | None:
     """Return the first date expressed in `text`, or None if nothing resolvable."""
-    folded = fold(text)
-    m = _ISO.search(folded)
-    if m:
-        return _safe_date(int(m[1]), int(m[2]), int(m[3]))
-    m = _NUMERIC_DMY.search(folded)
-    if m:
-        y = int(m[3])
-        y = y + 2000 if y < 100 else y
-        return _safe_date(y, int(m[2]), int(m[1]))
+    for d, _, _ in iter_date_phrases(text, ref, direction):
+        return d
+    return None
 
-    toks = tokenize(text)
+
+_DIG = "0-9०-९"
+_NUMERIC_DMY_RAW = re.compile(rf"(?<![{_DIG}])([{_DIG}]{{1,2}})[/.-]([{_DIG}]{{1,2}})[/.-]([{_DIG}]{{2,4}})(?![{_DIG}])")
+_ISO_RAW = re.compile(rf"(?<![{_DIG}])([{_DIG}]{{4}})-([{_DIG}]{{2}})-([{_DIG}]{{2}})(?![{_DIG}])")
+
+
+def _int(s: str) -> int:
+    return int(fold(s))
+
+
+def iter_date_phrases(text: str, ref: date, direction: Direction):
+    """Yield (date, start, end) for every resolvable date phrase, in text order.
+    Spans are offsets into the original text. A bare "N din" needs a direction word
+    (बाद/पहले/में...) — "3 दिन का बच्चा" is an age, not a date."""
+    found: list[tuple[date, int, int]] = []
+    taken: list[tuple[int, int]] = []
+    for m in _ISO_RAW.finditer(text):
+        d = _safe_date(_int(m[1]), _int(m[2]), _int(m[3]))
+        taken.append((m.start(), m.end()))
+        if d:
+            found.append((d, m.start(), m.end()))
+    for m in _NUMERIC_DMY_RAW.finditer(text):
+        if any(a <= m.start() < b for a, b in taken):
+            continue
+        y = _int(m[3])
+        y = y + 2000 if y < 100 else y
+        d = _safe_date(y, _int(m[2]), _int(m[1]))
+        taken.append((m.start(), m.end()))
+        if d:
+            found.append((d, m.start(), m.end()))
+
+    toks = [t for t in tokenize(text) if not any(a <= t.start < b for a, b in taken)]
     norms = [t.norm for t in toks]
     sign = 1 if direction == "future" else -1
+
+    def add(d: date | None, i: int, j: int) -> None:
+        if d is not None:
+            found.append((d, toks[i].start, toks[j - 1].end))
+
     i = 0
     while i < len(toks):
         n = norms[i]
         if n in _TODAY:
-            return ref
-        if n in _TOMORROW:
-            return ref + timedelta(days=1)
-        if n in _YESTERDAY:
-            return ref - timedelta(days=1)
-        if n in _KAL:
-            return ref + timedelta(days=sign)
-        if n in _PARSO:
-            return ref + timedelta(days=2 * sign)
-        if n in _NEXT or n in _LAST:
+            add(ref, i, i + 1)
+        elif n in _TOMORROW:
+            add(ref + timedelta(days=1), i, i + 1)
+        elif n in _YESTERDAY:
+            add(ref - timedelta(days=1), i, i + 1)
+        elif n in _KAL:
+            add(ref + timedelta(days=sign), i, i + 1)
+        elif n in _PARSO:
+            add(ref + timedelta(days=2 * sign), i, i + 1)
+        elif (n in _NEXT or n in _LAST) and i + 1 < len(toks) and (
+                norms[i + 1] in _UNIT_DAYS or norms[i + 1] in _UNIT_MONTHS or norms[i + 1] in _WEEKDAYS):
             s = 1 if n in _NEXT else -1
-            if i + 1 < len(toks):
-                u = norms[i + 1]
-                if u in _UNIT_DAYS:
-                    return ref + timedelta(days=s * _UNIT_DAYS[u])
-                if u in _UNIT_MONTHS:
-                    return add_months(ref, s)
-                if u in _WEEKDAYS:
-                    return _weekday(ref, _WEEKDAYS[u], "future" if s > 0 else "past")
-        if n in _WEEKDAYS:
-            return _weekday(ref, _WEEKDAYS[n], direction)
-
-        parsed = _parse_number(toks, i) if toks[i].kind == "num" or _is_cardinal(n) else None
-        if parsed is not None:
-            value, j, _ = parsed
-            num = int(value)
-            if j < len(toks):
-                u = norms[j]
-                if u in _UNIT_DAYS or u in _UNIT_MONTHS:
-                    unit = "month" if u in _UNIT_MONTHS else u
-                    s = sign
-                    rest = norms[j + 1: j + 4]
-                    if any(w in _AFTER for w in rest):
-                        s = 1
-                    elif any(w in _BEFORE for w in rest):
-                        s = -1
-                    return _shift(ref, num, unit, s)
-                if u in _MONTHS and 1 <= num <= 31:
-                    year = None
-                    if j + 1 < len(toks) and toks[j + 1].kind == "num" and len(toks[j + 1].norm) == 4:
-                        year = int(toks[j + 1].norm)
-                    return _day_month(num, _MONTHS[u], year, ref, direction)
-                if u in _TARIKH and 1 <= num <= 31:
-                    return _day_of_month(num, ref, direction)
-            i = j
+            u = norms[i + 1]
+            if u in _UNIT_DAYS:
+                add(ref + timedelta(days=s * _UNIT_DAYS[u]), i, i + 2)
+            elif u in _UNIT_MONTHS:
+                add(add_months(ref, s), i, i + 2)
+            else:
+                add(_weekday(ref, _WEEKDAYS[u], "future" if s > 0 else "past"), i, i + 2)
+            i += 2
             continue
+        elif n in _WEEKDAYS:
+            add(_weekday(ref, _WEEKDAYS[n], direction), i, i + 1)
+        else:
+            parsed = _parse_number(toks, i) if toks[i].kind == "num" or _is_cardinal(n) else None
+            if parsed is not None:
+                value, j, _ = parsed
+                num = int(value)
+                if j < len(toks):
+                    u = norms[j]
+                    if u in _UNIT_DAYS or u in _UNIT_MONTHS:
+                        unit = "month" if u in _UNIT_MONTHS else u
+                        rest = norms[j + 1: j + 4]
+                        k = next((x for x, w in enumerate(rest) if w in _AFTER or w in _BEFORE), None)
+                        if k is not None:
+                            s = 1 if rest[k] in _AFTER else -1
+                            add(_shift(ref, num, unit, s), i, j + 2 + k)
+                            i = j + 2 + k
+                            continue
+                    elif u in _MONTHS and 1 <= num <= 31:
+                        year, end = None, j + 1
+                        if j + 1 < len(toks) and toks[j + 1].kind == "num" and len(toks[j + 1].norm) == 4:
+                            year, end = int(toks[j + 1].norm), j + 2
+                        add(_day_month(num, _MONTHS[u], year, ref, direction), i, end)
+                        i = end
+                        continue
+                    elif u in _TARIKH and 1 <= num <= 31:
+                        add(_day_of_month(num, ref, direction), i, j + 1)
+                        i = j + 1
+                        continue
+                i = max(j, i + 1)
+                continue
         i += 1
-    return None
+    found.sort(key=lambda x: x[1])
+    yield from found
 
 
 def _is_cardinal(norm: str) -> bool:

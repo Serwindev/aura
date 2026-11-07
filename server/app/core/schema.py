@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from datetime import date as Date
 from typing import Literal
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,7 +27,7 @@ class _Strict(BaseModel):
 
 class Beneficiary(_Strict):
     mention: str | None = None
-    matched_id: UUID | None = None  # set by code (name resolution), never by the LLM
+    matched_id: str | None = None  # set by code (name resolution), never by the LLM
     match_confidence: float | None = Field(default=None, ge=0, le=1)
 
 

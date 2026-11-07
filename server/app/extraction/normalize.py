@@ -486,3 +486,30 @@ def temperature_c_candidates(text: str) -> list[tuple[float, bool]]:
         elif q.unit in (None, "deg", "C"):
             out.append((q.value, False))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Folded text with a map back to original offsets (for regex cue matching)
+# ---------------------------------------------------------------------------
+
+
+def _fold_char(ch: str) -> str:
+    t = unicodedata.normalize("NFD", ch).replace(_NUKTA, "").replace(_CHANDRABINDU, _ANUSVARA)
+    return t.translate(_DEV_DIGITS).lower()
+
+
+def fold_with_map(text: str) -> tuple[str, list[int]]:
+    """Per-character fold (NFD, no nukta, ँ→ं, ASCII digits, lowercase) plus, for each output
+    character, the index of the original character it came from."""
+    out: list[str] = []
+    idx: list[int] = []
+    for i, ch in enumerate(unicodedata.normalize("NFC", text)):
+        f = _fold_char(ch)
+        out.append(f)
+        idx.extend([i] * len(f))
+    return "".join(out), idx
+
+
+def fold_pattern(pattern: str) -> str:
+    """Fold a regex written in plain Hindi/English the same way as fold_with_map."""
+    return "".join(_fold_char(c) for c in pattern)

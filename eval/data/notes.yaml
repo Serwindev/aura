@@ -1,0 +1,259 @@
+# SYNTHETIC visit notes + ground truth (T-021, v0). Invented people (see registry.yaml).
+# Written by the developer (Claude) — the same author as the rule-based extractor, so scores on
+# this set are OPTIMISTIC (a smoke test, not evidence of field accuracy). Replace/extend with
+# team-written notes and real recordings (T-021/T-022).
+# style: clean = punctuated text with digits (cloud-ASR-like); stt = no punctuation, numbers as
+#        words (offline-ASR-like). Gold: absent key = not stated (null / empty).
+# Temperatures spoken in °F are stored in °C (code converts): 98.6→37.0, 101→38.3, 97→36.1.
+notes:
+  - id: n01
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "आज सुनीता की बच्ची का HBNC तीसरे दिन का विज़िट किया। बच्ची का वज़न 2.8 किलो है, तापमान 98.6 डिग्री। दूध ठीक से पी रही है। अगली विज़िट 4 दिन बाद।"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c01, hbnc_day: 3,
+           vitals: {weight_kg: 2.8, temp_c: 37.0}, danger_signs: {NB_NOT_FEEDING: false},
+           next_due: [2026-11-14]}
+  - id: n02
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज रेखा के बच्चे का नवजात देखभाल सातवें दिन का दौरा किया वजन दो किलो नौ सौ ग्राम बुखार नहीं है नाल सूखी है अगली बार चौदहवें दिन आऊंगी"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c02, hbnc_day: 7,
+           vitals: {weight_kg: 2.9}, danger_signs: {NB_FEVER: false}}
+  - id: n03
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "Anita ke bachche ka HBNC day 14 visit kiya. Weight 3.1 kg. Baby ko jaundice nahi hai. Mother ko IFA tablets di."
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c07, hbnc_day: 14,
+           vitals: {weight_kg: 3.1}, danger_signs: {NB_JAUNDICE: false}, services: [IFA]}
+  - id: n04
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "ममता के बेटे का एचबीएनसी विजिट आज किया बच्चे को तेज बुखार है और दूध नहीं पी रहा तापमान एक सौ एक डिग्री है बच्चे को पीएचसी रेफर किया"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c10,
+           vitals: {temp_c: 38.3}, danger_signs: {NB_FEVER: true, NB_NOT_FEEDING: true},
+           referral: {needed: true, facility: "पीएचसी"}}
+  - id: n05
+    style: clean
+    tags: [hard, self_correction]
+    recorded_on: 2026-11-10
+    transcript: "आज सुनीता की बच्ची का HBNC विज़िट। वज़न 2.5 किलो, नहीं नहीं, 2.7 किलो है।"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c01, vitals: {weight_kg: 2.7}}
+  - id: n06
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "परसों अनीता के बच्चे का एचबीएनसी इक्कीसवें दिन का विजिट किया वजन साढ़े तीन किलो बच्चा सुस्त है और साँस तेज चल रही है सीएचसी भेजा"
+    gold: {visit_type: HBNC, visit_date: 2026-11-08, beneficiary_id: c07, hbnc_day: 21,
+           vitals: {weight_kg: 3.5}, danger_signs: {NB_LETHARGIC: true, NB_FAST_BREATHING: true},
+           referral: {needed: true, facility: "सीएचसी"}}
+  - id: n07
+    style: clean
+    recorded_on: 2026-11-03
+    transcript: "HBNC day 3 visit for Mamta's baby today. Weight 2.6 kg, temperature 36.8 C. Cord is clean. Next visit on 7 November."
+    gold: {visit_type: HBNC, visit_date: 2026-11-03, beneficiary_id: c10, hbnc_day: 3,
+           vitals: {weight_kg: 2.6, temp_c: 36.8}, next_due: [2026-11-07]}
+  - id: n08
+    style: stt
+    tags: [hard, mother_name_only]
+    recorded_on: 2026-11-04
+    transcript: "आज रेखा के घर बच्चे का जन्म हुआ पहले दिन का नवजात विजिट किया वजन दो किलो छह सौ ग्राम शरीर ठंडा नहीं है बच्चा दूध पी रहा है"
+    gold: {visit_type: HBNC, visit_date: 2026-11-04, beneficiary_id: c02, hbnc_day: 1,
+           vitals: {weight_kg: 2.6}, danger_signs: {NB_COLD: false, NB_NOT_FEEDING: false}}
+  - id: n09
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "Sunita ki beti ka HBNC visit kal kiya tha. Weight 2.75 kilo. Koi danger sign nahi."
+    gold: {visit_type: HBNC, visit_date: 2026-11-09, beneficiary_id: c01, vitals: {weight_kg: 2.75}}
+  - id: n10
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज ममता के बच्चे का बयालीसवें दिन का एचबीएनसी विजिट किया वजन चार किलो दो सौ ग्राम बच्चा ठीक है माँ को परिवार नियोजन की सलाह दी"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c10, hbnc_day: 42,
+           vitals: {weight_kg: 4.2}, services: [COUNSELLING]}
+  - id: n11
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "आज अनीता के बच्चे का HBNC 28वें दिन का विज़िट। वज़न 3.4 किलो। नाल में मवाद है और लाली है। जिला अस्पताल रेफर किया।"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c07, hbnc_day: 28,
+           vitals: {weight_kg: 3.4}, danger_signs: {NB_CORD_INFECTION: true},
+           referral: {needed: true, facility: "जिला अस्पताल"}}
+  - id: n12
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज सुनीता की बच्ची का चौदहवें दिन का एचबीएनसी विजिट किया बच्ची को पीलिया है आंखें पीली हैं वजन तीन किलो एक सौ ग्राम अगली विजिट सात दिन बाद"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c01, hbnc_day: 14,
+           vitals: {weight_kg: 3.1}, danger_signs: {NB_JAUNDICE: true}, next_due: [2026-11-17]}
+  - id: n13
+    style: clean
+    tags: [hard, two_people]
+    recorded_on: 2026-11-10
+    transcript: "आज रेखा के बच्चे का HBNC 7वें दिन का विज़िट किया, वज़न 2.9 किलो। रास्ते में गीता से भी मिली, उसका ANC अगले हफ्ते है।"
+    gold: {visit_type: HBNC, visit_date: 2026-11-10, beneficiary_id: c02, hbnc_day: 7,
+           vitals: {weight_kg: 2.9}}
+  - id: n14
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "कल अनीता के बच्चे का नवजात विजिट किया वजन पौने चार किलो तापमान सत्तानबे डिग्री शरीर ठंडा लग रहा था बच्चे को कपड़े में लपेटने की सलाह दी"
+    gold: {visit_type: HBNC, visit_date: 2026-11-09, beneficiary_id: c07,
+           vitals: {weight_kg: 3.75, temp_c: 36.1}, danger_signs: {NB_COLD: true},
+           services: [COUNSELLING]}
+  - id: n15
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "आज कविता के बेटे आरव का HBYC 9 महीने का विज़िट किया। वज़न 7.8 किलो। ORS और जिंक के बारे में समझाया।"
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c04, hbyc_month: 9,
+           vitals: {weight_kg: 7.8}, services: [COUNSELLING]}
+  - id: n16
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज राधा के बेटे ईशान का एचबीवाईसी बारहवें महीने का विजिट किया वजन नौ किलो पांच सौ ग्राम बच्चे को दस्त नहीं है"
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c08, hbyc_month: 12,
+           vitals: {weight_kg: 9.5}, danger_signs: {CH_DIARRHOEA_DEHYDRATION: false}}
+  - id: n17
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "Lakshmi ki beti Priya ka HBYC 6 month visit aaj kiya. Weight 6.9 kg. ORS packet diya aur zinc bhi diya."
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c11, hbyc_month: 6,
+           vitals: {weight_kg: 6.9}, services: [ORS, ZINC]}
+  - id: n18
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "प्रिया का तीसरे महीने का एचबीवाईसी विजिट परसों किया था वजन पांच किलो दो सौ ग्राम बच्ची सुस्त नहीं है दूध ठीक से पी रही है"
+    gold: {visit_type: HBYC, visit_date: 2026-11-08, beneficiary_id: c11, hbyc_month: 3,
+           vitals: {weight_kg: 5.2}, danger_signs: {CH_LETHARGIC: false, CH_UNABLE_TO_DRINK: false}}
+  - id: n19
+    style: clean
+    tags: [hard, duration_not_date]
+    recorded_on: 2026-11-10
+    transcript: "कविता के बेटे का HBYC विज़िट। बच्चे को 3 दिन से उल्टी हो रही है, सब कुछ उल्टी कर देता है। CHC रेफर किया।"
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c04,
+           danger_signs: {CH_VOMITS_EVERYTHING: true}, referral: {needed: true, facility: CHC}}
+  - id: n20
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज ईशान का पंद्रहवें महीने का विजिट किया एचबीवाईसी वजन दस किलो बच्चे को झटके आए थे जिला अस्पताल भेजा"
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c08, hbyc_month: 15,
+           vitals: {weight_kg: 10}, danger_signs: {CH_CONVULSIONS: true},
+           referral: {needed: true, facility: "जिला अस्पताल"}}
+  - id: n21
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "HBYC visit for Priya today, 6 months. Weight 7 kg. IFA syrup given."
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c11, hbyc_month: 6,
+           vitals: {weight_kg: 7}, services: [IFA]}
+  - id: n22
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज आरव का एचबीवाईसी विजिट किया वजन आठ किलो बच्चे की सांस तेज है और बच्चा सुस्त है पीएचसी रेफर किया"
+    gold: {visit_type: HBYC, visit_date: 2026-11-10, beneficiary_id: c04, vitals: {weight_kg: 8},
+           danger_signs: {CH_FAST_BREATHING: true, CH_LETHARGIC: true},
+           referral: {needed: true, facility: "पीएचसी"}}
+  - id: n23
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "आज अनन्या को पेंटा 2, ओपीवी 2 और रोटा 2 का टीका लगाया। अगला टीका 4 हफ्ते बाद।"
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c05,
+           services: ["VACCINE:Penta-2", "VACCINE:OPV-2", "VACCINE:Rota-2"], next_due: [2026-12-08]}
+  - id: n24
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज शबनम के बेटे आयान को पेंटा का पहला टीका और ओपीवी का पहला टीका लगाया रोटा भी पिलाया अगला टीका चार हफ्ते बाद"
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c12,
+           services: ["VACCINE:Penta-1", "VACCINE:OPV-1", "VACCINE:Rota"], next_due: [2026-12-08]}
+  - id: n25
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "Meena ki beti Ananya ko aaj vaccine lagaya - Penta 2 aur OPV 2. Bacchi ko halka bukhar hai."
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c05,
+           services: ["VACCINE:Penta-2", "VACCINE:OPV-2"]}
+  - id: n26
+    style: stt
+    tags: [hard, earlier_dose_mentioned]
+    recorded_on: 2026-11-10
+    transcript: "आज मीना की बेटी अनन्या का टीकाकरण किया बीसीजी पहले ही हो चुका था आज पेंटा दो और पोलियो दो दिया"
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c05,
+           services: ["VACCINE:Penta-2", "VACCINE:OPV-2"]}
+  - id: n27
+    style: clean
+    recorded_on: 2026-11-08
+    transcript: "आज सुनीता की बच्ची को BCG, OPV 0 और Hep B का टीका लगाया।"
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-08, beneficiary_id: c01,
+           services: ["VACCINE:BCG", "VACCINE:OPV-0", "VACCINE:Hep B"]}
+  - id: n28
+    style: stt
+    tags: [hard, negated_service]
+    recorded_on: 2026-11-10
+    transcript: "आज ईशान को एमआर का टीका नहीं लगा क्योंकि बच्चे को तेज बुखार है अगले हफ्ते बुलाया है"
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c08, next_due: [2026-11-17]}
+  - id: n29
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "Aaj Shabnam ke bete Ayaan ka teekakaran: Penta 1, OPV 1, PCV 1, Rota 1 aur fIPV 1 diye. Agla teeka 8 December ko."
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c12,
+           services: ["VACCINE:Penta-1", "VACCINE:OPV-1", "VACCINE:PCV-1", "VACCINE:Rota-1", "VACCINE:fIPV-1"],
+           next_due: [2026-12-08]}
+  - id: n30
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज अनन्या का टीका लगाना था पर माँ घर पर नहीं थी कल फिर जाऊंगी"
+    gold: {visit_type: IMMUNIZATION, visit_date: 2026-11-10, beneficiary_id: c05, next_due: [2026-11-11]}
+  - id: n31
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "आज पूजा यादव का दूसरा ANC चेकअप किया। BP 110/70, Hb 10.5, वज़न 54 किलो। IFA और कैल्शियम की गोलियाँ दीं।"
+    gold: {visit_type: ANC, visit_date: 2026-11-10, beneficiary_id: w03, anc_number: 2,
+           vitals: {bp_sys: 110, bp_dia: 70, hb_g_dl: 10.5, weight_kg: 54}, services: [IFA, CALCIUM]}
+  - id: n32
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज गीता की प्रसव पूर्व जांच की बीपी एक सौ चालीस बटा नब्बे है पैरों और चेहरे पर सूजन है सिर में दर्द रहता है सीएचसी रेफर किया"
+    gold: {visit_type: ANC, visit_date: 2026-11-10, beneficiary_id: w06,
+           vitals: {bp_sys: 140, bp_dia: 90}, danger_signs: {M_SWELLING: true, M_SEVERE_HEADACHE: true},
+           referral: {needed: true, facility: "सीएचसी"}}
+  - id: n33
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "Sarita ka ANC visit aaj. BP 120 by 80, weight 61 kg, Hb nau point paanch. Baby ki movement theek hai."
+    gold: {visit_type: ANC, visit_date: 2026-11-10, beneficiary_id: w09,
+           vitals: {bp_sys: 120, bp_dia: 80, weight_kg: 61, hb_g_dl: 9.5}}
+  - id: n34
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज पूजा का तीसरा एएनसी किया हीमोग्लोबिन आठ पॉइंट दो है खून की कमी है आयरन की गोली दी अगली जांच नौ तारीख को पीएमएसएमए में"
+    gold: {visit_type: ANC, visit_date: 2026-11-10, beneficiary_id: w03, anc_number: 3,
+           vitals: {hb_g_dl: 8.2}, services: [IFA], next_due: [2026-12-09]}
+  - id: n35
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "गीता को आज ANC में TT का दूसरा टीका लगाया। बच्चे की हलचल कम है, PHC भेजा।"
+    gold: {visit_type: ANC, visit_date: 2026-11-10, beneficiary_id: w06, services: ["VACCINE:TT-2"],
+           danger_signs: {M_REDUCED_FETAL_MOVEMENT: true}, referral: {needed: true, facility: PHC}}
+  - id: n36
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "सरिता का एएनसी विजिट आज किया वजन अट्ठावन किलो बीपी एक सौ दस बाई सत्तर हीमोग्लोबिन ग्यारह है कोई खतरे का लक्षण नहीं"
+    gold: {visit_type: ANC, visit_date: 2026-11-10, beneficiary_id: w09,
+           vitals: {weight_kg: 58, bp_sys: 110, bp_dia: 70, hb_g_dl: 11}}
+  - id: n37
+    style: clean
+    recorded_on: 2026-11-10
+    transcript: "आज सुनीता देवी का PNC विज़िट किया। ज़्यादा खून नहीं जा रहा, बुखार नहीं है। परिवार नियोजन के बारे में समझाया।"
+    gold: {visit_type: PNC, visit_date: 2026-11-10, beneficiary_id: w01,
+           danger_signs: {M_HEAVY_BLEEDING: false, M_HIGH_FEVER: false}, services: [COUNSELLING]}
+  - id: n38
+    style: stt
+    recorded_on: 2026-11-10
+    transcript: "आज ममता को परिवार नियोजन की सलाह दी और कंडोम दिए अगली बार अंतरा इंजेक्शन के बारे में बात करेंगे"
+    gold: {visit_type: FAMILY_PLANNING, visit_date: 2026-11-10, beneficiary_id: w10,
+           services: [COUNSELLING, "OTHER:Condom"]}
+  - id: n39
+    style: clean
+    tags: [hard, unknown_person]
+    recorded_on: 2026-11-10
+    transcript: "रमेश जी के घर टीबी की दवा का फॉलो-अप किया, दवा रोज़ ले रहे हैं।"
+    gold: {visit_type: TB_FOLLOWUP, visit_date: 2026-11-10}
+  - id: n40
+    style: stt
+    tags: [hard, no_content]
+    recorded_on: 2026-11-10
+    transcript: "हाँ जी ठीक है देखते हैं बाद में बात करते हैं"
+    gold: {visit_date: 2026-11-10}

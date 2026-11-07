@@ -35,3 +35,8 @@ app/android/local.properties
 .DS_Store
 Thumbs.db
 .vscode/
+
+# offline ASR models (downloaded, not committed)
+server/models/
+server/tests/.eval_tmp/
+eval/results/latest/

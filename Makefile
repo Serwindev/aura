@@ -1,5 +1,5 @@
 # Unix/CI task runner. On Windows use:  .\make.ps1 <target>
-.PHONY: setup test lint secrets-scan server app eval db-reset
+.PHONY: setup test lint secrets-scan server app eval models db-reset
 
 setup:
 	cd server && uv sync
@@ -20,7 +20,11 @@ app:
 	@echo "not built yet (phase 4: Flutter app)"; exit 1
 
 eval:
-	@echo "not built yet (phase 2: eval harness)"; exit 1
+	uv run --project server python eval/harness.py --notes eval/data/notes.yaml --out eval/results/latest/dev
+	uv run --project server python eval/harness.py --notes eval/data/notes_holdout.yaml --out eval/results/latest/holdout
+
+models:
+	mkdir -p server/models && cd server/models && curl -sSLO https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip && unzip -q vosk-model-small-hi-0.22.zip && rm vosk-model-small-hi-0.22.zip
 
 db-reset:
 	@echo "not built yet (phase 3: SQLite dev DB)"; exit 1

@@ -20,35 +20,33 @@
 - Principle: capture once → verify once → reuse across applications.
 - Focus: Uttar Pradesh workflows, Hindi primary, English second. Demo for EnVision '26 → Seva First (South Zone, Open level, Track A).
 - Hard constraints: synthetic data only; no location/attendance/productivity scoring; never claim government integration we do not have.
-- Deadline shape: SFIC **not submitted** (window closed 6 Nov). New target date: **open (ask lead)**. Build continues phase by phase (§3).
+- Deadline shape: SFIC **not submitted** (window closed 6 Nov). **Prototype v1 due 2026-11-09** (D-19): mobile web app + offline Vosk STT + rule-based extractor.
 
 ## 2. Current state (update each session)
 
-- **Date:** 2026-11-07 · **Phase:** build phase 1 (Core) **done**; phase 2 (Pipeline) next. Dates in `plan.md` §9 are stale (schedule slipped ~10 days); re-baseline once the lead gives a target date.
-- **Repo:** git initialised locally (`main` = planning docs; `p1-core` = phase 1). No remote yet.
-- **Built (phase 1, all synthetic, no network calls):**
-  - T-003 scaffold: `.gitignore`, `.env.example`, MIT `LICENSE`, `Makefile` + `make.ps1` (Windows), CI (`.github/workflows/ci.yml`: ruff, pytest, secret scan, gitleaks), `scripts/secret_scan.py`.
-  - T-020 schema v0.1 (`server/app/core/schema.py`) + validator (`server/app/extraction/validate.py`) enforcing all §5.2 hard rules.
-  - T-020a Hindi normaliser (`server/app/extraction/normalize.py`) + date resolver (`dates_hi.py`).
-  - T-050/T-051 rule engine (`server/app/rules/engine.py`) + `rules/{hbnc,hbyc,uip,anc,validation}.yaml` (all `status: draft`; ANC disabled) + shared vectors `rules/tests/*.yaml`.
-- **Not built:** STT/LLM adapters, eval harness, API, DB, app, reports. No accuracy numbers exist.
-- **Last verified commands (2026-11-07):** `.\make.ps1 lint` → "All checks passed!"; `.\make.ps1 test` → "292 passed in 1.80s" (normaliser 200, dates 40, validator 25, rules 23, schema 4); `.\make.ps1 secrets-scan` → "0 finding(s)". CI not yet run (no remote).
+- **Date:** 2026-11-07 · **Phase:** build phases 1 (Core) and 2 (Pipeline) **done**; phase 3 (server + mobile web app) next → prototype v1 due **2026-11-09**.
+- **Repo:** local git; `main` = planning docs; `p1-core` = phase 1 + phase 2 commits. No remote.
+- **Built so far (all synthetic data, all offline, no API keys):**
+  - Phase 1: scaffold/CI/secret scan (T-003); schema v0.1 + validator (T-020); Hindi normaliser + date resolver (T-020a); rule engine HBNC/HBYC/UIP (T-050/T-051).
+  - Phase 2: STT adapters `server/app/stt/` (Vosk offline Hindi = default; mock labelled SIMULATED; Sarvam = stub needing key); rule-based extractor `server/app/extraction/rule_based.py` (LLM-shaped output + quotes → same validator); name resolution `names.py` (T-027 v0); pipeline `server/app/pipeline.py`; eval harness `eval/harness.py` (T-025, text-only); 40 dev + 20 held-out synthetic notes + registry in `eval/data/` (T-021 v0); `docs/providers.md`.
+- **Numbers (only these exist; synthetic, same author — never on a slide without the caveat):** `eval/results/2026-11-07/holdout/report.md` — P 0.99 / R 0.87 / F1 0.93, critical-field match 16/20, unsupported values 0.000, text pipeline p50 10.7 ms. Dev set (tuned on) F1 0.99 — overfit, regression guard only. **Not measured:** STT WER (no recordings), LLM extraction (no key), time saved.
+- **Vosk:** plumbing verified on a 22 kHz WAV (English TTS → garbage text, as expected); warm 2.9 s for 4.7 s audio on this laptop. Hindi accuracy unmeasured.
+- **Last verified commands (2026-11-07):** `.\make.ps1 test` → "374 passed in 4.96s"; `.\make.ps1 lint` → "All checks passed!"; `.\make.ps1 secrets-scan` → "0 finding(s)".
 
-## 3. Next actions (ordered — see `plan.md` §9 day-by-day)
+## 3. Next actions (ordered)
 
-1. **(human)** Give the new target date (EnVision Phase 2 / next competition) → re-baseline `plan.md` §9.
-2. **T-006 (human)** Get keys: Sarvam (₹1,000 free credit on signup), Anthropic API key; Bhashini optional. IndicConformer dropped on this machine (D-14).
-3. **Phase 2 — Pipeline:** T-023 STT adapters (mock + Sarvam + Bhashini), T-024 extraction service (mock + Claude structured output → `validate_extraction`), T-027 name resolution v0, T-025 eval harness (`make eval`), T-021 first 40 synthetic scripts + ground-truth JSON.
-4. **Phase 3 — Server:** FastAPI + SQLite, mock OTP, `/v1/transcribe-extract`, claim support sheet PDF/XLSX.
-5. **Phase 4 — App:** Flutter (needs ~10 GB install + a real Android phone; ask before installing).
-Parallel (humans): T-022 record scripts, T-004 consent form, T-005 forms, T-010 outreach, T-013 rule review (see U21–U24).
+1. **Phase 3 (2026-11-08) — server:** FastAPI + SQLite (SQLAlchemy), mock phone-OTP labelled SIMULATED, `/v1/notes` (audio or text → draft), `/v1/notes/{id}/confirm`, tasks from rule engine, claim support sheet PDF/XLSX (national rates labelled "confirm UP rates"), audio deleted on confirm.
+2. **Phase 3 (2026-11-09) — mobile web app** served by FastAPI: record (browser mic → 16 kHz WAV in JS) / type → review & confirm (flags first, quotes shown, tap to fix) → Home tasks with "why now" → reports → settings/privacy panel. Hindi default, English toggle. Note: phone mic over Wi-Fi needs HTTPS (self-signed cert) — laptop browser works on localhost.
+3. **(human)** Record 3–5 synthetic notes in Hindi on the laptop once the web app exists → first real Vosk check.
+4. **(human, when possible)** Sarvam + Anthropic keys → T-023/T-024 adapters + bake-off (T-026).
+5. Flutter app (phase 4) after v1; ANM review of U21–U24.
 
 ## 4. Blockers and waiting-on-humans
 
 | # | Item | Owner | Status |
 |---|---|---|---|
 | B1 | SFIC not submitted (window closed 6 Nov) — new target date needed | Lead | open |
-| B2 | API keys: none yet (Sarvam, Anthropic, Bhashini) — phase 2 runs on mocks until then | Lead | open |
+| B2 | API keys: none (human cannot obtain now) — v1 runs fully offline (Vosk + rule-based) | Lead | open, worked around |
 | B3 | Blank official UP forms and claim form | Research team | open |
 | B4 | ≥5 ASHA/ANM conversations | Research team | open |
 | B5 | Clinician/ANM reviewer for rules | Lead | open |
@@ -74,6 +72,10 @@ Parallel (humans): T-022 record scripts, T-004 consent form, T-005 forms, T-010 
 | D-13 | Dev database | SQLite (SQLAlchemy, Postgres-ready); no Docker — `docs/decisions/001` | **confirmed** | 2026-11-07 |
 | D-14 | Self-hosted ASR | Dropped on this machine (no CUDA); STT = Sarvam/Bhashini; mocks until keys | **confirmed** (follows from hardware) | 2026-11-07 |
 | D-15 | SFIC | Not submitted | **confirmed** (human) | 2026-11-07 |
+| D-16 | v1 form factor | Mobile web app served by FastAPI; Flutter deferred to after v1 | **confirmed** (human) | 2026-11-07 |
+| D-17 | v1 STT | Vosk `small-hi-0.22` offline (Apache-2.0); Sarvam when a key exists | **confirmed** (human) | 2026-11-07 |
+| D-18 | v1 extractor | Rule-based, deterministic (no LLM key); same validator; LLM later via bake-off | **confirmed** (follows from no key) | 2026-11-07 |
+| D-19 | Deadline | Prototype v1 by 2026-11-09 | **confirmed** (human) | 2026-11-07 |
 
 ## 6. Environment and setup
 
@@ -164,4 +166,11 @@ aura/
 - Done (evidence: `.\make.ps1 lint` → All checks passed; `.\make.ps1 test` → 292 passed; `.\make.ps1 secrets-scan` → 0 findings): T-003, T-020, T-020a, T-050, T-051 (engine side).
 - New unverified items (added to context §12): U21 HBNC day numbering (assumed birth = day 1), U22 grace windows (HBNC 1 d, HBYC 30 d, UIP 28 d — placeholders), U23 danger-sign code list, U24 weight ranges outside HBNC.
 - Not done: CI never ran (no remote); Hindi UI/reason strings not native-reviewed; T-027 name resolution moved to phase 2.
+- Next: §3.
+
+### 2026-11-07 — Build phase 2 (Pipeline)
+- Human: prototype v1 within 2 days; no API keys; team cannot record/write test notes → D-16…D-19.
+- Done (evidence: `.\make.ps1 test` → 374 passed; lint clean; secret scan 0): STT adapters (Vosk + mock + Sarvam stub), rule-based extractor, name resolution v0, pipeline, eval harness, 60 synthetic notes (40 dev / 20 held-out), registry, `docs/providers.md`, `make eval` / `make models`.
+- Eval: held-out F1 0.93 (P 0.99, R 0.87), critical 16/20 — synthetic, same author, text-only. Dev 0.99 is overfit (3 real bugs fixed while debugging on it: "दौरा" = visit not convulsion; partial-word quotes; Hinglish verb-first order).
+- Not done: no Hindi audio exists (Windows has no Hindi TTS voice) → WER unmeasured; Sarvam/Claude adapters not built (no keys).
 - Next: §3.
