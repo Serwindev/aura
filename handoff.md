@@ -20,36 +20,40 @@
 - Principle: capture once → verify once → reuse across applications.
 - Focus: Uttar Pradesh workflows, Hindi primary, English second. Demo for EnVision '26 → Seva First (South Zone, Open level, Track A).
 - Hard constraints: synthetic data only; no location/attendance/productivity scoring; never claim government integration we do not have.
-- Deadline shape: **demo-ready 5 Nov** (thin vertical slice; plan §9); showcase window from 30 Nov (dates to confirm, T-001).
+- Deadline shape: SFIC **not submitted** (window closed 6 Nov). New target date: **open (ask lead)**. Build continues phase by phase (§3).
 
 ## 2. Current state (update each session)
 
-- **Date:** 2026-10-28 · **Phase:** P0 Lock (see `plan.md` §9)
-- **Repo:** not created yet (T-003).
-- **Built:** nothing. Planning files only: `CLAUDE.md`, `plan.md` (v2.0), `context.md`, `handoff.md`.
-- **Evidence collected:** research pass 1 + 2 (context §13, S29–S34). No POC numbers exist.
-- **Last verified commands:** none.
+- **Date:** 2026-11-07 · **Phase:** build phase 1 (Core) **done**; phase 2 (Pipeline) next. Dates in `plan.md` §9 are stale (schedule slipped ~10 days); re-baseline once the lead gives a target date.
+- **Repo:** git initialised locally (`main` = planning docs; `p1-core` = phase 1). No remote yet.
+- **Built (phase 1, all synthetic, no network calls):**
+  - T-003 scaffold: `.gitignore`, `.env.example`, MIT `LICENSE`, `Makefile` + `make.ps1` (Windows), CI (`.github/workflows/ci.yml`: ruff, pytest, secret scan, gitleaks), `scripts/secret_scan.py`.
+  - T-020 schema v0.1 (`server/app/core/schema.py`) + validator (`server/app/extraction/validate.py`) enforcing all §5.2 hard rules.
+  - T-020a Hindi normaliser (`server/app/extraction/normalize.py`) + date resolver (`dates_hi.py`).
+  - T-050/T-051 rule engine (`server/app/rules/engine.py`) + `rules/{hbnc,hbyc,uip,anc,validation}.yaml` (all `status: draft`; ANC disabled) + shared vectors `rules/tests/*.yaml`.
+- **Not built:** STT/LLM adapters, eval harness, API, DB, app, reports. No accuracy numbers exist.
+- **Last verified commands (2026-11-07):** `.\make.ps1 lint` → "All checks passed!"; `.\make.ps1 test` → "292 passed in 1.80s" (normaliser 200, dates 40, validator 25, rules 23, schema 4); `.\make.ps1 secrets-scan` → "0 finding(s)". CI not yet run (no remote).
 
 ## 3. Next actions (ordered — see `plan.md` §9 day-by-day)
 
-1. **T-001** (human) Confirm our SFIC entry status in the portal; live portal says window closes **6 Nov**.
-2. **T-006** (human) Get keys: Sarvam, Bhashini ULCA userID + key, LLM API key; accept IndicConformer HF terms.
-3. **T-003** Scaffold the monorepo (§7), Makefile, CI, `.env.example`, secret scan.
-4. **T-020 + T-020a** Schema v0.1 + validators + Hindi normaliser + tests.
-5. **T-021** (team) First 40 scripts + ground truth by 30 Oct; T-022 record them 30 Oct.
-6. **T-023 → T-024 → T-025** STT adapters, extraction, eval harness; mini-eval #1 on 1 Nov.
-Parallel (humans): T-004 consent form, T-005 forms, T-010 outreach, T-014 deck claim check.
+1. **(human)** Give the new target date (EnVision Phase 2 / next competition) → re-baseline `plan.md` §9.
+2. **T-006 (human)** Get keys: Sarvam (₹1,000 free credit on signup), Anthropic API key; Bhashini optional. IndicConformer dropped on this machine (D-14).
+3. **Phase 2 — Pipeline:** T-023 STT adapters (mock + Sarvam + Bhashini), T-024 extraction service (mock + Claude structured output → `validate_extraction`), T-027 name resolution v0, T-025 eval harness (`make eval`), T-021 first 40 synthetic scripts + ground-truth JSON.
+4. **Phase 3 — Server:** FastAPI + SQLite, mock OTP, `/v1/transcribe-extract`, claim support sheet PDF/XLSX.
+5. **Phase 4 — App:** Flutter (needs ~10 GB install + a real Android phone; ask before installing).
+Parallel (humans): T-022 record scripts, T-004 consent form, T-005 forms, T-010 outreach, T-013 rule review (see U21–U24).
 
 ## 4. Blockers and waiting-on-humans
 
 | # | Item | Owner | Status |
 |---|---|---|---|
-| B1 | SFIC submission status/deadline (conflicting dates) | Lead | open |
-| B2 | Bhashini ULCA userID + API key; Sarvam API key | Lead | open |
+| B1 | SFIC not submitted (window closed 6 Nov) — new target date needed | Lead | open |
+| B2 | API keys: none yet (Sarvam, Anthropic, Bhashini) — phase 2 runs on mocks until then | Lead | open |
 | B3 | Blank official UP forms and claim form | Research team | open |
 | B4 | ≥5 ASHA/ANM conversations | Research team | open |
 | B5 | Clinician/ANM reviewer for rules | Lead | open |
 | B6 | EnVision Phase 2 internal deadline | Lead | open |
+| B7 | No GPU/Docker on dev laptop (AMD iGPU, 7 GB RAM) | — | worked around (D-13, D-14) |
 
 ## 5. Decisions (log; proposed defaults are NOT confirmed until marked)
 
@@ -66,11 +70,14 @@ Parallel (humans): T-004 consent form, T-005 forms, T-010 outreach, T-014 deck c
 | D-09 | Wording | "claim support", "integration-ready", "advisory" | **confirmed** | 2026-10-28 |
 | D-10 | Roles | `plan.md` §8 | **confirmed** | 2026-10-28 |
 | D-11 | Budget / API credits | Free tiers + Sarvam starter credits (amount [U]) + local GPU (cost near zero) | **confirmed** | 2026-10-28 |
-| D-12 | Internal deadline | demo-ready 5 Nov | **confirmed** | 2026-10-28 |
+| D-12 | Internal deadline | demo-ready 5 Nov | **missed — re-baseline pending** | 2026-11-07 |
+| D-13 | Dev database | SQLite (SQLAlchemy, Postgres-ready); no Docker — `docs/decisions/001` | **confirmed** | 2026-11-07 |
+| D-14 | Self-hosted ASR | Dropped on this machine (no CUDA); STT = Sarvam/Bhashini; mocks until keys | **confirmed** (follows from hardware) | 2026-11-07 |
+| D-15 | SFIC | Not submitted | **confirmed** (human) | 2026-11-07 |
 
 ## 6. Environment and setup
 
-**Prerequisites (verify versions; install latest stable):** Git; Flutter SDK + Android Studio/SDK + an emulator (and ideally one real low-end Android phone); Python ≥ 3.11 with `uv`; Docker (PostgreSQL); optional NVIDIA GPU stack for self-hosted ASR (IndicConformer/NeMo or ONNX).
+**Prerequisites:** Git ✔ (2.55); Python 3.12.10 ✔ (winget, user scope); uv 0.13.7 ✔ (winget; not on bash PATH — in Git Bash prepend `$(cygpath "$LOCALAPPDATA")/Microsoft/WinGet/Packages/astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe`); Flutter + Android SDK ✘ (phase 4); Docker ✘ (not needed, D-13); `make` ✘ → use `.\make.ps1 <target>`.
 
 **Environment variables (names only; never commit values; keep in `.env`, provide `.env.example`):**
 `DATABASE_URL`, `JWT_SECRET`, `STT_PROVIDER`, `BHASHINI_USER_ID`, `BHASHINI_API_KEY`, `SARVAM_API_KEY`, `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `AUDIO_RETENTION_HOURS`, `APP_ENV`.
@@ -150,3 +157,11 @@ aura/
 - Risks or surprises:
 - Next:
 -->
+
+### 2026-11-07 — Build phase 1 (Core)
+- Research refresh: SFIC registration closed 6 Nov, no further extension found (PIB / PW). New close competitor: "Sakhi" (solo Hindi voice-to-form for ASHAs, dev.to). Sarvam: STT still ₹30/h, `saaras:v4` now on REST/Batch/WebSocket, ₹1,000 signup credit.
+- Machine reality differs from context §3: no NVIDIA GPU, 7 GB RAM, no Python/Docker/Flutter. Installed Python 3.12 + uv (approved). Decisions D-13/D-14/D-15 logged; `docs/decisions/001-dev-environment.md`.
+- Done (evidence: `.\make.ps1 lint` → All checks passed; `.\make.ps1 test` → 292 passed; `.\make.ps1 secrets-scan` → 0 findings): T-003, T-020, T-020a, T-050, T-051 (engine side).
+- New unverified items (added to context §12): U21 HBNC day numbering (assumed birth = day 1), U22 grace windows (HBNC 1 d, HBYC 30 d, UIP 28 d — placeholders), U23 danger-sign code list, U24 weight ranges outside HBNC.
+- Not done: CI never ran (no remote); Hindi UI/reason strings not native-reviewed; T-027 name resolution moved to phase 2.
+- Next: §3.

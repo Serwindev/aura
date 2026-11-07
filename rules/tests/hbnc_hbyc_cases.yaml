@@ -1,0 +1,88 @@
+# Shared rule-engine test vectors (Python now, Dart later). Synthetic beneficiaries only.
+# day_numbering = birth_is_day_1 → day N is due on dob + (N-1) days.
+cases:
+  - name: institutional delivery, today is day 3
+    today: 2026-11-10
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    expect:
+      - {rule_id: hbnc_d3, due_date: 2026-11-10, window_end: 2026-11-11, status: due, rank: 1}
+      - {rule_id: hbnc_d7, due_date: 2026-11-14, status: due_soon, rank: 3}
+      - {rule_id: hbnc_d14, due_date: 2026-11-21, status: upcoming}
+      - {rule_id: hbnc_d21, due_date: 2026-11-28}
+      - {rule_id: hbnc_d28, due_date: 2026-12-05}
+      - {rule_id: hbnc_d42, due_date: 2026-12-19}
+    absent: [hbnc_d1]
+
+  - name: home delivery adds day 1, due on the day of birth
+    today: 2026-11-08
+    beneficiaries: [{id: nb2, category: newborn, dob: 2026-11-08, delivery_place: home}]
+    expect:
+      - {rule_id: hbnc_d1, due_date: 2026-11-08, status: due}
+      - {rule_id: hbnc_d3, due_date: 2026-11-10, status: due_soon}
+
+  - name: day 3 window passed → overdue until day 7 falls due
+    today: 2026-11-12
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    expect:
+      - {rule_id: hbnc_d3, status: overdue, rank: 0}
+
+  - name: day 3 not done by day 7 → missed
+    today: 2026-11-14
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    expect:
+      - {rule_id: hbnc_d3, status: missed}
+      - {rule_id: hbnc_d7, status: due}
+
+  - name: visit recorded with hbnc_day marks it done
+    today: 2026-11-12
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    visits: [{beneficiary_id: nb1, visit_type: HBNC, visit_date: 2026-11-10, hbnc_day: 3}]
+    expect:
+      - {rule_id: hbnc_d3, status: done, done_on: 2026-11-10}
+
+  - name: visit without hbnc_day counts if inside the window
+    today: 2026-11-12
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    visits: [{beneficiary_id: nb1, visit_type: HBNC, visit_date: 2026-11-11}]
+    expect:
+      - {rule_id: hbnc_d3, status: done}
+
+  - name: last HBNC visit never expires, only goes overdue
+    today: 2027-01-15
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    expect:
+      - {rule_id: hbnc_d42, status: overdue}
+      - {rule_id: hbnc_d28, status: missed}
+
+  - name: danger sign at last visit lifts a due-soon task above other due-soon tasks
+    today: 2026-11-10
+    beneficiaries: [{id: nb1, category: newborn, dob: 2026-11-08, delivery_place: institution}]
+    visits: [{beneficiary_id: nb1, visit_type: HBNC, visit_date: 2026-11-10, hbnc_day: 3, danger_sign: true}]
+    expect:
+      - {rule_id: hbnc_d3, status: done}
+      - {rule_id: hbnc_d7, status: due_soon, rank: 2}
+
+  - name: HBYC at 9 months; earlier ones missed
+    today: 2026-11-07
+    beneficiaries: [{id: ch1, category: child, dob: 2026-02-07}]
+    expect:
+      - {rule_id: hbyc_m3, due_date: 2026-05-07, status: missed}
+      - {rule_id: hbyc_m6, due_date: 2026-08-07, status: missed}
+      - {rule_id: hbyc_m9, due_date: 2026-11-07, window_end: 2026-12-07, status: due}
+      - {rule_id: hbyc_m12, due_date: 2027-02-07, status: upcoming}
+      - {rule_id: hbyc_m15, due_date: 2027-05-07}
+
+  - name: HBYC visits done by month index
+    today: 2026-11-07
+    beneficiaries: [{id: ch1, category: child, dob: 2026-02-07}]
+    visits:
+      - {beneficiary_id: ch1, visit_type: HBYC, visit_date: 2026-05-08, hbyc_month: 3}
+      - {beneficiary_id: ch1, visit_type: HBYC, visit_date: 2026-08-10, hbyc_month: 6}
+    expect:
+      - {rule_id: hbyc_m3, status: done}
+      - {rule_id: hbyc_m6, status: done}
+
+  - name: pregnant woman gets no newborn/child tasks (ANC disabled until T-013)
+    today: 2026-11-10
+    beneficiaries: [{id: pw1, category: pregnant, dob: 2000-01-01}]
+    absent: [hbnc_d3, hbyc_m3, bcg]

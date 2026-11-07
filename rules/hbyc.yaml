@@ -1,0 +1,18 @@
+# Home Based care for Young Child — ADVISORY ONLY. Not clinical guidance.
+programme: HBYC
+version: 1
+status: draft
+source: "[S16][S17] context.md §8.2"
+applies_to: [newborn, child]
+anchor: dob
+grace_days: 30          # [U] placeholder window after the due date
+expire_on_next: true
+visits:
+  - {id: hbyc_m3, month: 3}
+  - {id: hbyc_m6, month: 6}
+  - {id: hbyc_m9, month: 9}
+  - {id: hbyc_m12, month: 12}
+  - {id: hbyc_m15, month: 15}
+reason:
+  en: "HBYC {month}-month home visit (born {anchor})"
+  hi: "HBYC {month} माह का गृह भ्रमण (जन्म {anchor})"

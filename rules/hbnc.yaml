@@ -1,0 +1,25 @@
+# Home Based Newborn Care — ADVISORY ONLY. Not clinical guidance.
+programme: HBNC
+version: 1
+status: draft                     # draft | clinician_reviewed
+source: "[S16][S17] context.md §8.1"
+applies_to: [newborn, child]
+anchor: dob                       # newborn's date of birth = delivery date
+# [U] How "day N" maps to a calendar date. birth_is_day_1: day 1 = date of birth
+# (consistent with "day 1 = within 24 h" for home deliveries). Verify with an ANM (T-013).
+day_numbering: birth_is_day_1
+# [U] placeholder: days after the due date a visit still counts as "due" (then "overdue").
+grace_days: 1
+# A visit not done by the time the next HBNC visit falls due becomes "missed".
+expire_on_next: true
+visits:
+  - {id: hbnc_d1, day: 1, only_if: {delivery_place: home}}   # home delivery adds day 1 [V][S16]
+  - {id: hbnc_d3, day: 3}
+  - {id: hbnc_d7, day: 7}
+  - {id: hbnc_d14, day: 14}
+  - {id: hbnc_d21, day: 21}
+  - {id: hbnc_d28, day: 28}
+  - {id: hbnc_d42, day: 42}
+reason:
+  en: "HBNC day {day} home visit (born {anchor})"
+  hi: "HBNC दिन {day} का गृह भ्रमण (जन्म {anchor})"

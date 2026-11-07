@@ -1,0 +1,60 @@
+# UIP test vectors. 6 weeks = 42 days, 10 weeks = 70 days, 14 weeks = 98 days.
+cases:
+  - name: 6-week doses due; birth doses done; series dose 2 waits for dose 1
+    today: 2026-10-13
+    beneficiaries: [{id: c1, category: child, dob: 2026-09-01}]
+    doses:
+      - {beneficiary_id: c1, dose_id: bcg, given_on: 2026-09-01}
+      - {beneficiary_id: c1, dose_id: hepb0, given_on: 2026-09-01}
+      - {beneficiary_id: c1, dose_id: opv0, given_on: 2026-09-01}
+    expect:
+      - {rule_id: bcg, status: done}
+      - {rule_id: hepb0, status: done}
+      - {rule_id: opv1, due_date: 2026-10-13, status: due}
+      - {rule_id: penta1, due_date: 2026-10-13, status: due}
+      - {rule_id: fipv1, due_date: 2026-10-13, status: due}
+      - {rule_id: rota1, due_date: 2026-10-13, status: due}
+      - {rule_id: pcv1, due_date: 2026-10-13, status: due}
+      - {rule_id: opv2, status: waiting}
+      - {rule_id: mr1, due_date: 2027-06-01, window_end: 2027-09-01, status: upcoming}
+      - {rule_id: mr2, due_date: 2028-01-01, window_end: 2028-09-01}
+    absent: [je1, je2, fipv3]   # feature-flagged off by default
+
+  - name: Hep B birth dose missed after 24 h
+    today: 2026-09-03
+    beneficiaries: [{id: c2, category: newborn, dob: 2026-09-01}]
+    expect:
+      - {rule_id: hepb0, status: missed}
+      - {rule_id: opv0, status: due}
+      - {rule_id: bcg, status: due}
+
+  - name: OPV-0 missed after 15 days
+    today: 2026-09-17
+    beneficiaries: [{id: c2, category: newborn, dob: 2026-09-01}]
+    expect:
+      - {rule_id: opv0, status: missed}
+
+  - name: late dose 1 pushes dose 2 by the 4-week minimum interval (no restart)
+    today: 2026-11-12
+    beneficiaries: [{id: c3, category: child, dob: 2026-09-01}]
+    doses:
+      - {beneficiary_id: c3, dose_id: opv1, given_on: 2026-11-01}
+      - {beneficiary_id: c3, dose_id: penta1, given_on: 2026-10-13}
+    expect:
+      - {rule_id: opv2, due_date: 2026-11-29, status: upcoming}
+      - {rule_id: penta2, due_date: 2026-11-10, status: due}
+      - {rule_id: opv3, status: waiting}
+
+  - name: 14-week doses after on-time series
+    today: 2026-12-08
+    beneficiaries: [{id: c4, category: child, dob: 2026-09-01}]
+    doses:
+      - {beneficiary_id: c4, dose_id: opv1, given_on: 2026-10-13}
+      - {beneficiary_id: c4, dose_id: opv2, given_on: 2026-11-10}
+      - {beneficiary_id: c4, dose_id: penta1, given_on: 2026-10-13}
+      - {beneficiary_id: c4, dose_id: penta2, given_on: 2026-11-10}
+      - {beneficiary_id: c4, dose_id: fipv1, given_on: 2026-10-13}
+    expect:
+      - {rule_id: opv3, due_date: 2026-12-08, status: due}
+      - {rule_id: penta3, due_date: 2026-12-08, status: due}
+      - {rule_id: fipv2, due_date: 2026-12-08, status: due}

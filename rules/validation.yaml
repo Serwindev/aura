@@ -1,0 +1,51 @@
+# Validation config for extracted visit records. ADVISORY ONLY — not clinical guidance.
+status: draft            # draft | clinician_reviewed
+source: "plan.md §5.2 draft ranges; danger-sign list [U] — verify against HBNC/HBYC job aids [S16]"
+review_needed:
+  - "All ranges are plausibility checks, not clinical thresholds."
+  - "weight_kg default range is a placeholder [U]; only the HBNC newborn range comes from plan §5.2."
+  - "Danger-sign codes are a working vocabulary [U]; map to official job-aid wording (T-013)."
+
+ranges:
+  default:
+    weight_kg: [0.5, 200]   # placeholder [U]
+    temp_c: [34, 42]
+    bp_sys: [60, 260]
+    bp_dia: [30, 160]
+    hb_g_dl: [3, 20]
+    pulse: [40, 220]
+    resp_rate: [10, 100]
+  by_visit_type:
+    HBNC:
+      weight_kg: [0.5, 6]
+
+danger_signs:
+  newborn:
+    NB_NOT_FEEDING: {en: "Not feeding well / poor suck", hi: "ठीक से दूध नहीं पी रहा"}
+    NB_CONVULSIONS: {en: "Convulsions", hi: "झटके / दौरे"}
+    NB_LETHARGIC: {en: "Lethargic / unconscious", hi: "सुस्त / बेहोश"}
+    NB_FAST_BREATHING: {en: "Fast breathing", hi: "तेज़ साँस"}
+    NB_CHEST_INDRAWING: {en: "Chest indrawing", hi: "छाती धँसना"}
+    NB_FEVER: {en: "Fever", hi: "बुखार"}
+    NB_COLD: {en: "Body cold (hypothermia)", hi: "शरीर ठंडा"}
+    NB_JAUNDICE: {en: "Yellow skin / eyes", hi: "पीलिया"}
+    NB_CORD_INFECTION: {en: "Redness or pus at cord", hi: "नाल में लाली या मवाद"}
+    NB_SKIN_PUSTULES: {en: "Skin pustules", hi: "त्वचा पर फुंसियाँ"}
+  mother:
+    M_HEAVY_BLEEDING: {en: "Heavy bleeding", hi: "अधिक रक्तस्राव"}
+    M_CONVULSIONS: {en: "Convulsions", hi: "झटके / दौरे"}
+    M_HIGH_FEVER: {en: "High fever", hi: "तेज़ बुखार"}
+    M_SEVERE_HEADACHE: {en: "Severe headache / blurred vision", hi: "तेज़ सिरदर्द / धुंधला दिखना"}
+    M_FOUL_DISCHARGE: {en: "Foul-smelling discharge", hi: "बदबूदार स्राव"}
+    M_SWELLING: {en: "Swelling of face / hands", hi: "चेहरे / हाथों पर सूजन"}
+    M_REDUCED_FETAL_MOVEMENT: {en: "Reduced fetal movement", hi: "बच्चे का कम हिलना"}
+    M_BREATHLESSNESS: {en: "Breathlessness", hi: "साँस फूलना"}
+  child:
+    CH_UNABLE_TO_DRINK: {en: "Unable to drink / breastfeed", hi: "पी नहीं पा रहा"}
+    CH_VOMITS_EVERYTHING: {en: "Vomits everything", hi: "सब कुछ उल्टी कर देता है"}
+    CH_CONVULSIONS: {en: "Convulsions", hi: "झटके / दौरे"}
+    CH_LETHARGIC: {en: "Lethargic / unconscious", hi: "सुस्त / बेहोश"}
+    CH_DIARRHOEA_DEHYDRATION: {en: "Diarrhoea with dehydration", hi: "दस्त और पानी की कमी"}
+    CH_FAST_BREATHING: {en: "Fast breathing", hi: "तेज़ साँस"}
+  any:
+    OTHER: {en: "Other (see note)", hi: "अन्य (नोट देखें)"}

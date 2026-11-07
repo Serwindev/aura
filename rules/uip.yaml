@@ -1,0 +1,49 @@
+# Universal Immunisation Programme (infants) — ADVISORY ONLY. Not clinical guidance.
+programme: UIP
+version: 1
+status: draft
+source: "[S18] context.md §8.3"
+applies_to: [newborn, child]
+anchor: dob
+# Doses in the same series need >= 4 weeks between them; a missed dose never restarts
+# the series [V][S18].
+min_interval_days: 28
+grace_days: 28          # [U] placeholder window before a dose shows as overdue
+# "where applicable" vaccines differ by state/district → config, not code.
+features: {rota: true, pcv: true, je: false, fipv3: false}
+doses:
+  # birth doses (with hard upper age limits from S18)
+  - {id: bcg, vaccine: BCG, age_days: 0}
+  - {id: hepb0, vaccine: "Hep B birth dose", age_days: 0, max_age_days: 1}
+  - {id: opv0, vaccine: OPV-0, age_days: 0, max_age_days: 15}
+  # 6 weeks
+  - {id: opv1, vaccine: OPV-1, age_weeks: 6, series: OPV, seq: 1}
+  - {id: penta1, vaccine: Penta-1, age_weeks: 6, series: PENTA, seq: 1}
+  - {id: fipv1, vaccine: fIPV-1, age_weeks: 6, series: FIPV, seq: 1}
+  - {id: rota1, vaccine: Rota-1, age_weeks: 6, series: ROTA, seq: 1, feature: rota}
+  - {id: pcv1, vaccine: PCV-1, age_weeks: 6, series: PCV, seq: 1, feature: pcv}
+  # 10 weeks
+  - {id: opv2, vaccine: OPV-2, age_weeks: 10, series: OPV, seq: 2}
+  - {id: penta2, vaccine: Penta-2, age_weeks: 10, series: PENTA, seq: 2}
+  - {id: rota2, vaccine: Rota-2, age_weeks: 10, series: ROTA, seq: 2, feature: rota}
+  # 14 weeks
+  - {id: opv3, vaccine: OPV-3, age_weeks: 14, series: OPV, seq: 3}
+  - {id: penta3, vaccine: Penta-3, age_weeks: 14, series: PENTA, seq: 3}
+  - {id: fipv2, vaccine: fIPV-2, age_weeks: 14, series: FIPV, seq: 2}
+  - {id: rota3, vaccine: Rota-3, age_weeks: 14, series: ROTA, seq: 3, feature: rota}
+  - {id: pcv2, vaccine: PCV-2, age_weeks: 14, series: PCV, seq: 2, feature: pcv}
+  # 9–12 months
+  - {id: mr1, vaccine: MR-1, age_months: 9, window_end_months: 12}
+  - {id: je1, vaccine: JE-1, age_months: 9, window_end_months: 12, feature: je}
+  - {id: pcv_b, vaccine: PCV booster, age_months: 9, window_end_months: 12, series: PCV, seq: 3, feature: pcv}
+  - {id: vita1, vaccine: Vitamin A-1, age_months: 9, window_end_months: 12}
+  - {id: fipv3, vaccine: fIPV-3, age_months: 9, window_end_months: 12, series: FIPV, seq: 3, feature: fipv3}
+  # 16–24 months
+  - {id: mr2, vaccine: MR-2, age_months: 16, window_end_months: 24}
+  - {id: dpt_b1, vaccine: DPT booster-1, age_months: 16, window_end_months: 24}
+  - {id: opv_b, vaccine: OPV booster, age_months: 16, window_end_months: 24, series: OPV, seq: 4}
+  - {id: je2, vaccine: JE-2, age_months: 16, window_end_months: 24, feature: je}
+  - {id: vita2, vaccine: Vitamin A-2, age_months: 16, window_end_months: 24}
+reason:
+  en: "Vaccine due: {vaccine} (born {anchor})"
+  hi: "टीका देय: {vaccine} (जन्म {anchor})"

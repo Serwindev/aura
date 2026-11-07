@@ -1,0 +1,37 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+*.egg-info/
+*.db
+*.sqlite3
+
+# audio and eval artefacts (synthetic recordings stay out of git; manifest only)
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.ogg
+eval/data/audio/
+
+# flutter / android
+app/.dart_tool/
+app/build/
+app/.flutter-plugins*
+app/android/.gradle/
+app/android/local.properties
+*.iml
+.idea/
+
+# os / editors
+.DS_Store
+Thumbs.db
+.vscode/

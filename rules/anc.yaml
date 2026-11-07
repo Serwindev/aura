@@ -1,0 +1,8 @@
+# Antenatal care — DISABLED until the visit-by-visit timing is verified (T-013, context U8).
+# Known [V][S34]: minimum 4 ANC visits + PMSMA specialist check on the 9th of each month;
+# up to 3 extra follow-ups for high-risk pregnancies. Timing per visit is [U] → no tasks yet.
+programme: ANC
+version: 0
+status: draft
+enabled: false
+source: "[S34] context.md §8.4"

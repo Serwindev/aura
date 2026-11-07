@@ -264,6 +264,10 @@ ASHA: Accredited Social Health Activist. ANM: Auxiliary Nurse Midwife. AWW: Anga
 | U18 | Weekly reporting need | Interviews (T-010) |
 | U19 | AMRIT FLW overlap details | Read the open-source repo/docs |
 | U20 | Team skills and availability | Skills matrix (T-002) |
+| U21 | HBNC day numbering (is the day of birth day 1?) — engine assumes yes, configurable in `rules/hbnc.yaml` | ANM review (T-013) |
+| U22 | Grace windows before a visit/dose is "overdue" (HBNC 1 d, HBYC 30 d, UIP 28 d are placeholders) | ANM review (T-013) |
+| U23 | Danger-sign code list in `rules/validation.yaml` (working vocabulary) | Map to HBNC/HBYC job aids [S16] (T-013) |
+| U24 | Plausibility weight ranges for non-HBNC visits (default 0.5–200 kg placeholder) | Clinician review (T-013) |
 
 ---
 
