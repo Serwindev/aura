@@ -75,10 +75,12 @@ def resolve_beneficiary(transcript: str, people: list[Person], visit_type: str |
                 end = toks[i + 1].end
             nxt = [t.norm for t in toks[i + 1:i + 4]]
             possessive_child = (len(nxt) >= 2 and nxt[0] in POSSESSIVE and nxt[1] in CHILD_WORDS)
+            # speech recognisers often drop the possessive: "rekha baby has fever"
+            bare_child = len(nxt) >= 1 and nxt[0] in CHILD_WORDS
             kids = _children(people, person, visit_type)
-            if possessive_child and kids:
+            if (possessive_child or bare_child) and kids:
                 if len(kids) == 1:
-                    target, end = kids[0], toks[i + 2].end
+                    target, end = kids[0], toks[i + (2 if possessive_child else 1)].end
                 else:
                     continue  # several children: let a child's own name decide
             elif kids and len(kids) == 1 and visit_type in CHILD_VISITS and person.category != "newborn":

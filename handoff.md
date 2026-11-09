@@ -24,22 +24,26 @@
 
 ## 2. Current state (update each session)
 
-- **Date:** 2026-11-07 · **Phase:** build phases 1 (Core) and 2 (Pipeline) **done**; phase 3 (server + mobile web app) next → prototype v1 due **2026-11-09**.
-- **Repo:** local git; `main` = planning docs; `p1-core` = phase 1 + phase 2 commits. No remote.
+- **Date:** 2026-11-09 · **Phase:** phases 1–3 **done**: prototype v1 runs (FastAPI + SQLite + mobile web app). Hindi voice accuracy still **unmeasured**.
+- **Repo:** local git; `main` = planning docs; `p1-core` = phases 1–3. No remote.
+- **Run:** `.\make.ps1 server` → http://localhost:8000 (laptop). `.\make.ps1 phone` → prints an `https://<wifi-ip>:8443` address for a phone on the same Wi-Fi (self-signed: accept the one-time warning; allow Windows Firewall if asked; use a phone hotspot if campus Wi-Fi isolates devices). `.\make.ps1 db-reset` clears the demo. First-time setup: `.\make.ps1 setup`, `.\make.ps1 models`.
+- **Phase 3 built:** simulated OTP login, `/v1` API (notes from audio/text, confirm with server-side re-validation and server-owned evidence, tasks with reschedule/dismiss, claim sheet JSON/PDF/XLSX, privacy summary/export/delete), audio deleted on confirm or discard (7-day cap), synthetic demo household with history labelled SIMULATED, mobile web app (record, audio-file upload, type, review & confirm, Home, reports, settings/privacy), Hindi default + English.
+- **Not in v1:** offline queue on the phone, background sync, monthly activity summary, ANC tasks, Flutter. The phone must reach the laptop; no internet is needed.
+- **Evidence (2026-11-09):** `eval/results/2026-11-09/holdout/report.md` supersedes the 11-07 figures below: P 0.99 / R 0.90 / F1 0.94, critical 17/20 (0.85), unsupported 0.000, p50 10.5 ms (synthetic, same author, text-only). Dev F1 0.99 (overfit). Browser run in headless Edge at 390 px and 320 px, over `http://localhost` and HTTPS on the LAN IP, with a synthetic English WAV as fake mic: all flows passed, no console errors. Not tested on a physical phone.
+- **Known limits:** Vosk small English misheard names in Windows TTS audio (names need picking on review, or start from a task). Hindi UI copy is not native-reviewed. Claim sheet covers HBNC/HBYC only, at national rates.
 - **Built so far (all synthetic data, all offline, no API keys):**
   - Phase 1: scaffold/CI/secret scan (T-003); schema v0.1 + validator (T-020); Hindi normaliser + date resolver (T-020a); rule engine HBNC/HBYC/UIP (T-050/T-051).
   - Phase 2: STT adapters `server/app/stt/` (Vosk offline Hindi = default; mock labelled SIMULATED; Sarvam = stub needing key); rule-based extractor `server/app/extraction/rule_based.py` (LLM-shaped output + quotes → same validator); name resolution `names.py` (T-027 v0); pipeline `server/app/pipeline.py`; eval harness `eval/harness.py` (T-025, text-only); 40 dev + 20 held-out synthetic notes + registry in `eval/data/` (T-021 v0); `docs/providers.md`.
 - **Numbers (only these exist; synthetic, same author — never on a slide without the caveat):** `eval/results/2026-11-07/holdout/report.md` — P 0.99 / R 0.87 / F1 0.93, critical-field match 16/20, unsupported values 0.000, text pipeline p50 10.7 ms. Dev set (tuned on) F1 0.99 — overfit, regression guard only. **Not measured:** STT WER (no recordings), LLM extraction (no key), time saved.
 - **Vosk:** plumbing verified on a 22 kHz WAV (English TTS → garbage text, as expected); warm 2.9 s for 4.7 s audio on this laptop. Hindi accuracy unmeasured.
-- **Last verified commands (2026-11-07):** `.\make.ps1 test` → "374 passed in 4.96s"; `.\make.ps1 lint` → "All checks passed!"; `.\make.ps1 secrets-scan` → "0 finding(s)".
+- **Last verified commands (2026-11-09):** `.\make.ps1 test` → "417 passed"; `.\make.ps1 lint` → "All checks passed!"; `.\make.ps1 secrets-scan` → "0 finding(s)".
 
 ## 3. Next actions (ordered)
 
-1. **Phase 3 (2026-11-08) — server:** FastAPI + SQLite (SQLAlchemy), mock phone-OTP labelled SIMULATED, `/v1/notes` (audio or text → draft), `/v1/notes/{id}/confirm`, tasks from rule engine, claim support sheet PDF/XLSX (national rates labelled "confirm UP rates"), audio deleted on confirm.
-2. **Phase 3 (2026-11-09) — mobile web app** served by FastAPI: record (browser mic → 16 kHz WAV in JS) / type → review & confirm (flags first, quotes shown, tap to fix) → Home tasks with "why now" → reports → settings/privacy panel. Hindi default, English toggle. Note: phone mic over Wi-Fi needs HTTPS (self-signed cert) — laptop browser works on localhost.
-3. **(human)** Record 3–5 synthetic notes in Hindi on the laptop once the web app exists → first real Vosk check.
-4. **(human, when possible)** Sarvam + Anthropic keys → T-023/T-024 adapters + bake-off (T-026).
-5. Flutter app (phase 4) after v1; ANM review of U21–U24.
+1. **(human)** Try it on a real phone (`.\make.ps1 phone`); run the first Hindi audio check with AI-voice clips (Note screen → choose audio file; the app's Hindi examples work as scripts). Report transcripts: AI voices are not evidence of field accuracy.
+2. **(human)** A native Hindi speaker reads the UI copy (`server/app/web/i18n.js`).
+3. **(human, when possible)** Sarvam + Anthropic keys → T-023/T-024 adapters + bake-off (T-026).
+4. Next build: phone offline queue, monthly summary, ANM review of U21–U24, then Flutter (phase 4).
 
 ## 4. Blockers and waiting-on-humans
 
@@ -76,6 +80,9 @@
 | D-17 | v1 STT | Vosk `small-hi-0.22` offline (Apache-2.0); Sarvam when a key exists | **confirmed** (human) | 2026-11-07 |
 | D-18 | v1 extractor | Rule-based, deterministic (no LLM key); same validator; LLM later via bake-off | **confirmed** (follows from no key) | 2026-11-07 |
 | D-19 | Deadline | Prototype v1 by 2026-11-09 | **confirmed** (human) | 2026-11-07 |
+| D-20 | English voice | Added Vosk `small-en-in-0.4` (offline, Apache-2.0), because the human tests in English first and the Hindi model cannot transcribe English | **follows from human request** | 2026-11-09 |
+| D-21 | Hindi test audio | AI-voice clips via audio-file upload; no human Hindi recording for now | **confirmed** (human) | 2026-11-09 |
+| D-22 | Demo reach | Laptop + phone on same Wi-Fi via self-signed HTTPS | **confirmed** (human) | 2026-11-09 |
 
 ## 6. Environment and setup
 
@@ -173,4 +180,11 @@ aura/
 - Done (evidence: `.\make.ps1 test` → 374 passed; lint clean; secret scan 0): STT adapters (Vosk + mock + Sarvam stub), rule-based extractor, name resolution v0, pipeline, eval harness, 60 synthetic notes (40 dev / 20 held-out), registry, `docs/providers.md`, `make eval` / `make models`.
 - Eval: held-out F1 0.93 (P 0.99, R 0.87), critical 16/20 — synthetic, same author, text-only. Dev 0.99 is overfit (3 real bugs fixed while debugging on it: "दौरा" = visit not convulsion; partial-word quotes; Hinglish verb-first order).
 - Not done: no Hindi audio exists (Windows has no Hindi TTS voice) → WER unmeasured; Sarvam/Claude adapters not built (no keys).
+- Next: §3.
+
+### 2026-11-09 — Build phase 3 (server + mobile web app)
+- Human: build straight through; laptop + phone; English first, AI voices for Hindi later → D-20…D-22.
+- Done: see §2. Extractor fixes found by testing English: danger signs no longer dropped when the visit type is unknown (safety bug); "got/received" and "was given" count as given; bare "rekha baby" resolves to the child; "day seven" sets the HBNC day; a given vaccine implies an immunisation visit.
+- Fonts: Noto Sans Devanagari + Noto Sans (OFL) embedded for PDFs. No Hindi font on the phone is needed.
+- Not done / unverified: physical phone; Hindi speech on real or AI audio; Windows Firewall/campus Wi-Fi behaviour; native review of Hindi copy.
 - Next: §3.

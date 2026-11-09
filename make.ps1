@@ -29,7 +29,25 @@ switch ($Target) {
         $zip = Join-Path $dir 'vosk-hi.zip'
         Invoke-WebRequest 'https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip' -OutFile $zip
         Expand-Archive $zip -DestinationPath $dir -Force; Remove-Item $zip
+        $zip = Join-Path $dir 'vosk-en.zip'
+        Invoke-WebRequest 'https://alphacephei.com/vosk/models/vosk-model-small-en-in-0.4.zip' -OutFile $zip
+        Expand-Archive $zip -DestinationPath $dir -Force; Remove-Item $zip
     }
-    { $_ -in 'server', 'app', 'db-reset' } { Write-Host "not built yet: $Target"; exit 1 }
+    'server' {
+        Write-Host 'Open http://localhost:8000 on this laptop'
+        Invoke-InServer @('run', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '127.0.0.1', '--port', '8000')
+    }
+    'phone' {
+        Push-Location $root
+        try { & uv run --project server python scripts/make_cert.py } finally { Pop-Location }
+        Invoke-InServer @('run', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '0.0.0.0', '--port', '8443',
+            '--ssl-keyfile', 'data/certs/key.pem', '--ssl-certfile', 'data/certs/cert.pem')
+    }
+    'db-reset' {
+        Remove-Item (Join-Path $root 'server\data\aura.db') -ErrorAction SilentlyContinue
+        Remove-Item (Join-Path $root 'server\data\audio\*') -ErrorAction SilentlyContinue
+        Write-Host 'Demo database and audio cleared'
+    }
+    'app' { Write-Host 'Flutter app is phase 4; the v1 web app is served by: .\make.ps1 server'; exit 1 }
     default        { Write-Host "unknown target: $Target"; exit 1 }
 }

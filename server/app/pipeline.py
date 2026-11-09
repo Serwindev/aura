@@ -62,9 +62,10 @@ def process_text(text: str, recorded_on: date, people: list[Person]) -> Pipeline
     return process_transcript(Transcript(text, "typed"), recorded_on, people)
 
 
-def process_audio(wav_bytes: bytes, recorded_on: date, people: list[Person], stt) -> PipelineResult:
+def process_audio(wav_bytes: bytes, recorded_on: date, people: list[Person], stt,
+                  language: str = "hi") -> PipelineResult:
     t0 = time.perf_counter()
-    tr = stt.transcribe(wav_bytes, "hi")
+    tr = stt.transcribe(wav_bytes, language)
     stt_ms = (time.perf_counter() - t0) * 1000
     res = process_transcript(tr, recorded_on, people)
     res.timings_ms["stt"] = stt_ms

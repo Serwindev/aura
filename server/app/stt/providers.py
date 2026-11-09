@@ -11,6 +11,8 @@ from .base import NotConfigured, SttError, Transcript, to_mono16k, wav_info
 
 MODELS_DIR = Path(__file__).resolve().parents[2] / "models"
 VOSK_HI_MODEL = MODELS_DIR / "vosk-model-small-hi-0.22"
+VOSK_EN_MODEL = MODELS_DIR / "vosk-model-small-en-in-0.4"
+VOSK_MODELS = {"hi": VOSK_HI_MODEL, "en": VOSK_EN_MODEL}
 
 
 class MockStt:
@@ -26,34 +28,40 @@ class MockStt:
 
 
 class VoskStt:
-    """Offline Hindi ASR (Apache-2.0 model, ~42 MB, CPU). Audio never leaves the machine."""
+    """Offline ASR, Hindi and Indian English (Apache-2.0 models, CPU). Audio never leaves the
+    machine."""
 
     name = "vosk"
     _lock = threading.Lock()
-    _model = None
+    _models: dict[Path, object] = {}
 
-    def __init__(self, model_dir: Path = VOSK_HI_MODEL) -> None:
-        if not model_dir.is_dir():
-            raise NotConfigured(f"Vosk model not found at {model_dir} (see docs/providers.md)")
-        self.model_dir = model_dir
+    def __init__(self, model_dir: Path | None = None) -> None:
+        self.model_dirs = {"hi": model_dir} if model_dir else VOSK_MODELS
+        first = model_dir or VOSK_HI_MODEL
+        if not first.is_dir():
+            raise NotConfigured(f"Vosk model not found at {first} (see docs/providers.md)")
 
-    def _load(self):
+    def _load(self, model_dir: Path):
         with VoskStt._lock:
-            if VoskStt._model is None:
+            if model_dir not in VoskStt._models:
                 import vosk
 
                 vosk.SetLogLevel(-1)
-                VoskStt._model = vosk.Model(str(self.model_dir))
-        return VoskStt._model
+                VoskStt._models[model_dir] = vosk.Model(str(model_dir))
+        return VoskStt._models[model_dir]
+
+    def languages(self) -> list[str]:
+        return [lang for lang, path in self.model_dirs.items() if path.is_dir()]
 
     def transcribe(self, wav_bytes: bytes, language: str = "hi") -> Transcript:
-        if language != "hi":
-            raise SttError("Vosk model loaded here is Hindi only")
+        model_dir = self.model_dirs.get(language)
+        if model_dir is None or not model_dir.is_dir():
+            raise SttError(f"no speech model installed for language {language!r}")
         import vosk
 
         _, _, _, duration = wav_info(wav_bytes)
         pcm = to_mono16k(wav_bytes)
-        rec = vosk.KaldiRecognizer(self._load(), 16000)
+        rec = vosk.KaldiRecognizer(self._load(model_dir), 16000)
         rec.SetWords(True)
         words: list[dict] = []
         texts: list[str] = []
@@ -68,7 +76,7 @@ class VoskStt:
         words += r.get("result", [])
         text = " ".join(t for t in texts if t).strip()
         conf = sum(w.get("conf", 0) for w in words) / len(words) if words else None
-        return Transcript(text, "vosk-small-hi-0.22", conf, duration)
+        return Transcript(text, model_dir.name.replace("vosk-model-", "vosk-"), conf, duration)
 
 
 class SarvamStt:

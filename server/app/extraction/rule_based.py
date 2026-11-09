@@ -60,7 +60,7 @@ DANGER_CUES: list[tuple[dict[str, str], re.Pattern, bool, bool | None]] = [
     ({"newborn": "NB_NOT_FEEDING", "child": "CH_UNABLE_TO_DRINK"},
      _rx(r"दूध (ठीक से )?नहीं पी|स्तनपान नहीं|not feeding|doodh nahi pi", prefix=True), False, True),
     ({"newborn": "NB_NOT_FEEDING", "child": "CH_UNABLE_TO_DRINK"},
-     _rx(r"दूध (ठीक से )?पी (रहा|रही)|feeding well|doodh (theek se )?pi (raha|rahi)"), False, False),
+     _rx(r"दूध (ठीक से )?पी (रहा|रही)|feeding (is )?(well|good|fine)|doodh (theek se )?pi (raha|rahi)"), False, False),
     ({"newborn": "NB_FEVER", "mother": "M_HIGH_FEVER"}, _rx(r"बुखार|fever|bukhar"), True, None),
     ({"newborn": "NB_JAUNDICE"}, _rx(r"पीलिया|jaundice|peeliya|आंखें पीली|त्वचा पीली"), True, None),
     ({"newborn": "NB_CONVULSIONS", "child": "CH_CONVULSIONS", "mother": "M_CONVULSIONS"},
@@ -100,11 +100,11 @@ SERVICE_CUES = [
     ("COUNSELLING", _rx(r"समझाया|सलाह|परामर्श|counsel|samjhaya|salah", prefix=True), False),
 ]
 OTHER_SERVICE_CUES = [("Condom", _rx(r"कंडोम|condom", prefix=True))]
-GIVEN = {fold(w) for w in ["दी", "दीं", "दिया", "दिए", "दिये", "दी_गई", "लगाया", "लगाए", "लगा", "लगवाया", "लगवाए", "पिलाया", "पिलाई", "पिलाए", "खिलाई", "खिलाया", "दिलाया", "दिलवाया", "given", "gave", "diya", "diye", "di", "lagaya", "lagaye", "pilaya"]}
-FUTURE = {fold(w) for w in ["अगली", "अगला", "अगले", "लगेगा", "लगेंगे", "लगेगी", "देना", "लगना", "बाकी", "next", "agla", "agli", "agle"]}
+GIVEN = {fold(w) for w in ["दी", "दीं", "दिया", "दिए", "दिये", "दी_गई", "लगाया", "लगाए", "लगा", "लगवाया", "लगवाए", "पिलाया", "पिलाई", "पिलाए", "खिलाई", "खिलाया", "दिलाया", "दिलवाया", "given", "gave", "diya", "diye", "di", "lagaya", "lagaye", "pilaya", "got", "received", "administered", "took"]}
+FUTURE = {fold(w) for w in ["अगली", "अगला", "अगले", "लगेगा", "लगेंगे", "लगेगी", "देना", "लगना", "बाकी", "next", "agla", "agli", "agle", "due", "will", "pending"]}
 NEGATION = {fold(w) for w in ["नहीं", "नही", "ना", "न", "no", "not", "nahi", "nahin", "koi_nahi"]}
 NEXT_CUES = {fold(w) for w in ["अगली", "अगला", "अगले", "दोबारा", "फिर", "next", "agla", "agli", "agle", "dobara", "phir", "again"]}
-STOP_VERBS = {fold(w) for w in ["था", "थी", "थे", "है", "हैं", "हो", "चुका", "चुकी", "हुआ", "हुई", "गया", "गई", "was", "is", "had"]}
+STOP_VERBS = {fold(w) for w in ["था", "थी", "थे", "है", "हैं", "हो", "चुका", "चुकी", "हुआ", "हुई", "गया", "गई"]}  # English "was/is" must not stop the scan: "Penta 2 was given"
 CONJ = {fold(w) for w in ["और", "लेकिन", "पर", "मगर", "aur", "lekin", "par", "but", "and"]}
 REFERRAL_RX = _rx(r"रेफर|refer|भेजा|भेज दिया|भेजने|bheja", prefix=True)
 FACILITY_RX = _rx(r"phc|पीएचसी|chc|सीएचसी|जिला अस्पताल|district hospital|sncu|एसएनसीयू|fru|"
@@ -191,15 +191,22 @@ def extract(transcript: str, recorded_on: date, people: list[Person] | None = No
             break
 
     # beneficiary mention (the id itself is set later by code, after validation)
+    person = None
     if people:
         nm = resolve_beneficiary(text, people, vt)
         if nm:
             put("beneficiary.mention", text[nm.start:nm.end], nm.start, nm.end, nm.confidence)
+            person = next((p for p in people if p.id == nm.matched_id), None)
 
     _visit_index(T, vt, put)
     _vitals(T, put)
-    _danger(T, vt, raw)
+    _danger(T, vt, raw, person)
     _services(T, raw)
+    if vt is None:  # "Penta 2 was given": a vaccine given means an immunisation visit
+        i = next((k for k, s in enumerate(raw.get("services_given", [])) if s["type"] == "VACCINE"), None)
+        if i is not None:
+            raw["visit_type"] = vt = "IMMUNIZATION"
+            ev["visit_type"] = dict(ev[f"services_given[{i}]"])
     _referral(T, put)
     _dates(T, recorded_on, raw, put, vt)
     return raw
@@ -214,6 +221,12 @@ def _visit_index(T: _Text, vt: str | None, put) -> None:
             if after and fold(text[a:b]) in ("day", "दिन"):
                 put("visit_index.hbnc_day", int(after.group(1)), a, b + after.end())
                 return
+            spoken = re.match(r"\s*(\S+(?:\s+\S+)?)", text[b:])  # raw ASR: "day seven", "day twenty one"
+            if spoken and fold(text[a:b]) == "day":
+                qs = [q for q in extract_quantities(spoken.group(1)) if q.start == 0 and not q.unit]
+                if qs:
+                    put("visit_index.hbnc_day", int(qs[0].value), a, b + spoken.start(1) + qs[0].end)
+                    return
             before = text[:a].rstrip()
             mw = re.search(r"([0-9]+)\s*(?:वें|वां|वीं|th|st|nd|rd)?$|(\S+)$", before)
             nxt = fold(text[b:].split()[0]) if text[b:].split() else ""
@@ -284,10 +297,23 @@ def _vitals(T: _Text, put) -> None:
             break
 
 
-def _danger(T: _Text, vt: str | None, raw: dict) -> None:
-    group = _GROUP.get(vt or "")
-    if not group:
-        return
+_CATEGORY_GROUP = {"newborn": "newborn", "child": "child", "pregnant": "mother", "other": "mother"}
+_CHILD_RX = _rx(r"बच्चे|बच्चा|बच्ची|शिशु|नवजात|baby|bachcha|bachchi|baccha|bacchi|infant")
+
+
+def _danger_group(T: _Text, vt: str | None, person: Person | None) -> str:
+    """A danger sign must survive a missing visit type: fall back to who the note is about."""
+    if vt in _GROUP:
+        return _GROUP[vt]
+    if person is not None and person.category in ("newborn", "child"):
+        return _CATEGORY_GROUP[person.category]
+    if next(T.find(_CHILD_RX), None):
+        return "newborn"
+    return _CATEGORY_GROUP[person.category] if person is not None else "mother"
+
+
+def _danger(T: _Text, vt: str | None, raw: dict, person: Person | None = None) -> None:
+    group = _danger_group(T, vt, person)
     text = T.text
     seen: set[str] = set()
     for codes, rx, negatable, fixed in DANGER_CUES:

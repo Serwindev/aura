@@ -40,3 +40,6 @@ Thumbs.db
 server/models/
 server/tests/.eval_tmp/
 eval/results/latest/
+
+# prototype runtime data (database, audio, certs, secrets)
+server/data/

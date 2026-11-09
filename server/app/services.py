@@ -1,0 +1,398 @@
+"""Business logic between the API and the pipeline: notes, confirmation, tasks, demo seed.
+
+Trust boundary: the client's confirmed record is re-validated here, and evidence is owned by the
+server. A field the ASHA changed loses its quote and is logged as edited (paths only, no values).
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+from fastapi.encoders import jsonable_encoder
+from pydantic import ValidationError
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
+
+from .core.config import RULES_DIR, load_yaml, validation_config
+from .core.schema import VisitRecord
+from .core.settings import Settings
+from .db.models import AuditEvent, Note, Person, TaskAction, utcnow
+from .extraction.dates_hi import add_months
+from .extraction.names import Person as NamePerson
+from .extraction.validate import Flag
+from .pipeline import PipelineResult, load_people, process_audio, process_text
+from .rules import engine
+
+NEEDS_CHOICE = "NEEDS_CHOICE"
+PROGRAMME_VISIT = {"HBNC": "HBNC", "HBYC": "HBYC", "UIP": "IMMUNIZATION"}
+SCALAR_PATHS = (
+    "visit_type", "visit_date", "beneficiary.matched_id", "visit_index.anc_number",
+    "visit_index.hbnc_day", "visit_index.hbyc_month", "vitals.weight_kg", "vitals.temp_c",
+    "vitals.bp_sys", "vitals.bp_dia", "vitals.hb_g_dl", "vitals.pulse", "vitals.resp_rate",
+    "referral.needed", "referral.facility", "referral.reason", "note",
+)
+LIST_PATHS = ("danger_signs", "services_given", "next_due")
+SEED_ANCHOR = date(2026, 11, 9)  # the date the synthetic registry's birth dates were written for
+
+
+class RequestError(Exception):
+    def __init__(self, status: int, code: str, message: str, details: list | None = None):
+        super().__init__(message)
+        self.status, self.code, self.message, self.details = status, code, message, details
+
+
+@dataclass(frozen=True)
+class TaskHint:
+    """The ASHA opened this note from a task: an explicit choice of hers, not a model guess."""
+
+    beneficiary_id: str | None = None
+    programme: str | None = None
+    rule_id: str | None = None
+
+
+def people_for(db: Session, owner_id: str) -> list[NamePerson]:
+    rows = db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
+    return [NamePerson(id=p.id, names=tuple(p.names or ()), category=p.category, mother_id=p.mother_id,
+                       dob=p.dob, delivery_place=p.delivery_place, label_hi=p.label_hi,
+                       label_en=p.label_en) for p in rows]
+
+
+# ---- doses ---------------------------------------------------------------------------------
+
+def _key(label: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", label.lower())
+
+
+def dose_table() -> dict[str, str]:
+    table = {_key(d["vaccine"]): d["id"] for d in load_yaml(RULES_DIR / "uip.yaml")["doses"]}
+    table.update({"hepb": "hepb0", "dpt": "dpt_b1", "dptbooster": "dpt_b1"})
+    return table
+
+
+def dose_id(detail: str | None, table: dict[str, str]) -> str | None:
+    return table.get(_key(detail)) if detail else None
+
+
+# ---- creating drafts -----------------------------------------------------------------------
+
+def _apply_hint(result: PipelineResult, people: list[NamePerson], hint: TaskHint) -> None:
+    v = result.validation
+    rec = v.record
+    known = {p.id for p in people}
+    if hint.beneficiary_id in known:
+        if rec.beneficiary.matched_id is None:
+            rec.beneficiary.matched_id = hint.beneficiary_id
+            v.flags.append(Flag("beneficiary.matched_id", "FROM_TASK", "info", "Person taken from the task you opened"))
+        elif rec.beneficiary.matched_id != hint.beneficiary_id:
+            v.flags.append(Flag("beneficiary.matched_id", "TASK_MISMATCH", "warning",
+                                "The name spoken is different from the task you opened"))
+    if rec.visit_type is None and hint.programme in PROGRAMME_VISIT:
+        rec.visit_type = PROGRAMME_VISIT[hint.programme]
+        v.flags = [f for f in v.flags if not (f.path == "visit_type" and f.code == NEEDS_CHOICE)]
+        v.flags.append(Flag("visit_type", "FROM_TASK", "info", "Visit type taken from the task you opened"))
+    m = re.fullmatch(r"(hbnc_d|hbyc_m)(\d+)", hint.rule_id or "")
+    if m:
+        if m[1] == "hbnc_d" and rec.visit_type == "HBNC" and rec.visit_index.hbnc_day is None:
+            rec.visit_index.hbnc_day = int(m[2])
+        if m[1] == "hbyc_m" and rec.visit_type == "HBYC" and rec.visit_index.hbyc_month is None:
+            rec.visit_index.hbyc_month = int(m[2])
+
+
+def _post_flags(result: PipelineResult) -> None:
+    v = result.validation
+    if v.record.beneficiary.matched_id is None:
+        v.flags.append(Flag("beneficiary.matched_id", NEEDS_CHOICE, "error", "Please choose who this visit was for"))
+    elif result.match is not None and len(result.match.candidates) > 1:
+        v.flags.append(Flag("beneficiary.matched_id", "AMBIGUOUS_NAME", "warning",
+                            "More than one person was named; check this is the right one"))
+    rec = v.record
+    if rec.visit_type == "HBNC" and rec.visit_index.hbnc_day is None:
+        v.flags.append(Flag("visit_index.hbnc_day", "NEEDS_DAY", "warning", "Add the HBNC day so the schedule can be updated"))
+    if rec.visit_type == "HBYC" and rec.visit_index.hbyc_month is None:
+        v.flags.append(Flag("visit_index.hbyc_month", "NEEDS_DAY", "warning", "Add the HBYC month so the schedule can be updated"))
+    table = dose_table()
+    for i, s in enumerate(v.record.services_given):
+        if s.type == "VACCINE" and dose_id(s.detail, table) is None:
+            v.flags.append(Flag(f"services_given[{i}]", "NEEDS_DOSE", "warning",
+                                "Add the dose number so the schedule can be updated"))
+
+
+def create_note(db: Session, cfg: Settings, stt: Any, owner_id: str, *, text: str | None, wav: bytes | None,
+                language: str, hint: TaskHint, idempotency_key: str | None) -> Note:
+    if idempotency_key:
+        found = db.scalar(select(Note).where(Note.owner_id == owner_id, Note.idempotency_key == idempotency_key))
+        if found:
+            return found
+    purge_expired_audio(db, cfg)
+    people = people_for(db, owner_id)
+    today = cfg.today()
+    if wav is not None:
+        result = process_audio(wav, today, people, stt, language)
+    else:
+        result = process_text(text or "", today, people)
+    if not result.transcript.text.strip():
+        raise RequestError(422, "EMPTY_TRANSCRIPT", "No speech could be recognised in this audio")
+    _apply_hint(result, people, hint)
+    _post_flags(result)
+    note = Note(owner_id=owner_id, idempotency_key=idempotency_key, source="audio" if wav is not None else "text",
+                language=language, recorded_on=today, transcript=result.transcript.text,
+                stt_provider=result.transcript.provider if wav is not None else None,
+                stt_confidence=result.transcript.confidence,
+                draft=result.validation.record.model_dump(mode="json"),
+                flags=jsonable_encoder([asdict(f) for f in result.validation.needs_review]),
+                candidates=result.match.candidates if result.match else [])
+    db.add(note)
+    db.flush()
+    if wav is not None:
+        cfg.audio_dir.mkdir(parents=True, exist_ok=True)
+        path = cfg.audio_dir / f"{note.id}.wav"
+        path.write_bytes(wav)
+        note.audio_path = str(path)
+    db.add(AuditEvent(owner_id=owner_id, note_id=note.id, action="draft_created", detail={"source": note.source}))
+    db.commit()
+    return note
+
+
+def delete_audio(note: Note) -> bool:
+    if not note.audio_path:
+        return False
+    Path(note.audio_path).unlink(missing_ok=True)
+    note.audio_path = None
+    return True
+
+
+def purge_expired_audio(db: Session, cfg: Settings) -> int:
+    """D-07: delete on confirm, and never keep unconfirmed audio past the retention cap."""
+    cutoff = utcnow() - timedelta(hours=cfg.audio_retention_hours)
+    stale = db.scalars(select(Note).where(Note.audio_path.is_not(None), Note.created_at < cutoff)).all()
+    for n in stale:
+        delete_audio(n)
+    if stale:
+        db.commit()
+    return len(stale)
+
+
+# ---- confirmation --------------------------------------------------------------------------
+
+def _get(d: dict, path: str) -> Any:
+    for part in path.split("."):
+        d = (d or {}).get(part)
+    return d
+
+
+def _check_record(rec: VisitRecord, people: list[NamePerson], today: date) -> list[dict]:
+    cfg = validation_config()
+    errs: list[dict] = []
+
+    def err(path: str, code: str, message: str) -> None:
+        errs.append({"path": path, "code": code, "message": message})
+
+    if rec.visit_type is None:
+        err("visit_type", NEEDS_CHOICE, "Please choose the visit type")
+    if rec.visit_date is None:
+        err("visit_date", NEEDS_CHOICE, "Please enter the visit date")
+    elif rec.visit_date > today:
+        err("visit_date", "DATE_IN_FUTURE", "The visit date cannot be in the future")
+    if rec.beneficiary.matched_id not in {p.id for p in people}:
+        err("beneficiary.matched_id", NEEDS_CHOICE, "Please choose who this visit was for")
+    for fld, value in rec.vitals.model_dump().items():
+        rng = cfg.range_for(rec.visit_type, fld)
+        if value is not None and rng and not (rng[0] <= value <= rng[1]):
+            err(f"vitals.{fld}", "OUT_OF_RANGE", f"{value} is outside the expected range {rng[0]}–{rng[1]}")
+    v = rec.vitals
+    if v.bp_sys is not None and v.bp_dia is not None and v.bp_sys <= v.bp_dia:
+        err("vitals.bp_sys", "CROSS_FIELD", "Systolic must be higher than diastolic")
+    if rec.visit_type == "HBNC" and rec.visit_index.hbnc_day not in (None, *cfg.hbnc_days):
+        err("visit_index.hbnc_day", "OFF_SCHEDULE", "This is not an HBNC schedule day")
+    if rec.visit_type == "HBYC" and rec.visit_index.hbyc_month not in (None, *cfg.hbyc_months):
+        err("visit_index.hbyc_month", "OFF_SCHEDULE", "This is not an HBYC schedule month")
+    for i, d in enumerate(rec.danger_signs):
+        if d.code not in cfg.danger_codes:
+            err(f"danger_signs[{i}]", "UNKNOWN_DANGER_SIGN", "Unknown danger sign")
+    return errs
+
+
+def confirm_note(db: Session, cfg: Settings, note: Note, payload: dict) -> tuple[Note, bool]:
+    """Human confirmation. Repeating a confirm returns the stored record unchanged."""
+    if note.status == "confirmed":
+        return note, False
+    if note.status != "draft":
+        raise RequestError(409, "NOT_A_DRAFT", "This note has been discarded")
+    payload = dict(payload)
+    payload["evidence"] = {}  # evidence is server-owned; never accepted from the client
+    try:
+        rec = VisitRecord.model_validate(payload)
+    except ValidationError as exc:
+        details = [{"path": ".".join(str(p) for p in e["loc"]), "code": "SCHEMA_INVALID", "message": e["msg"]}
+                   for e in exc.errors()]
+        raise RequestError(422, "INVALID_RECORD", "Some fields are not valid", details) from exc
+    errors = _check_record(rec, people_for(db, note.owner_id), cfg.today())
+    if errors:
+        raise RequestError(422, "CHECK_FIELDS", "Please check the highlighted fields", errors)
+
+    new = rec.model_dump(mode="json")
+    old = note.draft
+    edited = [p for p in SCALAR_PATHS if _get(old, p) != _get(new, p)]
+    evidence: dict = {}
+    for p, ev in (old.get("evidence") or {}).items():
+        m = re.fullmatch(r"(\w+)\[(\d+)\]", p)
+        if m:
+            o, n = old.get(m[1]) or [], new.get(m[1]) or []
+            i = int(m[2])
+            if i < len(o) and i < len(n) and o[i] == n[i]:
+                evidence[p] = ev
+        elif p not in edited:
+            evidence[p] = ev
+    for lp in LIST_PATHS:
+        if (old.get(lp) or []) != (new.get(lp) or []):
+            edited.append(lp)
+    new["evidence"] = evidence
+    note.confirmed, note.edited_paths, note.status = new, edited, "confirmed"
+    note.confirmed_at = utcnow()
+    audio_deleted = delete_audio(note)
+    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="confirmed",
+                      detail={"edited": edited, "audio_deleted": audio_deleted}))
+    db.commit()
+    return note, audio_deleted
+
+
+# ---- tasks ---------------------------------------------------------------------------------
+
+@dataclass
+class EngineInputs:
+    beneficiaries: list[engine.Beneficiary]
+    visits: list[engine.Visit]
+    doses: list[engine.DoseGiven]
+    seeded_visits: set[tuple[str, str, date]]
+
+
+def engine_inputs(db: Session, owner_id: str) -> EngineInputs:
+    people = people_for(db, owner_id)
+    bens = [engine.Beneficiary(p.id, p.category, p.dob, p.delivery_place) for p in people if p.dob]
+    visits, doses, seeded = [], [], set()
+    table = dose_table()
+    for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.status == "confirmed")).all():
+        r = n.confirmed
+        bid, when = r["beneficiary"]["matched_id"], date.fromisoformat(r["visit_date"])
+        idx = r["visit_index"]
+        visits.append(engine.Visit(bid, r["visit_type"], when, idx.get("hbnc_day"), idx.get("hbyc_month"),
+                                   any(d.get("present") for d in r["danger_signs"])))
+        if n.source == "seed":
+            seeded.add((bid, r["visit_type"], when))
+        for s in r["services_given"]:
+            did = dose_id(s.get("detail"), table) if s["type"] == "VACCINE" else None
+            if did:
+                doses.append(engine.DoseGiven(bid, did, when))
+    return EngineInputs(bens, visits, doses, seeded)
+
+
+def list_tasks(db: Session, owner_id: str, today: date, lang: str) -> list[dict]:
+    inp = engine_inputs(db, owner_id)
+    people = {p.id: p for p in people_for(db, owner_id)}
+    actions = {(a.beneficiary_id, a.rule_id): a for a in db.scalars(
+        select(TaskAction).where(TaskAction.owner_id == owner_id)).all()}
+    out = []
+    for t in engine.open_tasks(engine.compute_tasks(inp.beneficiaries, inp.visits, inp.doses, today)):
+        act = actions.get((t.beneficiary_id, t.rule_id))
+        if act and (act.action == "dismiss" or (act.until and act.until > today)):
+            continue
+        p = people[t.beneficiary_id]
+        out.append({"id": f"{t.beneficiary_id}:{t.rule_id}", "beneficiary_id": t.beneficiary_id,
+                    "rule_id": t.rule_id, "programme": t.programme, "label": label(p, lang),
+                    "due_date": t.due_date.isoformat(), "status": t.status,
+                    "reason": t.reason_hi if lang == "hi" else t.reason_en, "advisory": t.advisory})
+    return out
+
+
+def label(p: NamePerson, lang: str) -> str:
+    return (p.label_hi if lang == "hi" else p.label_en) or p.label_en or p.id
+
+
+def set_task_action(db: Session, owner_id: str, beneficiary_id: str, rule_id: str, action: str, until: date | None,
+                    today: date) -> None:
+    if action not in ("dismiss", "reschedule", "restore"):
+        raise RequestError(422, "BAD_ACTION", "Unknown task action")
+    existing = db.get(TaskAction, (owner_id, beneficiary_id, rule_id))
+    if action == "restore":
+        if existing:
+            db.delete(existing)
+    else:
+        if action == "reschedule" and (until is None or until <= today):
+            raise RequestError(422, "BAD_DATE", "Choose a later date")
+        if existing:
+            existing.action, existing.until = action, until
+        else:
+            db.add(TaskAction(owner_id=owner_id, beneficiary_id=beneficiary_id, rule_id=rule_id, action=action, until=until))
+    db.add(AuditEvent(owner_id=owner_id, action=f"task_{action}", detail={"rule_id": rule_id}))
+    db.commit()
+
+
+# ---- synthetic demo data -------------------------------------------------------------------
+
+_EXTRA_PEOPLE = [  # shown as completed history so the claim sheet has something to show
+    {"id": "w20", "names": ["सीमा", "Seema"], "category": "other", "label_hi": "सीमा", "label_en": "Seema"},
+    {"id": "c20", "names": [], "category": "newborn", "mother_id": "w20", "delivery_place": "institution",
+     "label_hi": "सीमा की बच्ची", "label_en": "Baby girl of Seema"},
+    {"id": "w21", "names": ["निशा", "Nisha"], "category": "other", "label_hi": "निशा", "label_en": "Nisha"},
+    {"id": "c21", "names": ["रितु", "Ritu"], "category": "child", "mother_id": "w21", "label_hi": "रितु", "label_en": "Ritu"},
+]
+_FULL_HISTORY = {"c20", "c21"}
+_GAPS = {("c08", "mr1")}  # left undone on purpose: an overdue vaccine for the demo story
+_BIRTH_DOSES = {"bcg", "hepb0", "opv0"}
+
+
+def seed_demo(db: Session, owner_id: str, today: date) -> None:
+    """All invented people. Birth dates shift with the calendar so the demo stays current."""
+    shift = today - SEED_ANCHOR
+    for p in load_people():
+        db.add(Person(owner_id=owner_id, id=p.id, names=list(p.names), category=p.category, mother_id=p.mother_id,
+                      dob=p.dob + shift if p.dob else None, delivery_place=p.delivery_place,
+                      label_hi=p.label_hi, label_en=p.label_en))
+    extra_dob = {"c20": today - timedelta(days=45), "c21": add_months(today, -3) - timedelta(days=3)}
+    for e in _EXTRA_PEOPLE:
+        db.add(Person(owner_id=owner_id, dob=extra_dob.get(e["id"]), **e))
+    db.flush()
+
+    people = {p.id: p for p in people_for(db, owner_id)}
+    bens = [engine.Beneficiary(p.id, p.category, p.dob, p.delivery_place) for p in people.values() if p.dob]
+    vaccines = {d["id"]: d["vaccine"] for d in load_yaml(RULES_DIR / "uip.yaml")["doses"]}
+    recent = today - timedelta(days=7)
+    grouped: dict[tuple[str, date], list[str]] = {}
+    for t in engine.compute_tasks(bens, [], [], today):
+        p = people[t.beneficiary_id]
+        at_birth = t.rule_id in _BIRTH_DOSES and p.delivery_place == "institution"
+        done = t.due_date <= (today if p.id in _FULL_HISTORY else recent) or (at_birth and t.due_date <= today)
+        if (t.beneficiary_id, t.rule_id) in _GAPS or not done:
+            continue
+        if t.programme == "UIP":
+            grouped.setdefault((t.beneficiary_id, t.due_date), []).append(vaccines[t.rule_id])
+        else:
+            m = re.fullmatch(r"hbnc_d(\d+)|hbyc_m(\d+)", t.rule_id)
+            idx = {"hbnc_day": int(m[1])} if m[1] else {"hbyc_month": int(m[2])}
+            db.add(_seed_note(owner_id, t.beneficiary_id, t.programme, t.due_date, idx, []))
+    for (bid, when), names in grouped.items():
+        db.add(_seed_note(owner_id, bid, "IMMUNIZATION", when, {}, names))
+    db.commit()
+
+
+def _seed_note(owner_id: str, bid: str, vtype: str, when: date, idx: dict, vaccines: list[str]) -> Note:
+    rec = VisitRecord(visit_type=vtype, visit_date=when, beneficiary={"matched_id": bid}, visit_index=idx,
+                      services_given=[{"type": "VACCINE", "detail": v} for v in vaccines])
+    return Note(owner_id=owner_id, status="confirmed", source="seed", recorded_on=when, transcript="",
+                draft={}, confirmed=rec.model_dump(mode="json"), confirmed_at=datetime.combine(when, datetime.min.time()))
+
+
+def wipe_owner_data(db: Session, owner_id: str, today: date) -> int:
+    notes = db.scalars(select(Note).where(Note.owner_id == owner_id)).all()
+    for n in notes:
+        delete_audio(n)
+    count = len(notes)
+    for model in (Note, TaskAction, AuditEvent, Person):
+        db.execute(delete(model).where(model.owner_id == owner_id))
+    db.commit()
+    seed_demo(db, owner_id, today)
+    return count
