@@ -518,13 +518,18 @@ async function download(path, filename) {
 /* ---- settings ---- */
 async function viewSettings() {
   VIEW().className = "";
-  let p;
-  try { p = await api("/privacy/summary"); } catch (e) { return fail(e); }
+  let p, demo;
+  try { [p, demo] = await Promise.all([api("/privacy/summary"), api("/demo")]); } catch (e) { return fail(e); }
   if (S.view !== "settings") return;
   const u = S.user, m = S.meta;
   VIEW().innerHTML = `
     <h1>${esc(t("settings_title"))}</h1>
     <span class="field-label">${esc(t("language"))}</span><div class="chips">${langChips("ui")}</div>
+    <section class="card">
+      <div class="task-head"><strong>${esc(t("demo_title"))}</strong><span class="tag sim">SIMULATED</span></div>
+      <p class="small muted" style="margin:6px 0 10px">${esc(demo.active ? t("demo_on").replace("{n}", demo.beneficiaries) : t("demo_off"))}</p>
+      <button class="wide ${demo.active ? "" : "primary"}" id="demo-toggle">${esc(demo.active ? t("demo_remove") : t("demo_load"))}</button>
+    </section>
     <h2>${esc(t("profile"))}</h2>
     <form class="card" id="f-profile">
       <label class="field"><span>${esc(t("name"))}</span><input name="name" value="${esc(u.name ?? "")}" autocomplete="off"></label>
@@ -562,6 +567,15 @@ async function viewSettings() {
   $("#delete").onclick = async () => {
     if (!confirm(t("delete_q"))) return;
     try { await api("/privacy/data", { method: "DELETE" }); S.people = null; toast(t("deleted")); viewSettings(); } catch (e) { fail(e); }
+  };
+  $("#demo-toggle").onclick = async () => {
+    if (demo.active && !confirm(t("demo_remove_q"))) return;
+    try {
+      await api("/demo", { method: "POST", json: { action: demo.active ? "remove" : "load" } });
+      S.people = null; S.tasks = [];
+      toast(demo.active ? t("demo_removed") : t("demo_loaded"));
+      viewSettings();
+    } catch (e) { fail(e); }
   };
   $("#logout").onclick = logout;
 }

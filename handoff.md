@@ -38,7 +38,8 @@
   - Phase 2: STT adapters `server/app/stt/` (Vosk offline Hindi = default; mock labelled SIMULATED; Sarvam = stub needing key); rule-based extractor `server/app/extraction/rule_based.py` (LLM-shaped output + quotes → same validator); name resolution `names.py` (T-027 v0); pipeline `server/app/pipeline.py`; eval harness `eval/harness.py` (T-025, text-only); 40 dev + 20 held-out synthetic notes + registry in `eval/data/` (T-021 v0); `docs/providers.md`.
 - **Numbers (only these exist; synthetic, same author — never on a slide without the caveat):** `eval/results/2026-11-07/holdout/report.md` — P 0.99 / R 0.87 / F1 0.93, critical-field match 16/20, unsupported values 0.000, text pipeline p50 10.7 ms. Dev set (tuned on) F1 0.99 — overfit, regression guard only. **Not measured:** STT WER (no recordings), LLM extraction (no key), time saved.
 - **Vosk:** plumbing verified on a 22 kHz WAV (English TTS → garbage text, as expected); warm 2.9 s for 4.7 s audio on this laptop. Hindi accuracy unmeasured.
-- **Last verified commands (2026-11-10):** pytest → "430 passed"; ruff → "All checks passed!"; secret scan → see §11 entry.
+- **Demo data (v1.2):** Settings → "Remove demo data" / "Load demo data (6 beneficiaries)" (`/v1/demo`). New logins get the small set (`SMALL_DEMO` in `services.py`); the full registry stays for eval/tests via `seed_demo(..., only=None)`.
+- **Last verified commands (2026-11-10):** pytest → "433 passed"; ruff → "All checks passed!"; secret scan → see §11 entry.
 
 ## 3. Next actions (ordered)
 
@@ -88,6 +89,7 @@
 | D-23 | STT default | Sarvam `saaras:v4` (cloud, India; server sends audio, phone never calls a vendor); Vosk offline fallback. Supersedes D-17 default; evidence `eval/results/2026-11-10/` | **confirmed** (human: "implement the sarvam") | 2026-11-10 |
 | D-24 | Reports | Monthly report in both PDF and Excel; incentive stays HBNC/HBYC (immunisation incentive is per session, rate unverified) | **confirmed** (human: both formats) | 2026-11-10 |
 | D-25 | Branches | `p1-core` merged into `main` | **confirmed** (human) | 2026-11-10 |
+| D-26 | Demo data | Small demo (6 beneficiaries + mothers) by default; one Settings button removes/loads it; own notes are never removed by it | **confirmed** (human) | 2026-11-10 |
 
 ## 6. Environment and setup
 
@@ -205,4 +207,10 @@ aura/
 - Evidence: pytest 430 passed; ruff clean; live Sarvam smoke test on 2 English TTS clips was word-perfect; eval numbers in §2. PDF rendered and checked visually (en + hi).
 - Not done / unverified: real human voice; physical phone; Sarvam retention is a vendor claim; CI on GitHub not checked.
 - Risk: demo needs laptop internet; Vosk fallback is much weaker. Sarvam credit use is small (₹30/h audio).
+- Next: §3.
+
+### 2026-11-10 — v1.2: clean demo toggle + CI fix
+- Human: demo data is "huge and mess"; wants a button to remove it and add ~6 back; merge to main; PR checks failing.
+- Done: `remove_demo` / `load_demo` / `demo_status` (services), `GET/POST /v1/demo`, Settings card + toggle button (hi/en). Small set = c01, c02, c07, c08, c20, w03 + mothers (11 rows, 26 demo history notes, ~10 open tasks). CI: gitleaks failed on `pull_request` with 403 → added `pull-requests: read`.
+- Evidence: pytest 433 passed; ruff clean; headless Edge (390 px) walkthrough login → Settings → remove → Home "Nothing is due" → load → 9 task cards, no console errors.
 - Next: §3.

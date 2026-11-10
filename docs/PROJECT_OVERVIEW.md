@@ -306,10 +306,11 @@ Prepares — **does not file** — an incentive claim for the month: HBNC series
 - Clear warnings: estimate only, national rates, what is not included.
 
 ### 6.6 Settings & privacy
+- **Demo data button** (top of Settings, labelled SIMULATED): **Remove demo data** deletes every invented beneficiary and their demo visit history, keeping the ASHA's own notes and the people those notes name; pressing it again (**Load demo data**) adds back a small set of **6 beneficiaries** — Sunita's and Rekha's newborns, Anita's baby (HBNC midway), Ishaan (MR-1 overdue), Seema's baby (HBNC complete → claim ready) and Pooja (pregnant) — plus their mothers so "Rekha's baby" still resolves. New logins get this small set.
 - Switch UI language (Hindi / English); edit name and ASHA ID.
 - **Privacy summary**: how many confirmed and draft notes and stored audio files exist.
 - **Export my data** (JSON download).
-- **Delete my data** (wipes notes, task actions, audit trail for that user, then reseeds the demo).
+- **Delete my data** (wipes notes, task actions, audit trail for that user, then loads the small demo).
 - States the privacy contract plainly (microphone only; no location etc.).
 - When Sarvam is the speech provider, says that recordings are sent to Sarvam AI (India) for speech recognition, with an offline model used when there is no internet.
 
@@ -336,6 +337,7 @@ Audio is deleted **on confirm or discard**, with a hard cap of **7 days** (`AUDI
 | `POST /tasks/{beneficiary}/{rule}/action` | Reschedule or dismiss a task. |
 | `GET /reports/monthly` | Monthly report as JSON / PDF / XLSX (`month`, `format`, `lang`). |
 | `GET /reports/claims` | Claim sheet as JSON / PDF / XLSX. |
+| `GET /demo`, `POST /demo {action: remove\|load}` | Demo data status; remove it or load the small set (6 beneficiaries). |
 | `GET /privacy/summary`, `GET /privacy/export`, `DELETE /privacy/data` | Privacy controls. |
 
 Errors share one shape: `{code, message, details[]}` with field paths, so the UI can highlight the exact field.
@@ -373,6 +375,7 @@ Errors share one shape: `{code, message, details[]}` with field paths, so the UI
 | **Phase 2 — Pipeline** (7 Nov) | Vosk/mock/Sarvam-stub STT adapters; rule-based extractor; name resolution; pipeline; eval harness with 60 synthetic notes + registry; `docs/providers.md`. |
 | **Phase 3 — Prototype v1** (9 Nov) | FastAPI server + SQLite; simulated OTP login; full `/v1` API; mobile web app (record/upload/type → review → confirm → tasks → reports → privacy); audio retention; demo seed; Hindi + English UI; PDF/XLSX export with embedded fonts; self-signed HTTPS for phone use. Tested end-to-end in headless Edge at 390 px and 320 px. |
 | **v1.1 — Voice + reports** (10 Nov) | Sarvam `saaras:v4` speech-to-text (chunking, key terms, offline fallback, `.env` loading); audio eval mode + AI-voice test audio; extractor fixes for cloud-ASR output (newborn → HBNC, "measles rubella", "102 डिग्री", "दूध भी नहीं पी"); monthly report (PDF + Excel) and Reports screen update; privacy disclosure; branches merged into `main`. |
+| **v1.2 — Clean demo** (10 Nov) | Demo data button in Settings (remove / load small set of 6 beneficiaries); new logins start with the small set; CI gitleaks permission fix for pull requests. |
 
 ---
 

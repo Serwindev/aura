@@ -345,19 +345,48 @@ _GAPS = {("c08", "mr1")}  # left undone on purpose: an overdue vaccine for the d
 _BIRTH_DOSES = {"bcg", "hepb0", "opv0"}
 
 
-def seed_demo(db: Session, owner_id: str, today: date) -> None:
-    """All invented people. Birth dates shift with the calendar so the demo stays current."""
+# The small demo (the default): six beneficiaries, each with a demo story.
+#   c01 Sunita's newborn girl (HBNC starting) · c02 Rekha's newborn boy (home delivery)
+#   c07 Anita's baby (HBNC midway)            · c08 Ishaan (MR-1 overdue)
+#   c20 Seema's baby (HBNC complete → claim)  · w03 Pooja Yadav (pregnant)
+# Mothers are added too so a note can name the baby through its mother ("Rekha's baby").
+SMALL_DEMO = ("c01", "c02", "c07", "c08", "c20", "w03")
+FULL_DEMO = None  # every person in the synthetic registry (eval and tests use it)
+
+
+def _with_mothers(ids, all_people) -> set[str]:
+    by_id = {p["id"] if isinstance(p, dict) else p.id: p for p in all_people}
+    out = set(ids)
+    for i in ids:
+        p = by_id.get(i)
+        mother = (p.get("mother_id") if isinstance(p, dict) else p.mother_id) if p else None
+        if mother:
+            out.add(mother)
+    return out
+
+
+def seed_demo(db: Session, owner_id: str, today: date, only: tuple[str, ...] | None = SMALL_DEMO) -> int:
+    """Add invented people (and their demo visit history) that the ASHA does not already have.
+    Birth dates shift with the calendar so the demo stays current. Returns people added."""
     shift = today - SEED_ANCHOR
-    for p in load_people():
-        db.add(Person(owner_id=owner_id, id=p.id, names=list(p.names), category=p.category, mother_id=p.mother_id,
-                      dob=p.dob + shift if p.dob else None, delivery_place=p.delivery_place,
-                      label_hi=p.label_hi, label_en=p.label_en))
+    registry = load_people()
+    keep = None if only is None else _with_mothers(only, [*registry, *_EXTRA_PEOPLE])
+    have = {p.id for p in db.scalars(select(Person).where(Person.owner_id == owner_id)).all()}
+    added: set[str] = set()
+    for p in registry:
+        if (keep is None or p.id in keep) and p.id not in have:
+            db.add(Person(owner_id=owner_id, id=p.id, names=list(p.names), category=p.category, mother_id=p.mother_id,
+                          dob=p.dob + shift if p.dob else None, delivery_place=p.delivery_place,
+                          label_hi=p.label_hi, label_en=p.label_en))
+            added.add(p.id)
     extra_dob = {"c20": today - timedelta(days=45), "c21": add_months(today, -3) - timedelta(days=3)}
     for e in _EXTRA_PEOPLE:
-        db.add(Person(owner_id=owner_id, dob=extra_dob.get(e["id"]), **e))
+        if (keep is None or e["id"] in keep) and e["id"] not in have:
+            db.add(Person(owner_id=owner_id, dob=extra_dob.get(e["id"]), **e))
+            added.add(e["id"])
     db.flush()
 
-    people = {p.id: p for p in people_for(db, owner_id)}
+    people = {p.id: p for p in people_for(db, owner_id) if p.id in added}
     bens = [engine.Beneficiary(p.id, p.category, p.dob, p.delivery_place) for p in people.values() if p.dob]
     vaccines = {d["id"]: d["vaccine"] for d in load_yaml(RULES_DIR / "uip.yaml")["doses"]}
     recent = today - timedelta(days=7)
@@ -377,6 +406,50 @@ def seed_demo(db: Session, owner_id: str, today: date) -> None:
     for (bid, when), names in grouped.items():
         db.add(_seed_note(owner_id, bid, "IMMUNIZATION", when, {}, names))
     db.commit()
+    return len(added)
+
+
+def _own_people(db: Session, owner_id: str) -> set[str]:
+    """People the ASHA's own notes (voice or typed, any status) refer to, plus their mothers."""
+    ids: set[str] = set()
+    for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.source != "seed")).all():
+        for rec in (n.confirmed, n.draft):
+            bid = ((rec or {}).get("beneficiary") or {}).get("matched_id")
+            if bid:
+                ids.add(bid)
+    people = db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
+    return _with_mothers(ids, people)
+
+
+def demo_status(db: Session, owner_id: str) -> dict:
+    own = _own_people(db, owner_id)
+    people = db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
+    notes = db.scalars(select(Note).where(Note.owner_id == owner_id, Note.source == "seed")).all()
+    demo_people = [p for p in people if p.id not in own]
+    return {"active": bool(demo_people or notes), "demo_people": len(demo_people), "demo_notes": len(notes),
+            "beneficiaries": sum(1 for p in demo_people if p.id in SMALL_DEMO or p.category != "other")}
+
+
+def remove_demo(db: Session, owner_id: str) -> dict:
+    """Delete demo history and demo people. The ASHA's own notes, and the people they name, stay."""
+    own = _own_people(db, owner_id)
+    notes = db.scalars(select(Note).where(Note.owner_id == owner_id, Note.source == "seed")).all()
+    for n in notes:
+        db.delete(n)
+    gone = [p.id for p in db.scalars(select(Person).where(Person.owner_id == owner_id)).all() if p.id not in own]
+    if gone:
+        db.execute(delete(Person).where(Person.owner_id == owner_id, Person.id.in_(gone)))
+        db.execute(delete(TaskAction).where(TaskAction.owner_id == owner_id, TaskAction.beneficiary_id.in_(gone)))
+    db.add(AuditEvent(owner_id=owner_id, action="demo_removed", detail={"people": len(gone), "notes": len(notes)}))
+    db.commit()
+    return demo_status(db, owner_id)
+
+
+def load_demo(db: Session, owner_id: str, today: date) -> dict:
+    added = seed_demo(db, owner_id, today, SMALL_DEMO)
+    db.add(AuditEvent(owner_id=owner_id, action="demo_loaded", detail={"people": added}))
+    db.commit()
+    return demo_status(db, owner_id)
 
 
 def _seed_note(owner_id: str, bid: str, vtype: str, when: date, idx: dict, vaccines: list[str]) -> Note:

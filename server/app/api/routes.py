@@ -25,10 +25,13 @@ from ..services import (
     confirm_note,
     create_note,
     delete_audio,
+    demo_status,
     engine_inputs,
     label,
     list_tasks,
+    load_demo,
     people_for,
+    remove_demo,
     seed_demo,
     set_task_action,
     wipe_owner_data,
@@ -341,6 +344,27 @@ def get_monthly(request: Request, month: str | None = None, format: str = "json"
         return Response(monthly.to_xlsx(rep, user_view(user)), media_type=XLSX,
                         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'})
     return rep
+
+
+# ---- demo data (SIMULATED) -------------------------------------------------------------------
+
+class DemoBody(BaseModel):
+    action: str  # remove | load
+
+
+@router.get("/demo")
+def get_demo(user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    return demo_status(db, user.id)
+
+
+@router.post("/demo")
+def post_demo(body: DemoBody, request: Request, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Remove the invented demo people and history, or load the small demo set (6 beneficiaries)."""
+    if body.action == "remove":
+        return remove_demo(db, user.id)
+    if body.action == "load":
+        return load_demo(db, user.id, settings(request).today())
+    raise RequestError(422, "BAD_ACTION", "Action must be remove or load")
 
 
 # ---- privacy --------------------------------------------------------------------------------

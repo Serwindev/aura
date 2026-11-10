@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read  # gitleaks-action lists the PR's commits; without this it fails with 403
 
 jobs:
   server:

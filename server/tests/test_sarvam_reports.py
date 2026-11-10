@@ -170,3 +170,42 @@ def test_empty_month_report_still_renders(env):  # noqa: F811
     rep = c.get("/v1/reports/monthly?month=2025-01&lang=hi", headers=h).json()
     assert rep["visits"] == [] and json.dumps(rep)
     assert c.get("/v1/reports/monthly?month=2025-01&format=pdf&lang=hi", headers=h).content.startswith(b"%PDF")
+
+
+# ---- demo data toggle ------------------------------------------------------------------------
+
+def test_new_login_gets_small_demo(env):  # noqa: F811
+    c = env[0]
+    h = login(c)
+    d = c.get("/v1/demo", headers=h).json()
+    assert d["active"] is True and d["beneficiaries"] == 6
+    ids = {p["id"] for p in c.get("/v1/beneficiaries", headers=h).json()}
+    assert {"c01", "c02", "c07", "c08", "c20", "w03"} <= ids
+    assert {"w01", "w02", "w07", "w08", "w20"} <= ids  # mothers, so "Rekha's baby" resolves
+    assert len(ids) == 11
+
+
+def test_remove_demo_keeps_own_notes_and_their_people(env):  # noqa: F811
+    c = env[0]
+    h = login(c)
+    n = post_text(c, h).json()  # about c01, Sunita's baby
+    c.post(f"/v1/notes/{n['id']}/confirm", json={"record": n["record"]}, headers=h)
+    d = c.post("/v1/demo", json={"action": "remove"}, headers=h).json()
+    assert d == {"active": False, "demo_people": 0, "demo_notes": 0, "beneficiaries": 0}
+    assert {p["id"] for p in c.get("/v1/beneficiaries", headers=h).json()} == {"c01", "w01"}
+    rep = c.get("/v1/reports/monthly?month=2026-11&lang=en", headers=h).json()
+    assert len(rep["visits"]) == 1 and not rep["visits"][0]["simulated"]
+    assert c.get("/v1/reports/claims?month=2026-11&lang=en", headers=h).json()["total"] == 0
+    assert c.get("/v1/privacy/summary", headers=h).json()["confirmed_notes"] == 1
+
+
+def test_load_demo_again_is_idempotent(env):  # noqa: F811
+    c = env[0]
+    h = login(c)
+    first = c.get("/v1/demo", headers=h).json()
+    c.post("/v1/demo", json={"action": "remove"}, headers=h)
+    again = c.post("/v1/demo", json={"action": "load"}, headers=h).json()
+    assert again == first
+    assert c.post("/v1/demo", json={"action": "load"}, headers=h).json() == first  # nothing doubled
+    assert c.post("/v1/demo", json={"action": "nope"}, headers=h).status_code == 422
+    assert c.post("/v1/demo", json={"action": "load"}).status_code == 401
