@@ -188,3 +188,7 @@ aura/
 - Fonts: Noto Sans Devanagari + Noto Sans (OFL) embedded for PDFs. No Hindi font on the phone is needed.
 - Not done / unverified: physical phone; Hindi speech on real or AI audio; Windows Firewall/campus Wi-Fi behaviour; native review of Hindi copy.
 - Next: §3.
+
+### 2026-11-10 — Project overview doc
+- Done: wrote `docs/PROJECT_OVERVIEW.md` (tech stack, architecture, concepts, every v1 feature, API, run commands, build history, honest status). Docs only; no code changed, tests not re-run.
+- Next: §3 unchanged.
