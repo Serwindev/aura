@@ -24,8 +24,10 @@
 
 ## 2. Current state (update each session)
 
-- **Date:** 2026-11-09 · **Phase:** phases 1–3 **done**: prototype v1 runs (FastAPI + SQLite + mobile web app). Hindi voice accuracy still **unmeasured**.
-- **Repo:** private GitHub `Serwindev/aura` (origin, created 2026-11-10); `main` = planning docs; `p1-core` = phases 1–3 + overview doc.
+- **Date:** 2026-11-10 · **Phase:** v1.1 **done**: Sarvam speech-to-text (default) + monthly report PDF/Excel. Field speech accuracy still **unmeasured** (AI-voice audio only).
+- **Repo:** private GitHub `Serwindev/aura`; `p1-core` merged into `main` (2026-11-10). Work on `main` or a new task branch.
+- **v1.1 (2026-11-10):** STT = Sarvam `saaras:v4` when `SARVAM_API_KEY` is in `server/.env` (`STT_PROVIDER=auto`), Vosk offline fallback on network/5xx/429; notes > 28 s split at the quietest point; register names + programme words sent as key terms. `GET /v1/reports/monthly?format=json|pdf|xlsx` (Summary · Visits · Tasks · Incentive); Reports screen has a Monthly report card. Privacy screen discloses Sarvam. Eval audio mode: `eval/harness.py --audio-dir … --stt sarvam|vosk`; AI-voice audio via `eval/make_tts_audio.py` (git-ignored).
+- **Evidence (2026-11-10):** `eval/results/2026-11-10/README.md`. Held-out AI-voice audio, first untuned run: Sarvam critical 17/20, F1 0.93, raw WER 0.125, STT p50 0.65 s; Vosk 6/20, F1 0.70, WER 0.344. After 2 fixes seen on held-out output (now optimistic): text held-out F1 0.96, critical 18/20; Sarvam audio critical 18/20.
 - **Run:** `.\make.ps1 server` → http://localhost:8000 (laptop). `.\make.ps1 phone` → prints an `https://<wifi-ip>:8443` address for a phone on the same Wi-Fi (self-signed: accept the one-time warning; allow Windows Firewall if asked; use a phone hotspot if campus Wi-Fi isolates devices). `.\make.ps1 db-reset` clears the demo. First-time setup: `.\make.ps1 setup`, `.\make.ps1 models`.
 - **Phase 3 built:** simulated OTP login, `/v1` API (notes from audio/text, confirm with server-side re-validation and server-owned evidence, tasks with reschedule/dismiss, claim sheet JSON/PDF/XLSX, privacy summary/export/delete), audio deleted on confirm or discard (7-day cap), synthetic demo household with history labelled SIMULATED, mobile web app (record, audio-file upload, type, review & confirm, Home, reports, settings/privacy), Hindi default + English.
 - **Not in v1:** offline queue on the phone, background sync, monthly activity summary, ANC tasks, Flutter. The phone must reach the laptop; no internet is needed.
@@ -36,21 +38,21 @@
   - Phase 2: STT adapters `server/app/stt/` (Vosk offline Hindi = default; mock labelled SIMULATED; Sarvam = stub needing key); rule-based extractor `server/app/extraction/rule_based.py` (LLM-shaped output + quotes → same validator); name resolution `names.py` (T-027 v0); pipeline `server/app/pipeline.py`; eval harness `eval/harness.py` (T-025, text-only); 40 dev + 20 held-out synthetic notes + registry in `eval/data/` (T-021 v0); `docs/providers.md`.
 - **Numbers (only these exist; synthetic, same author — never on a slide without the caveat):** `eval/results/2026-11-07/holdout/report.md` — P 0.99 / R 0.87 / F1 0.93, critical-field match 16/20, unsupported values 0.000, text pipeline p50 10.7 ms. Dev set (tuned on) F1 0.99 — overfit, regression guard only. **Not measured:** STT WER (no recordings), LLM extraction (no key), time saved.
 - **Vosk:** plumbing verified on a 22 kHz WAV (English TTS → garbage text, as expected); warm 2.9 s for 4.7 s audio on this laptop. Hindi accuracy unmeasured.
-- **Last verified commands (2026-11-09):** `.\make.ps1 test` → "417 passed"; `.\make.ps1 lint` → "All checks passed!"; `.\make.ps1 secrets-scan` → "0 finding(s)".
+- **Last verified commands (2026-11-10):** pytest → "430 passed"; ruff → "All checks passed!"; secret scan → see §11 entry.
 
 ## 3. Next actions (ordered)
 
-1. **(human)** Try it on a real phone (`.\make.ps1 phone`); run the first Hindi audio check with AI-voice clips (Note screen → choose audio file; the app's Hindi examples work as scripts). Report transcripts: AI voices are not evidence of field accuracy.
-2. **(human)** A native Hindi speaker reads the UI copy (`server/app/web/i18n.js`).
-3. **(human, when possible)** Sarvam + Anthropic keys → T-023/T-024 adapters + bake-off (T-026).
-4. Next build: phone offline queue, monthly summary, ANM review of U21–U24, then Flutter (phase 4).
+1. **(human)** Rehearse on a real phone (`.\make.ps1 phone`, laptop online). Team members read the app's example notes aloud (synthetic content) → first human-voice figure for Sarvam.
+2. **(human)** A native Hindi speaker reads the UI copy (`server/app/web/i18n.js`) and the monthly report PDF.
+3. **(human, when possible)** Anthropic key → LLM extractor (T-024) + bake-off (T-026).
+4. Next build: phone offline queue, ANM review of U21–U24, then Flutter (phase 4).
 
 ## 4. Blockers and waiting-on-humans
 
 | # | Item | Owner | Status |
 |---|---|---|---|
 | B1 | SFIC not submitted (window closed 6 Nov) — new target date needed | Lead | open |
-| B2 | API keys: none (human cannot obtain now) — v1 runs fully offline (Vosk + rule-based) | Lead | open, worked around |
+| B2 | API keys: Sarvam key **added** 2026-11-10 (server/.env); no LLM key yet | Lead | partly resolved |
 | B3 | Blank official UP forms and claim form | Research team | open |
 | B4 | ≥5 ASHA/ANM conversations | Research team | open |
 | B5 | Clinician/ANM reviewer for rules | Lead | open |
@@ -83,6 +85,9 @@
 | D-20 | English voice | Added Vosk `small-en-in-0.4` (offline, Apache-2.0), because the human tests in English first and the Hindi model cannot transcribe English | **follows from human request** | 2026-11-09 |
 | D-21 | Hindi test audio | AI-voice clips via audio-file upload; no human Hindi recording for now | **confirmed** (human) | 2026-11-09 |
 | D-22 | Demo reach | Laptop + phone on same Wi-Fi via self-signed HTTPS | **confirmed** (human) | 2026-11-09 |
+| D-23 | STT default | Sarvam `saaras:v4` (cloud, India; server sends audio, phone never calls a vendor); Vosk offline fallback. Supersedes D-17 default; evidence `eval/results/2026-11-10/` | **confirmed** (human: "implement the sarvam") | 2026-11-10 |
+| D-24 | Reports | Monthly report in both PDF and Excel; incentive stays HBNC/HBYC (immunisation incentive is per session, rate unverified) | **confirmed** (human: both formats) | 2026-11-10 |
+| D-25 | Branches | `p1-core` merged into `main` | **confirmed** (human) | 2026-11-10 |
 
 ## 6. Environment and setup
 
@@ -193,3 +198,11 @@ aura/
 - Done: wrote `docs/PROJECT_OVERVIEW.md` (tech stack, architecture, concepts, every v1 feature, API, run commands, build history, honest status). Docs only; no code changed, tests not re-run.
 - Next: §3 unchanged.
 - Pushed `main` and `p1-core` to private repo https://github.com/Serwindev/aura (gh CLI already authenticated as Serwindev; secret scan 0 findings before push). First CI run not yet checked.
+
+### 2026-11-10 — v1.1: Sarvam speech-to-text + monthly reports
+- Human: Vosk recognition "very worst", even English; added a Sarvam key; wants Excel + PDF reports, overview updated, branches merged and pushed → D-23…D-25.
+- Done: Sarvam adapter (`server/app/stt/providers.py`, httpx; `server/.env` loader in `core/settings.py`); names as key terms; chunking; fallback. Monthly report (`server/app/reports/monthly.py`, `/v1/reports/monthly`), Reports UI, privacy disclosure. Extractor fixes: newborn mention → HBNC (confidence 0.5), "measles rubella" → MR, "102 डिग्री" → temperature, "दूध भी नहीं पी". Harness audio mode + TTS script. Tests: `server/tests/test_sarvam_reports.py` (mocked HTTP, no credits).
+- Evidence: pytest 430 passed; ruff clean; live Sarvam smoke test on 2 English TTS clips was word-perfect; eval numbers in §2. PDF rendered and checked visually (en + hi).
+- Not done / unverified: real human voice; physical phone; Sarvam retention is a vendor claim; CI on GitHub not checked.
+- Risk: demo needs laptop internet; Vosk fallback is much weaker. Sarvam credit use is small (₹30/h audio).
+- Next: §3.

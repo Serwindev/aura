@@ -1,0 +1,2353 @@
+{
+ "summary": {
+  "date": "2026-11-10",
+  "set": "notes",
+  "notes": 40,
+  "extractor": "rule-based-v0",
+  "stt": "none (text transcripts)",
+  "audio": null,
+  "field_micro": {
+   "precision": 0.9921875,
+   "recall": 0.996078431372549,
+   "f1": 0.9941291585127201,
+   "tp": 254,
+   "fp": 2,
+   "fn": 1
+  },
+  "critical_exact_match_rate": 0.975,
+  "unsupported_value_rate": 0.0,
+  "unsupported_fields": [],
+  "latency_ms_text_pipeline": {
+   "p50": 17.69725000485778,
+   "p95": 25.84530017338693
+  },
+  "mean_error_flags_per_note": 0.025,
+  "per_field": {
+   "visit_type": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 39,
+    "fp": 0,
+    "fn": 0
+   },
+   "visit_date": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 40,
+    "fp": 0,
+    "fn": 0
+   },
+   "beneficiary_id": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 38,
+    "fp": 0,
+    "fn": 0
+   },
+   "hbnc_day": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 10,
+    "fp": 0,
+    "fn": 0
+   },
+   "hbyc_month": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 6,
+    "fp": 0,
+    "fn": 0
+   },
+   "anc_number": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 2,
+    "fp": 0,
+    "fn": 0
+   },
+   "weight_kg": {
+    "precision": 0.9565217391304348,
+    "recall": 0.9565217391304348,
+    "f1": 0.9565217391304348,
+    "tp": 22,
+    "fp": 1,
+    "fn": 1
+   },
+   "temp_c": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": 0,
+    "fn": 0
+   },
+   "bp_sys": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": 0,
+    "fn": 0
+   },
+   "bp_dia": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": 0,
+    "fn": 0
+   },
+   "hb_g_dl": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": 0,
+    "fn": 0
+   },
+   "pulse": {
+    "precision": NaN,
+    "recall": NaN,
+    "f1": NaN,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "resp_rate": {
+    "precision": NaN,
+    "recall": NaN,
+    "f1": NaN,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "referral_needed": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 8,
+    "fp": 0,
+    "fn": 0
+   },
+   "referral_facility": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 8,
+    "fp": 0,
+    "fn": 0
+   },
+   "danger_signs": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 24,
+    "fp": 0,
+    "fn": 0
+   },
+   "services": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 32,
+    "fp": 0,
+    "fn": 0
+   },
+   "next_due": {
+    "precision": 0.9,
+    "recall": 1.0,
+    "f1": 0.9473684210526316,
+    "tp": 9,
+    "fp": 1,
+    "fn": 0
+   }
+  },
+  "by_style": {
+   "clean": {
+    "precision": 0.984375,
+    "recall": 0.9921259842519685,
+    "f1": 0.988235294117647
+   },
+   "stt": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+   }
+  },
+  "machine": "Windows 11, Python 3.12.10"
+ },
+ "notes": [
+  {
+   "id": "n01",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": 3,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.8,
+    "temp_c": 37.0,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_NOT_FEEDING:False"
+    ],
+    "services": [],
+    "next_due": [
+     "2026-11-14"
+    ]
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": 3,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.8,
+    "temp_c": 37.0,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_NOT_FEEDING:False"
+    ],
+    "services": [],
+    "next_due": [
+     "2026-11-14"
+    ]
+   }
+  },
+  {
+   "id": "n02",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": 7,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.9,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_FEVER:False"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": 7,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.9,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_FEVER:False"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n03",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c07",
+    "hbnc_day": 14,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.1,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_JAUNDICE:False"
+    ],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c07",
+    "hbnc_day": 14,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.1,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_JAUNDICE:False"
+    ],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n04",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": 38.3,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "पीएचसी",
+    "danger_signs": [
+     "NB_FEVER:True",
+     "NB_NOT_FEEDING:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": 38.3,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "पीएचसी",
+    "danger_signs": [
+     "NB_FEVER:True",
+     "NB_NOT_FEEDING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n05",
+   "style": "clean",
+   "tags": [
+    "hard",
+    "self_correction"
+   ],
+   "critical_ok": false,
+   "wrong_fields": [
+    "weight_kg"
+   ],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.7,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n06",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c07",
+    "hbnc_day": 21,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "सीएचसी",
+    "danger_signs": [
+     "NB_FAST_BREATHING:True",
+     "NB_LETHARGIC:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c07",
+    "hbnc_day": 21,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "सीएचसी",
+    "danger_signs": [
+     "NB_FAST_BREATHING:True",
+     "NB_LETHARGIC:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n07",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-03",
+    "beneficiary_id": "c10",
+    "hbnc_day": 3,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.6,
+    "temp_c": 36.8,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-07"
+    ]
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-03",
+    "beneficiary_id": "c10",
+    "hbnc_day": 3,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.6,
+    "temp_c": 36.8,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-07"
+    ]
+   }
+  },
+  {
+   "id": "n08",
+   "style": "stt",
+   "tags": [
+    "hard",
+    "mother_name_only"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-04",
+    "beneficiary_id": "c02",
+    "hbnc_day": 1,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.6,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_COLD:False",
+     "NB_NOT_FEEDING:False"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-04",
+    "beneficiary_id": "c02",
+    "hbnc_day": 1,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.6,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_COLD:False",
+     "NB_NOT_FEEDING:False"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n09",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": "c01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.75,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": "c01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.75,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n10",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c10",
+    "hbnc_day": 42,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 4.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c10",
+    "hbnc_day": 42,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 4.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n11",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c07",
+    "hbnc_day": 28,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.4,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "जिला अस्पताल",
+    "danger_signs": [
+     "NB_CORD_INFECTION:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c07",
+    "hbnc_day": 28,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.4,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "जिला अस्पताल",
+    "danger_signs": [
+     "NB_CORD_INFECTION:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n12",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": 14,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.1,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_JAUNDICE:True"
+    ],
+    "services": [],
+    "next_due": [
+     "2026-11-17"
+    ]
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": 14,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.1,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_JAUNDICE:True"
+    ],
+    "services": [],
+    "next_due": [
+     "2026-11-17"
+    ]
+   }
+  },
+  {
+   "id": "n13",
+   "style": "clean",
+   "tags": [
+    "hard",
+    "two_people"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [
+    "next_due"
+   ],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": 7,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.9,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-17"
+    ]
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": 7,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.9,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n14",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": "c07",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.75,
+    "temp_c": 36.1,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_COLD:True"
+    ],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": "c07",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.75,
+    "temp_c": 36.1,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_COLD:True"
+    ],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n15",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": 9,
+    "anc_number": null,
+    "weight_kg": 7.8,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": 9,
+    "anc_number": null,
+    "weight_kg": 7.8,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n16",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": 12,
+    "anc_number": null,
+    "weight_kg": 9.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_DIARRHOEA_DEHYDRATION:False"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": 12,
+    "anc_number": null,
+    "weight_kg": 9.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_DIARRHOEA_DEHYDRATION:False"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n17",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 6,
+    "anc_number": null,
+    "weight_kg": 6.9,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ors:",
+     "zinc:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 6,
+    "anc_number": null,
+    "weight_kg": 6.9,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ors:",
+     "zinc:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n18",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 3,
+    "anc_number": null,
+    "weight_kg": 5.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_LETHARGIC:False",
+     "CH_UNABLE_TO_DRINK:False"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 3,
+    "anc_number": null,
+    "weight_kg": 5.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_LETHARGIC:False",
+     "CH_UNABLE_TO_DRINK:False"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n19",
+   "style": "clean",
+   "tags": [
+    "hard",
+    "duration_not_date"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "chc",
+    "danger_signs": [
+     "CH_VOMITS_EVERYTHING:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "chc",
+    "danger_signs": [
+     "CH_VOMITS_EVERYTHING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n20",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": 15,
+    "anc_number": null,
+    "weight_kg": 10.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "जिला अस्पताल",
+    "danger_signs": [
+     "CH_CONVULSIONS:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": 15,
+    "anc_number": null,
+    "weight_kg": 10.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "जिला अस्पताल",
+    "danger_signs": [
+     "CH_CONVULSIONS:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n21",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 6,
+    "anc_number": null,
+    "weight_kg": 7.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 6,
+    "anc_number": null,
+    "weight_kg": 7.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n22",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 8.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "पीएचसी",
+    "danger_signs": [
+     "CH_FAST_BREATHING:True",
+     "CH_LETHARGIC:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 8.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "पीएचसी",
+    "danger_signs": [
+     "CH_FAST_BREATHING:True",
+     "CH_LETHARGIC:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n23",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-2",
+     "vaccine:penta-2",
+     "vaccine:rota-2"
+    ],
+    "next_due": [
+     "2026-12-08"
+    ]
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-2",
+     "vaccine:penta-2",
+     "vaccine:rota-2"
+    ],
+    "next_due": [
+     "2026-12-08"
+    ]
+   }
+  },
+  {
+   "id": "n24",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-1",
+     "vaccine:penta-1",
+     "vaccine:rota"
+    ],
+    "next_due": [
+     "2026-12-08"
+    ]
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-1",
+     "vaccine:penta-1",
+     "vaccine:rota"
+    ],
+    "next_due": [
+     "2026-12-08"
+    ]
+   }
+  },
+  {
+   "id": "n25",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-2",
+     "vaccine:penta-2"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-2",
+     "vaccine:penta-2"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n26",
+   "style": "stt",
+   "tags": [
+    "hard",
+    "earlier_dose_mentioned"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-2",
+     "vaccine:penta-2"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-2",
+     "vaccine:penta-2"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n27",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:bcg",
+     "vaccine:hep b",
+     "vaccine:opv-0"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:bcg",
+     "vaccine:hep b",
+     "vaccine:opv-0"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n28",
+   "style": "stt",
+   "tags": [
+    "hard",
+    "negated_service"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-17"
+    ]
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-17"
+    ]
+   }
+  },
+  {
+   "id": "n29",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:fipv-1",
+     "vaccine:opv-1",
+     "vaccine:pcv-1",
+     "vaccine:penta-1",
+     "vaccine:rota-1"
+    ],
+    "next_due": [
+     "2026-12-08"
+    ]
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:fipv-1",
+     "vaccine:opv-1",
+     "vaccine:pcv-1",
+     "vaccine:penta-1",
+     "vaccine:rota-1"
+    ],
+    "next_due": [
+     "2026-12-08"
+    ]
+   }
+  },
+  {
+   "id": "n30",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-11"
+    ]
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-11"
+    ]
+   }
+  },
+  {
+   "id": "n31",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": 2,
+    "weight_kg": 54.0,
+    "temp_c": null,
+    "bp_sys": 110,
+    "bp_dia": 70,
+    "hb_g_dl": 10.5,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "calcium:",
+     "ifa:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": 2,
+    "weight_kg": 54.0,
+    "temp_c": null,
+    "bp_sys": 110,
+    "bp_dia": 70,
+    "hb_g_dl": 10.5,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "calcium:",
+     "ifa:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n32",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w06",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": 140,
+    "bp_dia": 90,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "सीएचसी",
+    "danger_signs": [
+     "M_SEVERE_HEADACHE:True",
+     "M_SWELLING:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w06",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": 140,
+    "bp_dia": 90,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "सीएचसी",
+    "danger_signs": [
+     "M_SEVERE_HEADACHE:True",
+     "M_SWELLING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n33",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w09",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 61.0,
+    "temp_c": null,
+    "bp_sys": 120,
+    "bp_dia": 80,
+    "hb_g_dl": 9.5,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w09",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 61.0,
+    "temp_c": null,
+    "bp_sys": 120,
+    "bp_dia": 80,
+    "hb_g_dl": 9.5,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n34",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": 3,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": 8.2,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": [
+     "2026-12-09"
+    ]
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": 3,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": 8.2,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": [
+     "2026-12-09"
+    ]
+   }
+  },
+  {
+   "id": "n35",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w06",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "phc",
+    "danger_signs": [
+     "M_REDUCED_FETAL_MOVEMENT:True"
+    ],
+    "services": [
+     "vaccine:tt-2"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w06",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "phc",
+    "danger_signs": [
+     "M_REDUCED_FETAL_MOVEMENT:True"
+    ],
+    "services": [
+     "vaccine:tt-2"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n36",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w09",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 58.0,
+    "temp_c": null,
+    "bp_sys": 110,
+    "bp_dia": 70,
+    "hb_g_dl": 11.0,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w09",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 58.0,
+    "temp_c": null,
+    "bp_sys": 110,
+    "bp_dia": 70,
+    "hb_g_dl": 11.0,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n37",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "PNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "M_HEAVY_BLEEDING:False",
+     "M_HIGH_FEVER:False"
+    ],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "PNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "M_HEAVY_BLEEDING:False",
+     "M_HIGH_FEVER:False"
+    ],
+    "services": [
+     "counselling:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n38",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "FAMILY_PLANNING",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:",
+     "other:condom"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "FAMILY_PLANNING",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:",
+     "other:condom"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n39",
+   "style": "clean",
+   "tags": [
+    "hard",
+    "unknown_person"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "pred": {
+    "visit_type": "TB_FOLLOWUP",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "TB_FOLLOWUP",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "n40",
+   "style": "stt",
+   "tags": [
+    "hard",
+    "no_content"
+   ],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 1,
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  }
+ ]
+}

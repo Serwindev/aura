@@ -1,6 +1,6 @@
 # A.U.R.A. — Project Overview (everything built so far)
 
-> Snapshot as of **2026-11-10**, branch `p1-core` (phases 1–3 done).
+> Snapshot as of **2026-11-10**, branch `main` (phases 1–3 done + v1.1: Sarvam speech-to-text and monthly reports).
 > This file explains the whole project in one place: the idea, the tech stack, how the pieces fit, every feature in the app, and the concepts behind them. For live status see `handoff.md`; for the plan and task IDs see `plan.md`; for sources and verified facts see `context.md`.
 
 ---
@@ -16,7 +16,7 @@ After a home visit, an ASHA **speaks a short note** in Hindi or English, for exa
 A.U.R.A. turns that into a **structured visit record** (who, which visit, weight, temperature, danger signs, vaccines given, referral, next due date). She **checks and confirms it once**, and the confirmed record is then **reused**:
 
 - to work out **what visits and vaccines are due next** (task list),
-- to prepare an **incentive claim-support sheet** (PDF / Excel),
+- to produce a **monthly report** and an **incentive claim-support sheet** (PDF / Excel),
 - and later, for **guided data entry** into the official apps.
 
 **Core principle: capture once → verify once → reuse everywhere.**
@@ -51,9 +51,10 @@ A.U.R.A. turns that into a **structured visit record** (who, which visit, weight
 | Data validation | **Pydantic v2** | The visit-record schema is a strict Pydantic model (unknown fields rejected). |
 | Database | **SQLite** via **SQLAlchemy 2** | Light enough for a 7 GB-RAM laptop with no Docker (decision D-13). Code stays PostgreSQL-ready: switching is a `DATABASE_URL` change. |
 | Auth tokens | **PyJWT** (HS256) | Login returns a JWT used on every API call. |
-| Speech-to-text | **Vosk** (offline, CPU) | Works with no internet and no API key (D-17, D-20). |
+| Speech-to-text | **Sarvam Saaras v4** (cloud, India) by default; **Vosk** (offline, CPU) as fallback | Sarvam is far more accurate on Hindi, Indian English and Hinglish (D-23); Vosk keeps the app working without internet. |
+| HTTP client | **httpx** | Calls the Sarvam API from the server. |
 | PDF export | **fpdf2** + **uharfbuzz**, with embedded **Noto Sans Devanagari** and **Noto Sans** fonts (OFL) | Correct Hindi text shaping in PDFs; the phone needs no Hindi font. |
-| Excel export | **openpyxl** | `.xlsx` claim sheets. |
+| Excel export | **openpyxl** | `.xlsx` monthly reports and claim sheets. |
 | HTTPS for phone demo | **cryptography** (self-signed certificate, `scripts/make_cert.py`) | Browsers allow the microphone only on `localhost` or HTTPS. |
 | Rules & config | **YAML** (`PyYAML`) | Clinical schedules and ranges are data, not code. |
 | File uploads | **python-multipart** | Audio file upload to the API. |
@@ -91,7 +92,7 @@ A.U.R.A. turns that into a **structured visit record** (who, which visit, weight
  Record / upload / type  ── HTTPS ──▶  /v1/notes
                                           │
                                           ▼
-                                   1. STT (Vosk hi / en-in)  → transcript
+                                   1. STT (Sarvam saaras:v4; Vosk offline fallback) → transcript
                                           ▼
                                    2. Rule-based extractor   → "raw" proposal + evidence quotes
                                           ▼
@@ -104,7 +105,7 @@ A.U.R.A. turns that into a **structured visit record** (who, which visit, weight
  ASHA edits / confirms ── /confirm ──▶ server re-validates, keeps only server-owned evidence,
                                        stores CONFIRMED record, deletes audio, writes audit event
                                           ▼
-                       Rule engine → tasks (due / overdue)   Claim sheet → PDF / XLSX
+                       Rule engine → tasks (due / overdue)   Monthly report + claim sheet → PDF / XLSX
 ```
 
 Code map (`server/app/`):
@@ -126,6 +127,7 @@ Code map (`server/app/`):
 | `services.py` | Business logic: create/confirm notes, tasks, audio retention, demo seed, data wipe. |
 | `rules/engine.py` | Turns programme rules + history into tasks. |
 | `reports/claims.py`, `reports/export.py` | Claim-support sheet and its PDF/XLSX export. |
+| `reports/monthly.py` | Monthly report (visits, summary, open tasks, incentive) as JSON / PDF / XLSX. |
 | `web/` | The mobile web app. |
 
 ---
@@ -153,12 +155,17 @@ Every field is **nullable**: *not said → null*, never guessed.
 
 | Provider | Status |
 |---|---|
-| **Vosk `small-hi-0.22`** (Hindi) | Default; offline; ~42 MB. |
-| **Vosk `small-en-in-0.4`** (Indian English) | Offline; added because testing started in English (D-20). |
+| **Sarvam `saaras:v4`** (cloud) | **Default** when `SARVAM_API_KEY` is in `server/.env` (`STT_PROVIDER=auto`). Hindi (`hi-IN`) and Indian English (`en-IN`). |
+| **Vosk `small-hi-0.22`** / **`small-en-in-0.4`** | Offline fallback; used automatically if Sarvam cannot be reached (the note's label then says *offline fallback*). |
 | **Mock** | For tests; labelled SIMULATED. |
-| **Sarvam** | Stub only — needs an API key we don't have. |
 
-Audio is converted to 16 kHz mono before transcription (`to_mono16k`). Because of the adapter design, a better provider can be swapped in later based on evidence (a "bake-off", task T-026).
+How the Sarvam adapter works (`stt/providers.py`):
+- Audio is converted to 16 kHz mono WAV. Sarvam's REST API accepts clips **under 30 s**, so longer notes are **split at the quietest point** between 18 s and 28 s and the parts are joined.
+- **Key terms** are sent with each request: the names in the ASHA's register (Latin script for English, Devanagari for Hindi) plus programme words (HBNC, BCG, OPV, Penta…). This helps the model spell names correctly.
+- Network errors, rate limits and server errors fall back to Vosk; a bad key or bad request is shown as an error (never silently hidden).
+- **Privacy:** the phone only talks to our server; the **server** sends the audio to Sarvam (India). Sarvam states zero data retention by default (vendor claim). The Settings → Privacy screen says this plainly. Only synthetic data is used.
+
+Measured on 20 held-out synthetic notes spoken by an AI voice (`eval/results/2026-11-10/README.md`, first untuned run): **Sarvam got every critical field right in 17/20 notes vs 6/20 for Vosk**; field F1 0.93 vs 0.70; raw word error rate 0.125 vs 0.344; median speech-to-text time 0.65 s vs 1.7 s. AI voices are clean — this is **not field accuracy**.
 
 ### 5.3 Hindi normaliser (`extraction/normalize.py`)
 Spoken notes say numbers as **words**, in two scripts and mixed languages. The normaliser turns them into values:
@@ -220,14 +227,24 @@ Turns programme schedules + confirmed history into a **task list** with statuses
 
 Tasks with a recorded **danger sign** are moved to the top. Every rule file carries a `source` and is marked advisory. Some values are explicitly **unverified placeholders** (e.g. grace windows, HBNC day numbering — items U21–U24 in `context.md`) awaiting ANM review.
 
-### 5.9 Claim-support sheet (`reports/claims.py`, `templates/UP/claim_support.yaml`)
-Prepares — **does not file** — an incentive claim for the month: HBNC series and HBYC visits per child, with dates and status, using **national rates** (state rates unconfirmed, shown with a warning). Verification and payment stay with the ANM/Sangini and BCPM-MIS. Exported as **JSON, PDF (Hindi-capable) and XLSX**.
+### 5.9 Monthly report (`reports/monthly.py`)
+One report per month built **only from records the ASHA confirmed**, in Hindi or English:
+- **Summary:** visits recorded, people visited, vaccine doses, visits with danger signs, referrals, overdue/missed tasks, tasks due in the next 7 days, estimated incentive.
+- **Visits by type** and **vaccine doses by vaccine**.
+- **Visit records:** one row per visit: date, beneficiary, visit type, day/month/number, weight, temperature, BP, Hb, danger signs, services/vaccines, referral, and how it was entered (voice / typed / demo history SIMULATED).
+- **Open tasks:** overdue, missed and due-soon visits/vaccines with the reason.
+- **Incentive claim support:** the claim sheet below, with its warnings.
+
+Exported as **Excel** (one workbook, sheets *Summary · Visits · Tasks · Incentive*; the visits sheet has filters and a frozen header) or **PDF** (landscape A4, Hindi text shaped correctly). API: `GET /v1/reports/monthly?month=YYYY-MM&format=json|pdf|xlsx&lang=hi|en`.
+
+### 5.9b Claim-support sheet (`reports/claims.py`, `templates/UP/claim_support.yaml`)
+Prepares — **does not file** — an incentive claim for the month: HBNC series and HBYC visits per child, with dates and status, using **national rates** (state rates unconfirmed, shown with a warning). Verification and payment stay with the ANM/Sangini and BCPM-MIS. Exported as **JSON, PDF (Hindi-capable) and XLSX**. Immunisation is **not** in the incentive: that incentive is paid per session (mobilisation), not per visit note, and its UP rate is unverified — so it is listed as "not included" rather than guessed.
 
 ### 5.10 Integration Ladder (how we talk about government systems honestly)
 
 | Tier | What | Status |
 |---|---|---|
-| 0 Export | PDF/XLSX in the shape of the register/claim | **Built** (claim sheet) |
+| 0 Export | PDF/XLSX in the shape of the register/claim | **Built** (monthly report + claim sheet) |
 | 1 Guided entry | Field-by-field cards in the official app's order, one-tap copy | Planned |
 | 2 Official API | Only via NHM partnership | SIMULATED only |
 | 3 ABDM | ABHA verification etc. | Roadmap |
@@ -236,10 +253,14 @@ Prepares — **does not file** — an incentive claim for the month: HBNC series
 - `eval/data/notes.yaml` — 40 **dev** synthetic notes (used for tuning → overfit, regression guard only).
 - `eval/data/notes_holdout.yaml` — 20 **held-out** notes, scored without tuning.
 - `eval/data/registry.yaml` — synthetic households/people.
-- `eval/harness.py` — computes field precision/recall/F1, critical-field match, unsupported values, latency.
+- `eval/harness.py` — computes field precision/recall/F1, critical-field match, unsupported values, latency. **Audio mode** (`--audio-dir … --stt sarvam|vosk`) runs speech-to-text first and adds word error rate.
+- `eval/make_tts_audio.py` — makes AI-voice test audio for the notes with Sarvam text-to-speech (git-ignored).
 
-**Latest held-out result** (`eval/results/2026-11-09/holdout/report.md`): P 0.99 / R 0.90 / F1 0.94; all critical fields right in 17/20 notes; **0.000 unsupported values** (it misses rather than invents); text pipeline p50 ≈ 10 ms.
-**Caveat (always attach it):** synthetic, text-only, written by the same author as the extractor. **Not measured:** speech-to-text accuracy (WER), LLM extraction, time saved.
+**Latest results** (`eval/results/2026-11-10/`, see its README):
+- **Audio, held-out, first run (honest figure):** Sarvam — critical fields right in 17/20, F1 0.93, WER 0.125; Vosk — 6/20, F1 0.70, WER 0.344.
+- **Text, held-out:** P 0.99 / R 0.92 / F1 0.96, critical 18/20, **0.000 unsupported values** (it misses rather than invents). Partly tuned: two fixes came from looking at held-out audio output.
+
+**Caveat (always attach it):** synthetic notes by the same author as the extractor; audio is an AI voice, not real ASHA speech. **Not measured:** field speech accuracy, LLM extraction, time saved.
 
 ---
 
@@ -279,8 +300,9 @@ Prepares — **does not file** — an incentive claim for the month: HBNC series
 - Confirming twice is safe (idempotent). **Discard** throws the draft and its audio away.
 
 ### 6.5 Reports
-- Pick a month → claim-support sheet on screen.
-- Download as **PDF** (Hindi renders correctly) or **XLSX**.
+- Pick a month.
+- **Monthly report** card: the summary numbers on screen, with **PDF** and **Excel** download buttons (all visits, summary, open tasks, incentive).
+- **Incentive claim support** below it: estimated total, one card per child, and its own PDF / Excel downloads.
 - Clear warnings: estimate only, national rates, what is not included.
 
 ### 6.6 Settings & privacy
@@ -289,6 +311,7 @@ Prepares — **does not file** — an incentive claim for the month: HBNC series
 - **Export my data** (JSON download).
 - **Delete my data** (wipes notes, task actions, audit trail for that user, then reseeds the demo).
 - States the privacy contract plainly (microphone only; no location etc.).
+- When Sarvam is the speech provider, says that recordings are sent to Sarvam AI (India) for speech recognition, with an offline model used when there is no internet.
 
 ### 6.7 Audio retention
 Audio is deleted **on confirm or discard**, with a hard cap of **7 days** (`AUDIO_RETENTION_HOURS=168`) enforced by a purge job (D-07).
@@ -311,6 +334,7 @@ Audio is deleted **on confirm or discard**, with a hard cap of **7 days** (`AUDI
 | `POST /notes/{id}/discard` | Discard draft + audio. |
 | `GET /tasks` | Computed task list. |
 | `POST /tasks/{beneficiary}/{rule}/action` | Reschedule or dismiss a task. |
+| `GET /reports/monthly` | Monthly report as JSON / PDF / XLSX (`month`, `format`, `lang`). |
 | `GET /reports/claims` | Claim sheet as JSON / PDF / XLSX. |
 | `GET /privacy/summary`, `GET /privacy/export`, `DELETE /privacy/data` | Privacy controls. |
 
@@ -325,7 +349,7 @@ Errors share one shape: `{code, message, details[]}` with field paths, so the UI
 
 ```powershell
 .\make.ps1 setup      # install Python deps with uv
-.\make.ps1 models     # download Vosk Hindi + Indian-English models
+.\make.ps1 models     # download Vosk Hindi + Indian-English models (offline fallback)
 .\make.ps1 server     # http://localhost:8000 on the laptop
 .\make.ps1 phone      # prints https://<wifi-ip>:8443 for a phone on the same Wi-Fi
                       #   (self-signed cert: accept the warning once; allow Windows Firewall)
@@ -336,7 +360,7 @@ Errors share one shape: `{code, message, details[]}` with field paths, so the UI
 .\make.ps1 secrets-scan
 ```
 
-No internet and no API keys are needed; the phone only has to reach the laptop.
+**Speech provider:** put `SARVAM_API_KEY=<key>` in `server/.env` (git-ignored; never commit it). With a key, the laptop needs internet and Sarvam is used; without one (or with `STT_PROVIDER=vosk`), everything runs offline with Vosk. The phone only has to reach the laptop.
 
 ---
 
@@ -348,24 +372,26 @@ No internet and no API keys are needed; the phone only has to reach the laptop.
 | **Phase 1 — Core** (7 Nov) | Scaffold, CI, secret scan; schema v0.1 + validator; Hindi normaliser + date resolver; rule engine for HBNC/HBYC/UIP. |
 | **Phase 2 — Pipeline** (7 Nov) | Vosk/mock/Sarvam-stub STT adapters; rule-based extractor; name resolution; pipeline; eval harness with 60 synthetic notes + registry; `docs/providers.md`. |
 | **Phase 3 — Prototype v1** (9 Nov) | FastAPI server + SQLite; simulated OTP login; full `/v1` API; mobile web app (record/upload/type → review → confirm → tasks → reports → privacy); audio retention; demo seed; Hindi + English UI; PDF/XLSX export with embedded fonts; self-signed HTTPS for phone use. Tested end-to-end in headless Edge at 390 px and 320 px. |
+| **v1.1 — Voice + reports** (10 Nov) | Sarvam `saaras:v4` speech-to-text (chunking, key terms, offline fallback, `.env` loading); audio eval mode + AI-voice test audio; extractor fixes for cloud-ASR output (newborn → HBNC, "measles rubella", "102 डिग्री", "दूध भी नहीं पी"); monthly report (PDF + Excel) and Reports screen update; privacy disclosure; branches merged into `main`. |
 
 ---
 
 ## 10. Honest status — what is NOT done or NOT verified
 
 - **Not tested on a physical phone** yet.
-- **Hindi speech accuracy is unmeasured** (no Hindi recordings exist yet). English Vosk misheard names in a TTS test — names may need picking on the review screen.
+- **Field speech accuracy is unmeasured**: only AI-voice audio has been tested (Sarvam 17/20 critical-correct). Real ASHA speech (noise, dialect, code-mixing) will be worse.
+- **Sarvam needs internet on the laptop** and spends API credit (₹30 per hour of audio); offline fallback is Vosk, which is much weaker.
 - **Hindi UI text** has not been reviewed by a native speaker.
 - **Clinical rules are drafts** — need ANM/clinician review; ANC tasks disabled.
-- **Claim sheet** covers HBNC/HBYC only, at national rates.
-- **Not built yet:** offline queue on the phone, background sync, monthly activity summary, ANC tasks, guided entry (Tier 1), LLM extractor (needs key), Sarvam/Bhashini STT (needs keys), Flutter app.
-- **CI** has never run (no git remote).
+- **Incentive** covers HBNC/HBYC only, at national rates.
+- **Not built yet:** offline queue on the phone, background sync, ANC tasks, guided entry (Tier 1), LLM extractor (needs key), Bhashini STT, Flutter app.
+- **CI**: repo is on GitHub (`Serwindev/aura`, private); first CI run not yet checked.
 
 ## 11. What comes next
-1. Try on a real phone; first Hindi audio check with AI-voice clips.
+1. Try on a real phone with Sarvam; record a few team members reading the example notes (synthetic content) to get a first human-voice figure.
 2. Native-speaker review of Hindi UI copy.
-3. When keys exist: Sarvam STT + Claude extractor, then a bake-off against the current offline stack.
-4. Phone offline queue, monthly summary, ANM review of unverified rules, then the Flutter app.
+3. When an LLM key exists: Claude extractor, then a bake-off against the rule-based extractor.
+4. Phone offline queue, ANM review of unverified rules, then the Flutter app.
 
 ---
 

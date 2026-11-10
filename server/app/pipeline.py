@@ -65,7 +65,9 @@ def process_text(text: str, recorded_on: date, people: list[Person]) -> Pipeline
 def process_audio(wav_bytes: bytes, recorded_on: date, people: list[Person], stt,
                   language: str = "hi") -> PipelineResult:
     t0 = time.perf_counter()
-    tr = stt.transcribe(wav_bytes, language)
+    # names in the register help the speech model spell them (Latin for English, Devanagari for Hindi)
+    hints = sorted({n for p in people for n in p.names if n.isascii() == (language == "en")})
+    tr = stt.transcribe(wav_bytes, language, hints=hints)
     stt_ms = (time.perf_counter() - t0) * 1000
     res = process_transcript(tr, recorded_on, people)
     res.timings_ms["stt"] = stt_ms

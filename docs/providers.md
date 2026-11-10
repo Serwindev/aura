@@ -8,7 +8,7 @@ Status as of 2026-11-07. "Vendor claim" = not measured by us.
 |---|---|---|---|
 | **Vosk `vosk-model-small-en-in-0.4`** | Offline Indian English for English-language notes (D-20). End-to-end path verified with Windows TTS; accuracy **not measured**, and names were misheard in that test. | Apache-2.0 (Vosk models page) | About 55 MB on disk. Install: `.\make.ps1 models`. |
 | **Vosk `vosk-model-small-hi-0.22`** | **Default for v1.** Offline, CPU, no key. Plumbing verified (load, 22→16 kHz resample, transcribe); Hindi accuracy **not measured by us** (no recordings yet). | Apache-2.0 (Vosk models page) | ~42 MB. Vendor-reported WER (model README): 20.9% (IITM test), 24.7% (MUCS), 39.1% (gram), 15.0% (TTS set) — vendor claim. Outputs Devanagari words, no punctuation, numbers as words → our normaliser handles this. Install: `.\make.ps1 models`. |
-| Sarvam Saaras v3/v4 | **Stub** — needs a key (B2) to build and test | Commercial; ₹30/h, ₹1,000 signup credit [S5][S29] | REST < 30 s. Zero-retention default is a vendor claim. |
+| Sarvam Saaras v4 | **Default** since 2026-11-10 (`saaras:v4`; chunks < 30 s; register names as key terms; Vosk fallback). Eval: `eval/results/2026-11-10/` | Commercial; ₹30/h, ₹1,000 signup credit [S5][S29] | REST < 30 s. Zero-retention default is a vendor claim. |
 | Bhashini / Dhruva | Not started — needs ULCA userID + key | Gov platform; ToS [U9] | Two-step pipeline config → inference. |
 | IndicConformer-600M | **Dropped on this machine** (D-14: no CUDA, 7 GB RAM) | MIT, gated HF | Revisit with a GPU machine. |
 

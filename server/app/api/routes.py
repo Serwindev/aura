@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from ..core.config import RULES_DIR, load_yaml
 from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
+from ..reports import monthly
 from ..reports.claims import claim_sheet
 from ..reports.export import to_pdf, to_xlsx
 from ..services import (
@@ -312,6 +313,34 @@ def get_claims(request: Request, month: str | None = None, format: str = "json",
     if format != "json":
         raise RequestError(422, "BAD_FORMAT", "Format must be json, pdf or xlsx")
     return sheet
+
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.get("/reports/monthly", response_model=None)
+def get_monthly(request: Request, month: str | None = None, format: str = "json", lang: str | None = None,
+                user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Monthly report: confirmed visits, summary, open tasks and incentive claim support."""
+    today = settings(request).today()
+    m = re.fullmatch(r"(\d{4})-(0[1-9]|1[0-2])", month or today.strftime("%Y-%m"))
+    if not m:
+        raise RequestError(422, "BAD_MONTH", "Month must look like 2026-11")
+    if format not in ("json", "pdf", "xlsx"):
+        raise RequestError(422, "BAD_FORMAT", "Format must be json, pdf or xlsx")
+    use_lang = lang if lang in ("hi", "en") else user.lang
+    people, inputs = people_for(db, user.id), engine_inputs(db, user.id)
+    year, mon = int(m[1]), int(m[2])
+    claim = claim_sheet(people, inputs, today, year, mon, use_lang)
+    rep = monthly.build(db, user.id, people, inputs, claim, today, year, mon, use_lang)
+    name = f"aura-monthly-report-{rep['month']}"
+    if format == "pdf":
+        return Response(monthly.to_pdf(rep, user_view(user)), media_type="application/pdf",
+                        headers={"Content-Disposition": f'attachment; filename="{name}.pdf"'})
+    if format == "xlsx":
+        return Response(monthly.to_xlsx(rep, user_view(user)), media_type=XLSX,
+                        headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'})
+    return rep
 
 
 # ---- privacy --------------------------------------------------------------------------------

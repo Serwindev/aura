@@ -1,0 +1,1317 @@
+{
+ "summary": {
+  "date": "2026-11-10",
+  "set": "notes_holdout",
+  "notes": 20,
+  "extractor": "rule-based-v0",
+  "stt": "vosk-small-hi-0.22",
+  "audio": {
+   "source": "AI voice (Sarvam bulbul:v3 TTS), not field speech",
+   "wer_raw": 0.34444444444444444,
+   "stt_ms": {
+    "p50": 1716.7869500117376,
+    "max": 2591.777900001034
+   }
+  },
+  "field_micro": {
+   "precision": 0.9420289855072463,
+   "recall": 0.5603448275862069,
+   "f1": 0.7027027027027027,
+   "tp": 65,
+   "fp": 4,
+   "fn": 51
+  },
+  "critical_exact_match_rate": 0.3,
+  "unsupported_value_rate": 0.0,
+  "unsupported_fields": [],
+  "latency_ms_text_pipeline": {
+   "p50": 11.711350060068071,
+   "p95": 17.754799919202924
+  },
+  "mean_error_flags_per_note": 0.5,
+  "per_field": {
+   "visit_type": {
+    "precision": 1.0,
+    "recall": 0.5,
+    "f1": 0.6666666666666666,
+    "fn": 10,
+    "tp": 10,
+    "fp": 0
+   },
+   "visit_date": {
+    "precision": 0.95,
+    "recall": 0.95,
+    "f1": 0.9500000000000001,
+    "tp": 19,
+    "fp": 1,
+    "fn": 1
+   },
+   "beneficiary_id": {
+    "precision": 0.9285714285714286,
+    "recall": 0.6842105263157895,
+    "f1": 0.7878787878787878,
+    "fp": 1,
+    "fn": 6,
+    "tp": 13
+   },
+   "hbnc_day": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 4,
+    "tp": 0,
+    "fp": 0
+   },
+   "hbyc_month": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 3,
+    "tp": 0,
+    "fp": 0
+   },
+   "anc_number": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 1,
+    "tp": 0,
+    "fp": 0
+   },
+   "weight_kg": {
+    "precision": 1.0,
+    "recall": 0.8,
+    "f1": 0.888888888888889,
+    "tp": 8,
+    "fn": 2,
+    "fp": 0
+   },
+   "temp_c": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 1,
+    "fp": 0,
+    "fn": 0
+   },
+   "bp_sys": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 2,
+    "tp": 0,
+    "fp": 0
+   },
+   "bp_dia": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 2,
+    "tp": 0,
+    "fp": 0
+   },
+   "hb_g_dl": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 2,
+    "tp": 0,
+    "fp": 0
+   },
+   "pulse": {
+    "precision": NaN,
+    "recall": NaN,
+    "f1": NaN,
+    "tp": 0,
+    "fp": 0,
+    "fn": 0
+   },
+   "resp_rate": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "fn": 1,
+    "tp": 0,
+    "fp": 0
+   },
+   "referral_needed": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0,
+    "tp": 4,
+    "fp": 0,
+    "fn": 0
+   },
+   "referral_facility": {
+    "precision": 0.6666666666666666,
+    "recall": 0.5,
+    "f1": 0.5714285714285715,
+    "tp": 2,
+    "fn": 2,
+    "fp": 1
+   },
+   "danger_signs": {
+    "precision": 1.0,
+    "recall": 0.6,
+    "f1": 0.7499999999999999,
+    "tp": 6,
+    "fp": 0,
+    "fn": 4
+   },
+   "services": {
+    "precision": 0.6666666666666666,
+    "recall": 0.16666666666666666,
+    "f1": 0.26666666666666666,
+    "tp": 2,
+    "fp": 1,
+    "fn": 10
+   },
+   "next_due": {
+    "precision": NaN,
+    "recall": 0.0,
+    "f1": NaN,
+    "tp": 0,
+    "fp": 0,
+    "fn": 1
+   }
+  },
+  "by_style": {
+   "stt": {
+    "precision": 0.975,
+    "recall": 0.7090909090909091,
+    "f1": 0.8210526315789474
+   },
+   "clean": {
+    "precision": 0.896551724137931,
+    "recall": 0.4262295081967213,
+    "f1": 0.5777777777777777
+   }
+  },
+  "machine": "Windows 11, Python 3.12.10"
+ },
+ "notes": [
+  {
+   "id": "h01",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "beneficiary_id",
+    "hbnc_day",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "सुनीता जी बेटी को देखा तीसरा दिन है वजन दो किलो सात सौ ग्राम बच्ची ठीक से दूध पी रही है",
+   "said": "सुनीता की बेटी को आज देखा तीसरा दिन है वजन दो किलो सात सौ ग्राम बच्ची ठीक से दूध पी रही है",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.7,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_NOT_FEEDING:False"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c01",
+    "hbnc_day": 3,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.7,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_NOT_FEEDING:False"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h02",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "danger_signs",
+    "hbnc_day"
+   ],
+   "error_flags": 0,
+   "heard": "रेखा के बेटे का चौदह दिन का एचपीएमसी विजेट आज गया वजन तीन किलो दो सौ ग्राम नाभि में लाली नहीं है",
+   "said": "रेखा के बेटे का 14वें दिन का HBNC विज़िट आज किया। वज़न 3 किलो 200 ग्राम। नाभि में लाली नहीं है।",
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": 14,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "NB_CORD_INFECTION:False"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h03",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [
+    "danger_signs"
+   ],
+   "error_flags": 0,
+   "heard": "अनीता के बच्चे को बहुत तेज बुखार है एक सौ दो डिग्री दूध भी नहीं पी रहा एचपीएमसी विजेता आज किया एसएनसीयू रेफर किया",
+   "said": "अनीता के बच्चे को बहुत तेज़ बुखार है एक सौ दो डिग्री दूध भी नहीं पी रहा एचबीएनसी विजिट आज किया एसएनसीयू रेफर किया",
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c07",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": 38.9,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "एसएनसीयू",
+    "danger_signs": [
+     "NB_FEVER:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c07",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": 38.9,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "एसएनसीयू",
+    "danger_signs": [
+     "NB_FEVER:True",
+     "NB_NOT_FEEDING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h04",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "beneficiary_id",
+    "danger_signs",
+    "hbnc_day",
+    "referral_facility",
+    "resp_rate",
+    "visit_type",
+    "weight_kg"
+   ],
+   "error_flags": 1,
+   "heard": "cody did is be unseen dares seven for it has barely v two point nine five children breathing fast are on seventy per minute refer to see at sea",
+   "said": "Today did HBNC visit day 7 for Rekha's baby. Weight 2.95 kg. Breathing fast, around 70 per minute. Referred to CHC.",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c02",
+    "hbnc_day": 7,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 2.95,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": 70,
+    "referral_needed": true,
+    "referral_facility": "chc",
+    "danger_signs": [
+     "NB_FAST_BREATHING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h05",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "hbnc_day"
+   ],
+   "error_flags": 0,
+   "heard": "ममता के बच्चे का अट्ठाईस वें दिन का एच बी सी विजिट किया वजन तीन किलो आठ सौ ग्राम सब ठीक है",
+   "said": "ममता के बच्चे का अट्ठाईसवें दिन का एचबीएनसी विजिट किया वजन तीन किलो आठ सौ ग्राम सब ठीक है",
+   "pred": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.8,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c10",
+    "hbnc_day": 28,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 3.8,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h06",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "beneficiary_id",
+    "danger_signs",
+    "hbyc_month",
+    "services",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "आज का एच बी वाई सी विजिट हुआ उम्र नौ महीने वजन आठ प्वाइंट दो किलो बच्चे को दस्त है और पानी की कमी लग रही है और इस दिया",
+   "said": "आज आरव का HBYC विज़िट हुआ, उम्र 9 महीने। वज़न 8.2 किलो। बच्चे को दस्त है और पानी की कमी लग रही है। ORS दिया।",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 8.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": 9,
+    "anc_number": null,
+    "weight_kg": 8.2,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_DIARRHOEA_DEHYDRATION:True"
+    ],
+    "services": [
+     "ors:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h07",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "hbyc_month",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "प्रिया का एच बी वाई सी छठे महीने का विजेट आज वजन छः किलो पाँच सौ ग्राम बच्ची को खांसी है",
+   "said": "प्रिया का एचबीवाईसी छठे महीने का विजिट आज वजन छह किलो पांच सौ ग्राम बच्ची को खांसी है",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 6.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c11",
+    "hbnc_day": null,
+    "hbyc_month": 6,
+    "anc_number": null,
+    "weight_kg": 6.5,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h08",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "beneficiary_id",
+    "services"
+   ],
+   "error_flags": 0,
+   "heard": "शाम को आज एम आर टू और डीपीटी बूस्ट लगाया",
+   "said": "ईशान को आज MR-2 और DPT booster लगाया।",
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:dpt"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:dpt booster",
+     "vaccine:mr-2"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h09",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [
+    "services"
+   ],
+   "error_flags": 0,
+   "heard": "अनन्या को आज रोता का तीसरा टीका और टेंडर तीन लगाया",
+   "said": "अनन्या को आज रोटा का तीसरा टीका और पेंटा तीन लगाया",
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c05",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:penta-3",
+     "vaccine:rota-3"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h10",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "beneficiary_id",
+    "services",
+    "visit_date"
+   ],
+   "error_flags": 0,
+   "heard": "आयाम का टीकाकरण हुआ ओपीवी एक और पेंट एक दिए गए",
+   "said": "आयान का टीकाकरण कल हुआ - OPV 1 और Penta 1 दिए गए।",
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-1"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "vaccine:opv-1",
+     "vaccine:penta-1"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h11",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [
+    "next_due"
+   ],
+   "error_flags": 0,
+   "heard": "आज शबनम के बच्चे को टीका नहीं लगवाया टीका केंद्र पर वैक्सीन खत्म था शुक्रवार को फिर लगेगा",
+   "said": "आज शबनम के बच्चे को टीका नहीं लग पाया टीका केंद्र पर वैक्सीन खत्म था शुक्रवार को फिर लगेगा",
+   "pred": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "IMMUNIZATION",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c12",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": [
+     "2026-11-13"
+    ]
+   }
+  },
+  {
+   "id": "h12",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "anc_number",
+    "bp_dia",
+    "bp_sys",
+    "hb_g_dl",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "पूजा यादव की चौथी एमसी जांच आज बीपी एक सौ तीस पचासी वजन साठ किलो बीज भी न होगी बायोडीजल पैरों में हल्की सूजन है",
+   "said": "पूजा यादव की चौथी ANC जांच आज। BP 130/85, वज़न 60 किलो, Hb 9 g/dl। पैरों में हल्की सूजन है।",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 60.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "M_SWELLING:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": 4,
+    "weight_kg": 60.0,
+    "temp_c": null,
+    "bp_sys": 130,
+    "bp_dia": 85,
+    "hb_g_dl": 9.0,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "M_SWELLING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h13",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "bp_dia",
+    "bp_sys",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "गीता का बीपी एक सौ पचास बाई सो है आंखों के आगे धुँधला दिखता है एजेंसी विजिट आज किया तुरंत जिला अस्पताल रेफर किया",
+   "said": "गीता का बीपी एक सौ पचास बाई सौ है आँखों के आगे धुंधला दिखता है एएनसी विजिट आज किया तुरंत जिला अस्पताल रेफर किया",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w06",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "जिला अस्पताल",
+    "danger_signs": [
+     "M_SEVERE_HEADACHE:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w06",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": 150,
+    "bp_dia": 100,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "जिला अस्पताल",
+    "danger_signs": [
+     "M_SEVERE_HEADACHE:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h14",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "beneficiary_id",
+    "hb_g_dl",
+    "services",
+    "visit_type",
+    "weight_kg"
+   ],
+   "error_flags": 1,
+   "heard": "surrey tacky and civic rare immortal or been aired point nine vet fifty seven kilogram kelsey amend men are forgiven",
+   "said": "Sarita ki ANC visit today. Haemoglobin 8.9, weight 57 kg. Calcium and IFA given.",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w09",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 57.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": 8.9,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "calcium:",
+     "ifa:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h15",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "heard": "आज गर्भवती पूजा के घर के बच्चे की हलचल ठीक है वजन पचपन किलो आयरन की गोलियां दी",
+   "said": "आज गर्भवती पूजा के घर गई बच्चे की हलचल ठीक है वजन पचपन किलो आयरन की गोलियां दीं",
+   "pred": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 55.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "ANC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w03",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 55.0,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "ifa:"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h16",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "referral_facility",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "आज सुनीता देवी की पीएमसी बजट बहुत ज्यादा खून आ रहा है सीएचसी भेजा",
+   "said": "आज सुनीता देवी की PNC विज़िट। बहुत ज़्यादा खून आ रहा है, CHC भेजा।",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "सीएचसी",
+    "danger_signs": [
+     "M_HEAVY_BLEEDING:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "PNC",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w01",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": true,
+    "referral_facility": "chc",
+    "danger_signs": [
+     "M_HEAVY_BLEEDING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h17",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [
+    "services"
+   ],
+   "error_flags": 0,
+   "heard": "ममता जी घर परिवार नियोजन पर बाद की अंतरा का इंजेक्शन लगाया",
+   "said": "ममता के घर गई परिवार नियोजन पर बात की अंतरा का इंजेक्शन लगाया",
+   "pred": {
+    "visit_type": "FAMILY_PLANNING",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "FAMILY_PLANNING",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "w10",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [
+     "counselling:",
+     "other:antara injection"
+    ],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h18",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": true,
+   "wrong_fields": [],
+   "error_flags": 0,
+   "heard": "रमेश जी की टीबी दवा का फॉलोअप कल किया दवा ठीक से ले रहे हैं",
+   "said": "रमेश जी की टीबी दवा का फॉलो-अप, कल किया। दवा ठीक से ले रहे हैं।",
+   "pred": {
+    "visit_type": "TB_FOLLOWUP",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "TB_FOLLOWUP",
+    "visit_date": "2026-11-09",
+    "beneficiary_id": null,
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h19",
+   "style": "stt",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "हमने आज कविता के बेटे आरव को देखा उसको तेज सांस चल रही है छाती अंदर धंस रही है",
+   "said": "हमने आज कविता के बेटे आरव को देखा उसको तेज़ साँस चल रही है छाती अंदर धँस रही है",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_FAST_BREATHING:True"
+    ],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "OTHER",
+    "visit_date": "2026-11-10",
+    "beneficiary_id": "c04",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": null,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [
+     "CH_FAST_BREATHING:True"
+    ],
+    "services": [],
+    "next_due": []
+   }
+  },
+  {
+   "id": "h20",
+   "style": "clean",
+   "tags": [],
+   "critical_ok": false,
+   "wrong_fields": [
+    "hbyc_month",
+    "visit_type"
+   ],
+   "error_flags": 1,
+   "heard": "राधा के बेटे का एच बी वाई सी पंद्रह महीने वाला विजेट परसों हुआ वजन दस प्वाइंट चार किलो",
+   "said": "राधा के बेटे का HBYC 15 महीने वाला विज़िट परसों हुआ, वज़न 10.4 किलो।",
+   "pred": {
+    "visit_type": null,
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": null,
+    "anc_number": null,
+    "weight_kg": 10.4,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   },
+   "gold": {
+    "visit_type": "HBYC",
+    "visit_date": "2026-11-08",
+    "beneficiary_id": "c08",
+    "hbnc_day": null,
+    "hbyc_month": 15,
+    "anc_number": null,
+    "weight_kg": 10.4,
+    "temp_c": null,
+    "bp_sys": null,
+    "bp_dia": null,
+    "hb_g_dl": null,
+    "pulse": null,
+    "resp_rate": null,
+    "referral_needed": null,
+    "referral_facility": null,
+    "danger_signs": [],
+    "services": [],
+    "next_due": []
+   }
+  }
+ ]
+}

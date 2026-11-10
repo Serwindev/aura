@@ -473,13 +473,22 @@ async function viewReports() {
   VIEW().className = "";
   const month = S.reportMonth || todayIso().slice(0, 7);
   VIEW().innerHTML = `<h1>${esc(t("reports_title"))}</h1><div class="empty"><div class="spinner" style="margin:auto"></div></div>`;
-  let s;
-  try { s = await api(`/reports/claims?month=${month}&lang=${S.lang}`); } catch (e) { return fail(e); }
+  let s, m;
+  try {
+    [s, m] = await Promise.all([api(`/reports/claims?month=${month}&lang=${S.lang}`), api(`/reports/monthly?month=${month}&lang=${S.lang}`)]);
+  } catch (e) { return fail(e); }
   if (S.view !== "reports") return;
   VIEW().innerHTML = `
     <h1>${esc(t("reports_title"))}</h1>
-    <div class="banner">${esc(s.warning)}</div>
     <label class="field"><span>${esc(t("month"))}</span><input type="month" id="month" value="${esc(month)}"></label>
+    <section class="card">
+      <h2 style="margin:0 0 4px">${esc(t("monthly_title"))}</h2>
+      <p class="small muted" style="margin:0 0 8px">${esc(t("monthly_hint"))}</p>
+      <ul class="plain">${m.summary.map((r) => `<li class="task-head"><span>${esc(r.label)}</span><strong>${esc(r.value)}</strong></li>`).join("")}</ul>
+      <div class="row" style="margin-top:10px"><button class="primary" data-rdl="pdf">${esc(t("download_pdf"))}</button><button class="primary" data-rdl="xlsx">${esc(t("download_xlsx"))}</button></div>
+    </section>
+    <h2>${esc(t("claims_title"))}</h2>
+    <div class="banner">${esc(s.warning)}</div>
     <div class="card"><span class="muted">${esc(t("est_total"))}</span><div class="money">₹${esc(s.total)}</div></div>
     <div class="row"><button data-dl="pdf">${esc(t("download_pdf"))}</button><button data-dl="xlsx">${esc(t("download_xlsx"))}</button></div>
     ${s.rows.length ? s.rows.map((r) => `<article class="card">
@@ -532,6 +541,7 @@ async function viewSettings() {
         <li>${esc(t("demo_history"))} <span class="tag sim">SIMULATED</span>: <strong>${p.demo_history_notes}</strong></li>
       </ul>
       <p class="small muted">${esc(t("audio_policy"))}</p>
+      ${S.meta && S.meta.stt.provider === "sarvam" ? `<p class="small">${esc(t("stt_cloud"))}</p>` : ""}
       <span class="field-label">${esc(t("never"))}</span><p class="small">${esc(t("never_list"))}</p>
       <p class="small"><strong>${esc(t("perms"))}</strong></p>
       <div class="row"><button id="export">${esc(t("export_data"))}</button><button class="danger" id="delete">${esc(t("delete_data"))}</button></div>
@@ -569,6 +579,7 @@ document.addEventListener("click", (e) => {
   if (d.taskDismiss) return taskDismiss(d.taskDismiss);
   if (d.openNote) return api(`/notes/${d.openNote}`).then(openNote).catch(fail);
   if (d.example !== undefined) { $("#note-text").value = EXAMPLES[S.noteLang][+d.example]; return $("#note-text").scrollIntoView({ block: "center" }); }
+  if (d.rdl) return download(`/reports/monthly?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.rdl}&lang=${S.lang}`, `aura-monthly-report-${S.reportMonth || todayIso().slice(0, 7)}.${d.rdl}`);
   if (d.dl) return download(`/reports/claims?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.dl}&lang=${S.lang}`, `claim-support-${S.reportMonth || todayIso().slice(0, 7)}.${d.dl}`);
   if (S.view !== "review") return;
   if (b.id === "confirm") return confirmNote();

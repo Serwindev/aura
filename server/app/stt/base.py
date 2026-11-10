@@ -28,7 +28,8 @@ class Transcript:
 class SttProvider(Protocol):
     name: str
 
-    def transcribe(self, wav_bytes: bytes, language: str = "hi") -> Transcript: ...
+    def transcribe(self, wav_bytes: bytes, language: str = "hi",
+                   hints: list[str] | None = None) -> Transcript: ...
 
 
 def wav_info(wav_bytes: bytes) -> tuple[int, int, int, float]:

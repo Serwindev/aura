@@ -58,7 +58,7 @@ VITAL_CUES = {
 # mother (ANC/PNC). A positive-by-construction cue ("दूध नहीं पी") is not negatable.
 DANGER_CUES: list[tuple[dict[str, str], re.Pattern, bool, bool | None]] = [
     ({"newborn": "NB_NOT_FEEDING", "child": "CH_UNABLE_TO_DRINK"},
-     _rx(r"दूध (ठीक से )?नहीं पी|स्तनपान नहीं|not feeding|doodh nahi pi", prefix=True), False, True),
+     _rx(r"दूध (ठीक से |भी |बिल्कुल )?नहीं पी|स्तनपान नहीं|not feeding|doodh (bhi )?nahi pi", prefix=True), False, True),
     ({"newborn": "NB_NOT_FEEDING", "child": "CH_UNABLE_TO_DRINK"},
      _rx(r"दूध (ठीक से )?पी (रहा|रही)|feeding (is )?(well|good|fine)|doodh (theek se )?pi (raha|rahi)"), False, False),
     ({"newborn": "NB_FEVER", "mother": "M_HIGH_FEVER"}, _rx(r"बुखार|fever|bukhar"), True, None),
@@ -87,7 +87,7 @@ _GROUP = {"HBNC": "newborn", "HBYC": "child", "IMMUNIZATION": "child", "ANC": "m
 VACCINES = [  # (canonical, pattern)
     ("BCG", r"bcg|बीसीजी"), ("OPV", r"opv|ओपीवी|पोलियो|polio"), ("Penta", r"penta|पेंटा"),
     ("Rota", r"rota|रोटा"), ("PCV", r"pcv|पीसीवी"), ("fIPV", r"fipv|ipv|आईपीवी|एफआईपीवी"),
-    ("MR", r"mr|एमआर|खसरा|खसरे"), ("Hep B", r"hep b|hepatitis b|हेपेटाइटिस( बी)?|हेप बी"),
+    ("MR", r"measles rubella|measles|rubella|mr|एमआर|खसरा रूबेला|खसरा|खसरे|मीज़ल्स"), ("Hep B", r"hep b|hepatitis b|हेपेटाइटिस( बी)?|हेप बी"),
     ("DPT", r"dpt|डीपीटी"), ("JE", r"je|जेई"), ("Vitamin A", r"vitamin a|विटामिन ए"),
     ("TT", r"tt|td|टीटी|टिटनेस"),
 ]
@@ -197,6 +197,11 @@ def extract(transcript: str, recorded_on: date, people: list[Person] | None = No
         if nm:
             put("beneficiary.mention", text[nm.start:nm.end], nm.start, nm.end, nm.confidence)
             person = next((p for p in people if p.id == nm.matched_id), None)
+            if vt is None and person is not None and person.category == "newborn":
+                # "Rekha's baby, day 7": a visit to a registered newborn is an HBNC home visit.
+                # Low confidence, quote = the name; the ASHA sees it on review.
+                vt = "HBNC"
+                put("visit_type", vt, nm.start, nm.end, 0.5)
 
     _visit_index(T, vt, put)
     _vitals(T, put)
@@ -265,8 +270,17 @@ def _visit_index(T: _Text, vt: str | None, put) -> None:
                 put("visit_index.anc_number", int(qs[0].value), hit[0], hit[1])
 
 
+DEGREE_RX = _rx(r"डिग्री|degree|degrees")
+
+
 def _vitals(T: _Text, put) -> None:
     text = T.text
+    # "102 डिग्री" / "37 degrees" with no temperature word nearby (cloud ASR splits sentences)
+    for a, b, _ in T.find(DEGREE_RX):
+        num = re.search(r"([0-9]+(?:\.[0-9]+)?)\s*$", text[max(0, a - 12):a])
+        if num:
+            put("vitals.temp_c", float(num.group(1)), a - len(text[max(0, a - 12):a]) + num.start(1), b)
+            break
     for fld, rx in VITAL_CUES.items():
         for a, b, _ in T.find(rx):
             stop = _BOUNDARY_RX.search(text, b)

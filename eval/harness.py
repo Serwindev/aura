@@ -1,7 +1,12 @@
-"""Eval harness (T-025). Text-only for now: transcripts → extractor → validator → names,
-scored against ground truth. WER/CER need recordings (T-022) and are reported as NOT MEASURED.
+"""Eval harness (T-025). Transcripts → extractor → validator → names, scored against ground truth.
+
+Text mode (default) scores the written transcripts. Audio mode (--audio-dir + --stt) first runs
+speech-to-text on <audio-dir>/<note id>.wav and also reports word error rate (WER) against the
+written transcript. Test audio so far is AI-voiced (eval/make_tts_audio.py), not field speech.
 
 Usage:  uv run --project server python eval/harness.py [--out eval/results/<date>]
+        uv run --project server python eval/harness.py --notes eval/data/notes_holdout.yaml \
+            --audio-dir eval/data/audio/notes_holdout --stt sarvam --out eval/results/<date>/audio-sarvam
 """
 
 from __future__ import annotations
@@ -22,6 +27,28 @@ sys.path.insert(0, str(ROOT / "server"))
 from app.core.config import load_yaml  # noqa: E402
 from app.extraction.normalize import fold, normalize_for_match  # noqa: E402
 from app.pipeline import load_people, process_text  # noqa: E402
+
+_PUNCT = str.maketrans({c: " " for c in ".,;:!?\u0964\u0965\"'()-\u2013\u2014/"})
+
+
+def _words(text: str) -> list[str]:
+    return fold(text.translate(_PUNCT)).split()
+
+
+def word_errors(ref: str, hyp: str) -> tuple[int, int]:
+    """(edit distance in words, reference length). Raw: '2.8' vs 'two point eight' counts as errors."""
+    r, h = _words(ref), _words(hyp)
+    prev = list(range(len(h) + 1))
+    for i, rw in enumerate(r, 1):
+        cur = [i] + [0] * len(h)
+        for j, hw in enumerate(h, 1):
+            cur[j] = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (rw != hw))
+        prev = cur
+    return prev[-1], len(r)
+
+
+def _lang(text: str) -> str:
+    return "hi" if any("\u0900" <= ch <= "\u097f" for ch in text) else "en"
 
 SCALARS = ["visit_type", "visit_date", "beneficiary_id", "hbnc_day", "hbyc_month", "anc_number",
            "weight_kg", "temp_c", "bp_sys", "bp_dia", "hb_g_dl", "pulse", "resp_rate",
@@ -115,7 +142,18 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(ROOT / "eval" / "results" / date.today().isoformat()))
     ap.add_argument("--notes", default=str(ROOT / "eval" / "data" / "notes.yaml"))
+    ap.add_argument("--audio-dir", default=None, help="score speech: <dir>/<note id>.wav")
+    ap.add_argument("--stt", default=None, help="sarvam | vosk (with --audio-dir)")
     args = ap.parse_args()
+    stt = None
+    if args.audio_dir:
+        from app.core.settings import load_dotenv
+        from app.stt.providers import get_stt
+
+        load_dotenv()
+        stt = get_stt(args.stt)
+        if hasattr(stt, "fallback"):
+            stt.fallback = None  # measure the provider itself, never a silent fallback
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -126,9 +164,23 @@ def main() -> None:
     by_style = defaultdict(lambda: {f: defaultdict(int) for f in SCALARS + SETS})
     unsupported: list[str] = []
     rows, latencies, crit_ok, flags_err = [], [], [], []
+    stt_ms, wer_err, wer_len, heard = [], 0, 0, {}
+    stt_name = "none (text transcripts)"
     for n in notes:
+        text = n["transcript"]
+        if stt is not None:
+            wav = (Path(args.audio_dir) / f"{n['id']}.wav").read_bytes()
+            lang = _lang(text)
+            hints = sorted({nm for p in people for nm in p.names if nm.isascii() == (lang == "en")})
+            t = time.perf_counter()
+            tr = stt.transcribe(wav, lang, hints=hints)
+            stt_ms.append((time.perf_counter() - t) * 1000)
+            stt_name = tr.provider
+            e, length = word_errors(n["transcript"], tr.text)
+            wer_err, wer_len = wer_err + e, wer_len + length
+            text = heard[n["id"]] = tr.text
         t = time.perf_counter()
-        res = process_text(n["transcript"], n["recorded_on"], people)
+        res = process_text(text, n["recorded_on"], people)
         latencies.append((time.perf_counter() - t) * 1000)
         gold, pred = gold_view(n["gold"]), pred_view(res.validation.record)
         per = score(gold, pred, counts, unsupported)
@@ -140,6 +192,7 @@ def main() -> None:
         wrong = sorted(f for f, good in per.items() if not good)
         rows.append({"id": n["id"], "style": n["style"], "tags": n.get("tags", []),
                      "critical_ok": ok, "wrong_fields": wrong, "error_flags": n_err,
+                     **({"heard": heard[n["id"]], "said": n["transcript"]} if n["id"] in heard else {}),
                      "pred": {k: sorted(v) if isinstance(v, set) else v for k, v in pred.items()},
                      "gold": {k: sorted(v) if isinstance(v, set) else v for k, v in gold.items()}})
 
@@ -150,7 +203,10 @@ def main() -> None:
     p95 = lat[max(0, int(round(0.95 * len(lat))) - 1)]
     summary = {
         "date": date.today().isoformat(), "set": set_name, "notes": len(notes),
-        "extractor": "rule-based-v0", "stt": "none (text transcripts)",
+        "extractor": "rule-based-v0", "stt": stt_name,
+        "audio": ({"source": "AI voice (Sarvam bulbul:v3 TTS), not field speech",
+                   "wer_raw": wer_err / wer_len if wer_len else None,
+                   "stt_ms": {"p50": statistics.median(stt_ms), "max": max(stt_ms)}} if stt_ms else None),
         "field_micro": {"precision": P, "recall": R, "f1": F, **total},
         "critical_exact_match_rate": sum(crit_ok) / len(crit_ok),
         "unsupported_value_rate": len(unsupported) / n_pred if n_pred else 0.0,
@@ -168,18 +224,35 @@ def main() -> None:
     (out / "report.md").write_text(render(summary, rows), encoding="utf-8")
     print(f"notes={len(notes)} P={pct(P)} R={pct(R)} F1={pct(F)} "
           f"critical={summary['critical_exact_match_rate']:.2f} "
-          f"unsupported={summary['unsupported_value_rate']:.3f} p50={lat[len(lat)//2]:.1f}ms → {out}")
+          f"unsupported={summary['unsupported_value_rate']:.3f} p50={lat[len(lat)//2]:.1f}ms"
+          + (f" WER={summary['audio']['wer_raw']:.3f} stt_p50={summary['audio']['stt_ms']['p50']:.0f}ms"
+             if summary["audio"] else "") + f" -> {out}")
 
 
 def render(s: dict, rows: list[dict]) -> str:
     fm = s["field_micro"]
+    a = s.get("audio")
+    if a:
+        intro = [
+            "> **Read this first.** Synthetic notes written by the same developer (Claude) who wrote the",
+            f"> rule-based extractor, **spoken by an AI voice** ({a['source']}), then transcribed by `{s['stt']}`.",
+            "> AI voices are clean: this tests the audio path end to end, **not field accuracy**. Do not",
+            "> put these numbers on a slide without this caveat.",
+        ]
+        speech_row = ("| STT word error rate (raw: no number/spelling normalisation) / STT time p50, max | "
+                      f"{a['wer_raw']:.3f} / {a['stt_ms']['p50'] / 1000:.1f} s, {a['stt_ms']['max'] / 1000:.1f} s |")
+    else:
+        intro = [
+            "> **Read this first.** *Synthetic, text-only* notes written by the same developer (Claude) who",
+            "> wrote the rule-based extractor. This is a **smoke test of the pipeline**, not evidence of",
+            "> real-world accuracy. Speech-to-text is not part of this run (see the audio reports).",
+            "> Do not put these numbers on a slide without this caveat.",
+        ]
+        speech_row = "| STT WER | not part of this run (text transcripts) |"
     lines = [
         f"# Eval report — {s['set']} — {s['date']}",
         "",
-        "> **Read this first.** 40 *synthetic, text-only* notes written by the same developer (Claude) who",
-        "> wrote the rule-based extractor. This is a **smoke test of the pipeline**, not evidence of",
-        "> real-world accuracy. No audio was recorded, so speech-to-text error (WER/CER) is **not measured**.",
-        "> Do not put these numbers on a slide without this caveat.",
+        *intro,
         "",
         f"- Extractor: `{s['extractor']}` (deterministic, offline) · STT: {s['stt']}",
         f"- Machine: {s['machine']}",
@@ -194,7 +267,7 @@ def render(s: dict, rows: list[dict]) -> str:
         f"| Unsupported values (filled where gold says nothing was said) | {s['unsupported_value_rate']:.3f} |",
         f"| Text pipeline latency p50 / p95 (extract + validate + names) | {s['latency_ms_text_pipeline']['p50']:.1f} / {s['latency_ms_text_pipeline']['p95']:.1f} ms |",
         f"| Mean error flags per note (shown to the ASHA for review) | {s['mean_error_flags_per_note']:.2f} |",
-        "| STT WER / CER | **not measured** (no recordings) |",
+        speech_row,
         "| LLM extractor | **not measured** (no API key) |",
         "",
         "## By transcript style",
@@ -217,6 +290,10 @@ def render(s: dict, rows: list[dict]) -> str:
     for r in rows:
         if r["wrong_fields"]:
             lines.append(f"| {r['id']} | {r['style']} | {', '.join(r['tags'])} | {', '.join(r['wrong_fields'])} |")
+    if a:
+        lines += ["", "## What was said vs heard", "", "| Note | Said | Heard |", "|---|---|---|"]
+        for r in rows:
+            lines.append(f"| {r['id']} | {r['said']} | {r['heard']} |")
     lines += ["", "Raw per-note predictions vs gold: `results.json`.", ""]
     return "\n".join(lines)
 
