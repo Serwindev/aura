@@ -25,7 +25,7 @@
 ## 2. Current state (update each session)
 
 - **Date:** 2026-11-09 · **Phase:** phases 1–3 **done**: prototype v1 runs (FastAPI + SQLite + mobile web app). Hindi voice accuracy still **unmeasured**.
-- **Repo:** local git; `main` = planning docs; `p1-core` = phases 1–3. No remote.
+- **Repo:** private GitHub `Serwindev/aura` (origin, created 2026-11-10); `main` = planning docs; `p1-core` = phases 1–3 + overview doc.
 - **Run:** `.\make.ps1 server` → http://localhost:8000 (laptop). `.\make.ps1 phone` → prints an `https://<wifi-ip>:8443` address for a phone on the same Wi-Fi (self-signed: accept the one-time warning; allow Windows Firewall if asked; use a phone hotspot if campus Wi-Fi isolates devices). `.\make.ps1 db-reset` clears the demo. First-time setup: `.\make.ps1 setup`, `.\make.ps1 models`.
 - **Phase 3 built:** simulated OTP login, `/v1` API (notes from audio/text, confirm with server-side re-validation and server-owned evidence, tasks with reschedule/dismiss, claim sheet JSON/PDF/XLSX, privacy summary/export/delete), audio deleted on confirm or discard (7-day cap), synthetic demo household with history labelled SIMULATED, mobile web app (record, audio-file upload, type, review & confirm, Home, reports, settings/privacy), Hindi default + English.
 - **Not in v1:** offline queue on the phone, background sync, monthly activity summary, ANC tasks, Flutter. The phone must reach the laptop; no internet is needed.
@@ -192,3 +192,4 @@ aura/
 ### 2026-11-10 — Project overview doc
 - Done: wrote `docs/PROJECT_OVERVIEW.md` (tech stack, architecture, concepts, every v1 feature, API, run commands, build history, honest status). Docs only; no code changed, tests not re-run.
 - Next: §3 unchanged.
+- Pushed `main` and `p1-core` to private repo https://github.com/Serwindev/aura (gh CLI already authenticated as Serwindev; secret scan 0 findings before push). First CI run not yet checked.
