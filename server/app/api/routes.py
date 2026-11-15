@@ -202,10 +202,11 @@ def beneficiaries(user: User = Depends(current_user), db: Session = Depends(get_
 def post_note(request: Request, audio: UploadFile | None = File(default=None), text: str | None = Form(default=None),
               language: str = Form(default="hi"), idempotency_key: str | None = Form(default=None),
               beneficiary_id: str | None = Form(default=None), programme: str | None = Form(default=None),
-              rule_id: str | None = Form(default=None), user: User = Depends(current_user),
-              db: Session = Depends(get_db)) -> dict:
+              rule_id: str | None = Form(default=None), recorded_on: str | None = Form(default=None),
+              user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     if language not in ("hi", "en"):
         raise RequestError(422, "BAD_LANGUAGE", "Language must be hi or en")
+    spoken_on = _recorded_on(recorded_on, settings(request).today())
     typed = (text or "").strip()
     if (audio is None) == (not typed):
         raise RequestError(422, "NEED_ONE_INPUT", "Send either audio or text")
@@ -227,10 +228,30 @@ def post_note(request: Request, audio: UploadFile | None = File(default=None), t
             raise RequestError(415, "BAD_AUDIO", str(exc)) from exc
     try:
         note = create_note(db, settings(request), stt, user.id, text=typed, wav=wav, language=language,
-                           hint=TaskHint(beneficiary_id, programme, rule_id), idempotency_key=idempotency_key)
+                           hint=TaskHint(beneficiary_id, programme, rule_id), idempotency_key=idempotency_key,
+                           recorded_on=spoken_on)
     except SttError as exc:
         raise RequestError(503, "STT_FAILED", str(exc)) from exc
     return note_view(note, db, user.lang)
+
+
+MAX_QUEUE_DAYS = 60
+
+
+def _recorded_on(raw: str | None, today: date) -> date:
+    """Date the note was spoken on the phone. A note queued offline keeps its own date, so "aaj"/"kal"
+    resolve against the day of the visit, not the day it reached the server."""
+    if not raw:
+        return today
+    try:
+        when = date.fromisoformat(raw)
+    except ValueError as exc:
+        raise RequestError(422, "BAD_RECORDED_ON", "recorded_on must be YYYY-MM-DD") from exc
+    if when > today:  # phone clock ahead (or a different time zone): never allow future dates
+        return today
+    if (today - when).days > MAX_QUEUE_DAYS:
+        raise RequestError(422, "RECORDED_ON_TOO_OLD", f"Notes older than {MAX_QUEUE_DAYS} days cannot be added")
+    return when
 
 
 @router.get("/notes")

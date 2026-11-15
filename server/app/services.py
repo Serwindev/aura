@@ -122,14 +122,14 @@ def _post_flags(result: PipelineResult) -> None:
 
 
 def create_note(db: Session, cfg: Settings, stt: Any, owner_id: str, *, text: str | None, wav: bytes | None,
-                language: str, hint: TaskHint, idempotency_key: str | None) -> Note:
+                language: str, hint: TaskHint, idempotency_key: str | None, recorded_on: date | None = None) -> Note:
     if idempotency_key:
         found = db.scalar(select(Note).where(Note.owner_id == owner_id, Note.idempotency_key == idempotency_key))
         if found:
             return found
     purge_expired_audio(db, cfg)
     people = people_for(db, owner_id)
-    today = cfg.today()
+    today = recorded_on or cfg.today()
     if wav is not None:
         result = process_audio(wav, today, people, stt, language)
     else:

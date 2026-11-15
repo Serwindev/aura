@@ -108,7 +108,8 @@ function viewLogin() {
           S.token = v.token; S.user = v.user; S.lang = v.user.lang;
           store.set("aura.token", v.token);
           store.set("aura.lang", S.lang);
-          go("home");
+          store.set("aura.cache.user", JSON.stringify(v.user));
+          go("home"); flushOutbox(); scheduleFlush();
         } catch (err) { fail(err); }
       };
       $("#f-otp").otp.focus();
@@ -132,15 +133,27 @@ async function setUiLang(lang) {
 async function viewHome() {
   VIEW().className = "";
   VIEW().innerHTML = `<h1>${esc(t("today_tasks"))}</h1><div class="empty"><div class="spinner" style="margin:auto"></div></div>`;
-  let tasks, drafts;
-  try { [tasks, drafts] = await Promise.all([api("/tasks"), api("/notes?status=draft")]); } catch (e) { return fail(e); }
+  let tasks, drafts, offline = false, queued = [];
+  const cacheKey = "aura.cache.home." + owner();
+  try {
+    [tasks, drafts] = await Promise.all([api("/tasks"), api("/notes?status=draft")]);
+    store.set(cacheKey, JSON.stringify({ tasks, drafts }));
+  } catch (e) {
+    const cached = JSON.parse(store.get(cacheKey) || "null");
+    if (!retryable(e) || !cached) return fail(e);
+    ({ tasks } = cached); drafts = []; offline = true; // drafts need the server to open, so hide them offline
+  }
+  try { queued = await Outbox.list(owner()); } catch { /* no storage */ }
   if (S.view !== "home") return;
   S.tasks = mergeVaccines(tasks);
   const groups = ["overdue", "due", "due_soon"].map((s) => [s, S.tasks.filter((x) => x.status === s)]).filter(([, l]) => l.length);
   const hello = S.user.name ? `${t("hello")}, ${S.user.name}` : t("hello");
   VIEW().innerHTML = `
     <p class="muted">${esc(hello)}</p><h1>${esc(t("today_tasks"))}</h1>
+    ${offline ? `<div class="banner warn">${esc(t("offline_cached"))}</div>` : ""}
     <div class="banner">${esc(t("advisory"))}</div>
+    ${queued.length ? `<h2>${esc(t("outbox_title"))} (${queued.length})</h2><p class="small muted">${esc(t("outbox_hint"))}</p>`
+      + queued.map(outboxCard).join("") + `<button class="primary wide" data-outbox-send="1">${esc(t("send_now"))}</button>` : ""}
     ${drafts.length ? `<h2>${esc(t("drafts"))}</h2>` + drafts.map((d) => `
       <div class="card"><p>${esc(d.transcript.slice(0, 90))}${d.transcript.length > 90 ? "…" : ""}</p>
       <button class="wide" data-open-note="${esc(d.id)}">${esc(t("open_draft"))}</button></div>`).join("") : ""}
@@ -278,20 +291,94 @@ async function toggleRecord() {
   $("#mic-label").textContent = t("tap_to_stop");
 }
 
-async function submitNote({ text, wav }) {
+/* ---- notes: send now, or keep on the phone and send later (outbox.js) ---- */
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+const owner = () => S.user && String(S.user.id ?? S.user.phone);
+/* No connection, server error or rate limit: worth retrying. Anything else (bad input) is not. */
+const retryable = (e) => e.status === 0 || e.status === 429 || e.status >= 500;
+
+function noteForm(item) {
   const form = new FormData();
-  form.append("language", S.noteLang);
-  form.append("idempotency_key", crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
-  if (S.task) { form.append("beneficiary_id", S.task.beneficiary_id); form.append("programme", S.task.programme); form.append("rule_id", S.task.rule_id); }
-  if (wav) form.append("audio", wav, "note.wav"); else form.append("text", text);
+  form.append("language", item.language);
+  form.append("idempotency_key", item.id);
+  form.append("recorded_on", item.recorded_on);
+  if (item.task) { form.append("beneficiary_id", item.task.beneficiary_id); form.append("programme", item.task.programme); form.append("rule_id", item.task.rule_id); }
+  if (item.wav) form.append("audio", item.wav, "note.wav"); else form.append("text", item.text);
+  return form;
+}
+
+async function submitNote({ text, wav }) {
+  const task = S.task ? { beneficiary_id: S.task.beneficiary_id, programme: S.task.programme, rule_id: S.task.rule_id, label: S.task.label } : null;
+  const item = { id: uid(), owner: owner(), language: S.noteLang, recorded_on: todayIso(), created_at: new Date().toISOString(),
+                 task, text: wav ? null : text, wav: wav || null, seconds: wav ? Math.max(0, (wav.size - 44) / 32000) : 0, status: "pending", attempts: 0 };
   busy(true, t("listening"));
   try {
-    const note = await api("/notes", { method: "POST", form });
+    const note = await api("/notes", { method: "POST", form: noteForm(item) });
     await openNote(note);
   } catch (e) {
+    if (retryable(e) && await queueNote(item)) return;
     if (S.view === "record") viewRecord();
     fail(e);
   } finally { busy(false); }
+}
+
+async function queueNote(item) {
+  try { await Outbox.put(item); } catch { return false; } // private window / no storage: show the error instead
+  toast(t("queued"));
+  go("home", { task: null });
+  scheduleFlush();
+  return true;
+}
+
+let flushing = false;
+async function flushOutbox({ manual = false } = {}) {
+  if (flushing || !S.token || !S.user) return;
+  let items;
+  try { items = (await Outbox.list(owner())).filter((x) => manual || x.status === "pending"); } catch { return; }
+  if (!items.length) return;
+  flushing = true;
+  let sent = 0;
+  try {
+    for (const item of items) {
+      try {
+        await api("/notes", { method: "POST", form: noteForm(item) });
+        await Outbox.remove(item.id);
+        sent++;
+      } catch (e) {
+        if (e.status === 401) return;
+        if (retryable(e)) { item.attempts++; await Outbox.put(item); break; } // still offline: stop, keep order
+        Object.assign(item, { status: "failed", error: e.message, attempts: item.attempts + 1 });
+        await Outbox.put(item);
+      }
+    }
+  } finally {
+    flushing = false;
+    if (sent) toast(t("sent_n").replace("{n}", sent));
+    if (S.view === "home" && (sent || manual)) viewHome();
+  }
+}
+
+let flushTimer = null;
+function scheduleFlush() {
+  clearInterval(flushTimer);
+  flushTimer = setInterval(async () => {
+    let left = [];
+    try { left = (await Outbox.list(owner())).filter((x) => x.status === "pending"); } catch { /* no storage */ }
+    if (!left.length) return clearInterval(flushTimer);
+    flushOutbox();
+  }, 20000);
+}
+window.addEventListener("online", () => flushOutbox());
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") flushOutbox(); });
+
+function outboxCard(x) {
+  const what = x.wav ? `${t("voice_note")} · ${Math.floor(x.seconds / 60)}:${String(Math.round(x.seconds) % 60).padStart(2, "0")}`
+                     : `${t("typed_note")}: ${x.text.slice(0, 70)}${x.text.length > 70 ? "…" : ""}`;
+  return `<div class="card ${x.status === "failed" ? "status-overdue" : ""}">
+    <div class="task-head"><span>${esc(what)}</span><span class="due">${esc(fmtDate(x.recorded_on))}</span></div>
+    ${x.task ? `<p class="small muted" style="margin:4px 0 0">${esc(x.task.label)}</p>` : ""}
+    ${x.status === "failed" ? `<p class="small" style="margin:4px 0 0"><strong>${esc(t("outbox_failed"))}:</strong> ${esc(x.error || "")}</p>` : ""}
+    <div class="task-actions"><button data-outbox-del="${esc(x.id)}">${esc(t("delete"))}</button></div></div>`;
 }
 
 /* ---- review ---- */
@@ -519,7 +606,9 @@ async function download(path, filename) {
 async function viewSettings() {
   VIEW().className = "";
   let p, demo;
+  let queued = 0;
   try { [p, demo] = await Promise.all([api("/privacy/summary"), api("/demo")]); } catch (e) { return fail(e); }
+  try { queued = (await Outbox.list(owner())).length; } catch { /* no storage */ }
   if (S.view !== "settings") return;
   const u = S.user, m = S.meta;
   VIEW().innerHTML = `
@@ -543,9 +632,11 @@ async function viewSettings() {
         <li>${esc(t("notes_confirmed"))}: <strong>${p.confirmed_notes}</strong></li>
         <li>${esc(t("notes_draft"))}: <strong>${p.draft_notes}</strong></li>
         <li>${esc(t("audio_files"))}: <strong>${p.audio_files}</strong></li>
+        <li>${esc(t("outbox_privacy"))}: <strong>${queued}</strong></li>
         <li>${esc(t("demo_history"))} <span class="tag sim">SIMULATED</span>: <strong>${p.demo_history_notes}</strong></li>
       </ul>
       <p class="small muted">${esc(t("audio_policy"))}</p>
+      <p class="small muted">${esc(t("outbox_policy"))}</p>
       ${S.meta && S.meta.stt.provider === "sarvam" ? `<p class="small">${esc(t("stt_cloud"))}</p>` : ""}
       <span class="field-label">${esc(t("never"))}</span><p class="small">${esc(t("never_list"))}</p>
       <p class="small"><strong>${esc(t("perms"))}</strong></p>
@@ -566,7 +657,12 @@ async function viewSettings() {
   $("#export").onclick = () => download("/privacy/export", "aura-export.json");
   $("#delete").onclick = async () => {
     if (!confirm(t("delete_q"))) return;
-    try { await api("/privacy/data", { method: "DELETE" }); S.people = null; toast(t("deleted")); viewSettings(); } catch (e) { fail(e); }
+    try {
+      await api("/privacy/data", { method: "DELETE" });
+      await Outbox.clear(owner()).catch(() => {});
+      store.del("aura.cache.home." + owner());
+      S.people = null; toast(t("deleted")); viewSettings();
+    } catch (e) { fail(e); }
   };
   $("#demo-toggle").onclick = async () => {
     if (demo.active && !confirm(t("demo_remove_q"))) return;
@@ -592,6 +688,8 @@ document.addEventListener("click", (e) => {
   if (d.taskLater) return taskLater(d.taskLater);
   if (d.taskDismiss) return taskDismiss(d.taskDismiss);
   if (d.openNote) return api(`/notes/${d.openNote}`).then(openNote).catch(fail);
+  if (d.outboxSend) { b.disabled = true; b.textContent = t("sending"); return flushOutbox({ manual: true }); }
+  if (d.outboxDel) { if (!confirm(t("delete_queued_q"))) return; return Outbox.remove(d.outboxDel).then(viewHome).catch(fail); }
   if (d.example !== undefined) { $("#note-text").value = EXAMPLES[S.noteLang][+d.example]; return $("#note-text").scrollIntoView({ block: "center" }); }
   if (d.rdl) return download(`/reports/monthly?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.rdl}&lang=${S.lang}`, `aura-monthly-report-${S.reportMonth || todayIso().slice(0, 7)}.${d.rdl}`);
   if (d.dl) return download(`/reports/claims?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.dl}&lang=${S.lang}`, `claim-support-${S.reportMonth || todayIso().slice(0, 7)}.${d.dl}`);
@@ -635,9 +733,25 @@ document.addEventListener("change", (e) => {
 /* ---- start ---- */
 (async function start() {
   document.documentElement.lang = S.lang;
-  try { S.meta = await api("/meta"); } catch (e) { busy(false); toast(t("conn_error")); return; }
+  /* App shell for opening with no connection. Browsers allow this only on localhost or a trusted HTTPS
+     certificate; with the self-signed demo certificate registration fails and the app simply works online. */
+  if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
+  try {
+    S.meta = await api("/meta");
+    store.set("aura.cache.meta", JSON.stringify(S.meta));
+  } catch {
+    // Offline start: if she was logged in before, open Home from the last saved data so she can still record.
+    S.meta = JSON.parse(store.get("aura.cache.meta") || "null");
+    S.user = JSON.parse(store.get("aura.cache.user") || "null");
+    if (S.token && S.meta && S.user) { go("home"); scheduleFlush(); return; }
+    busy(false); toast(t("conn_error")); return;
+  }
   if (S.token) {
-    try { S.user = await api("/me"); S.lang = S.user.lang; store.set("aura.lang", S.lang); return go("home"); } catch { /* falls through to login */ }
+    try {
+      S.user = await api("/me"); S.lang = S.user.lang; store.set("aura.lang", S.lang);
+      store.set("aura.cache.user", JSON.stringify(S.user));
+      go("home"); flushOutbox(); scheduleFlush(); return;
+    } catch { /* falls through to login */ }
   }
   go("login");
 })();

@@ -84,6 +84,38 @@ def test_idempotent_create(env):
     assert a["id"] == b["id"]
 
 
+def test_queued_note_keeps_its_recording_date(env):
+    """A note spoken offline yesterday and sent today: "today" in the note means yesterday."""
+    c = env[0]
+    h = login(c)
+    spoken = (TODAY - timedelta(days=1)).isoformat()
+    n = post_text(c, h, recorded_on=spoken, idempotency_key="q1").json()
+    assert n["recorded_on"] == spoken
+    assert n["record"]["visit_date"] == spoken
+
+
+def test_recorded_on_defaults_to_server_today(env):
+    c = env[0]
+    n = post_text(c, login(c)).json()
+    assert n["recorded_on"] == TODAY.isoformat()
+
+
+def test_recorded_on_in_future_is_clamped_to_today(env):
+    c = env[0]
+    n = post_text(c, login(c), recorded_on=(TODAY + timedelta(days=2)).isoformat()).json()
+    assert n["recorded_on"] == TODAY.isoformat()
+    assert n["record"]["visit_date"] == TODAY.isoformat()
+
+
+@pytest.mark.parametrize(("value", "code"), [("09-11-2026", "BAD_RECORDED_ON"),
+                                             ((TODAY - timedelta(days=61)).isoformat(), "RECORDED_ON_TOO_OLD")])
+def test_recorded_on_rejected(env, value, code):
+    c = env[0]
+    r = post_text(c, login(c), recorded_on=value)
+    assert r.status_code == 422
+    assert r.json()["error"]["code"] == code
+
+
 def test_needs_exactly_one_input(env):
     c = env[0]
     h = login(c)

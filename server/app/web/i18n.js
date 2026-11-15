@@ -45,6 +45,12 @@ const STRINGS = {
     about: "इस प्रोटोटाइप के बारे में", speech: "आवाज़ पहचान", stt_cloud: "आवाज़ पहचान के लिए रिकॉर्डिंग Sarvam AI (भारत) को भेजी जाती है। इंटरनेट न होने पर ऑफ़लाइन मॉडल चलता है।", extractor: "जानकारी निकालना", extractor_v: "नियम-आधारित (ऑफ़लाइन)",
     sim_items: "SMS लॉगिन और पुराना डेमो इतिहास नकली हैं", no_gov: "किसी सरकारी सिस्टम से जुड़ा नहीं है।", logout: "लॉग आउट",
     conn_error: "सर्वर से संपर्क नहीं हो पाया।",
+    queued: "नोट फ़ोन में सुरक्षित है। कनेक्शन मिलते ही भेज दिया जाएगा।",
+    outbox_title: "भेजना बाकी", outbox_hint: "ये नोट इसी फ़ोन में रखे हैं। सर्वर मिलते ही अपने-आप जाएँगे, फिर जाँच के लिए खुलेंगे।",
+    send_now: "अभी भेजें", sending: "भेज रहे हैं…", sent_n: "{n} नोट भेजे गए — जाँच के लिए तैयार",
+    voice_note: "आवाज़ नोट", typed_note: "लिखा नोट", outbox_failed: "नहीं भेजा जा सका", delete: "हटाएँ",
+    delete_queued_q: "यह नोट फ़ोन से हमेशा के लिए हटा दें?", offline_cached: "ऑफ़लाइन — पिछली बार की सूची दिख रही है",
+    outbox_privacy: "न भेजे गए नोट (इस फ़ोन पर)", outbox_policy: "न भेजे गए नोट सिर्फ़ इस फ़ोन पर रहते हैं, जब तक भेजे या हटाए न जाएँ। लॉग आउट करने पर भी रहते हैं; 'मेरा डेटा मिटाएँ' उन्हें भी मिटा देता है।",
   },
   en: {
     tagline: "Speak the note, check once, reuse it",
@@ -91,6 +97,12 @@ const STRINGS = {
     about: "About this prototype", speech: "Speech recognition", stt_cloud: "For speech recognition, the recording is sent to Sarvam AI (India). Without internet, an offline model is used.", extractor: "Extraction", extractor_v: "Rule-based (offline)",
     sim_items: "SMS login and the earlier demo history are simulated", no_gov: "Not connected to any government system.", logout: "Log out",
     conn_error: "Could not reach the server.",
+    queued: "Note saved on this phone. It will be sent when the connection is back.",
+    outbox_title: "Waiting to send", outbox_hint: "These notes are kept on this phone. They send by themselves when the server is reachable, then open for review.",
+    send_now: "Send now", sending: "Sending…", sent_n: "{n} note(s) sent — ready to review",
+    voice_note: "Voice note", typed_note: "Typed note", outbox_failed: "Could not be sent", delete: "Delete",
+    delete_queued_q: "Delete this note from the phone for good?", offline_cached: "Offline — showing the last saved list",
+    outbox_privacy: "Unsent notes (on this phone)", outbox_policy: "Unsent notes stay only on this phone until they are sent or deleted. They survive logout; 'Delete my data' removes them too.",
   },
 };
 

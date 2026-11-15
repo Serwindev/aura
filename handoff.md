@@ -24,13 +24,14 @@
 
 ## 2. Current state (update each session)
 
-- **Date:** 2026-11-10 · **Phase:** v1.1 **done**: Sarvam speech-to-text (default) + monthly report PDF/Excel. Field speech accuracy still **unmeasured** (AI-voice audio only).
+- **Date:** 2026-11-15 · **Phase:** v1.3 **done**: offline outbox on the phone (T-043/T-047 lite). Field speech accuracy still **unmeasured** (AI-voice audio only).
+- **v1.3 (2026-11-15):** a note that cannot reach the server (no connection, 5xx, 429) is kept on the phone in IndexedDB (`server/app/web/outbox.js`) and re-sent with the same idempotency key on `online`, on app focus, every 20 s, at login, or "Send now"; then it appears as a draft to review. Bad-input errors (4xx) are kept as "Could not be sent" with a Delete button, never dropped silently. `POST /v1/notes` takes `recorded_on` (phone's date) so "aaj/kal" resolve to the day the note was spoken (future → clamped to today; > 60 days → 422). Home falls back to the last saved task list offline; service worker (`sw.js`) caches the app shell so the app reopens offline **only on localhost or a trusted HTTPS certificate** — browsers refuse service workers on the self-signed phone demo, so there the queue works while the page stays open but a reload needs the laptop. Settings shows unsent-note count; "Delete my data" also clears the phone queue.
 - **Repo:** private GitHub `Serwindev/aura`; `p1-core` merged into `main` (2026-11-10). Work on `main` or a new task branch.
 - **v1.1 (2026-11-10):** STT = Sarvam `saaras:v4` when `SARVAM_API_KEY` is in `server/.env` (`STT_PROVIDER=auto`), Vosk offline fallback on network/5xx/429; notes > 28 s split at the quietest point; register names + programme words sent as key terms. `GET /v1/reports/monthly?format=json|pdf|xlsx` (Summary · Visits · Tasks · Incentive); Reports screen has a Monthly report card. Privacy screen discloses Sarvam. Eval audio mode: `eval/harness.py --audio-dir … --stt sarvam|vosk`; AI-voice audio via `eval/make_tts_audio.py` (git-ignored).
 - **Evidence (2026-11-10):** `eval/results/2026-11-10/README.md`. Held-out AI-voice audio, first untuned run: Sarvam critical 17/20, F1 0.93, raw WER 0.125, STT p50 0.65 s; Vosk 6/20, F1 0.70, WER 0.344. After 2 fixes seen on held-out output (now optimistic): text held-out F1 0.96, critical 18/20; Sarvam audio critical 18/20.
 - **Run:** `.\make.ps1 server` → http://localhost:8000 (laptop). `.\make.ps1 phone` → prints an `https://<wifi-ip>:8443` address for a phone on the same Wi-Fi (self-signed: accept the one-time warning; allow Windows Firewall if asked; use a phone hotspot if campus Wi-Fi isolates devices). `.\make.ps1 db-reset` clears the demo. First-time setup: `.\make.ps1 setup`, `.\make.ps1 models`.
 - **Phase 3 built:** simulated OTP login, `/v1` API (notes from audio/text, confirm with server-side re-validation and server-owned evidence, tasks with reschedule/dismiss, claim sheet JSON/PDF/XLSX, privacy summary/export/delete), audio deleted on confirm or discard (7-day cap), synthetic demo household with history labelled SIMULATED, mobile web app (record, audio-file upload, type, review & confirm, Home, reports, settings/privacy), Hindi default + English.
-- **Not in v1:** offline queue on the phone, background sync, monthly activity summary, ANC tasks, Flutter. The phone must reach the laptop; no internet is needed.
+- **Not in v1:** background sync when the app is closed, ANC tasks, Flutter. (Offline queue added in v1.3.)
 - **Evidence (2026-11-09):** `eval/results/2026-11-09/holdout/report.md` supersedes the 11-07 figures below: P 0.99 / R 0.90 / F1 0.94, critical 17/20 (0.85), unsupported 0.000, p50 10.5 ms (synthetic, same author, text-only). Dev F1 0.99 (overfit). Browser run in headless Edge at 390 px and 320 px, over `http://localhost` and HTTPS on the LAN IP, with a synthetic English WAV as fake mic: all flows passed, no console errors. Not tested on a physical phone.
 - **Known limits:** Vosk small English misheard names in Windows TTS audio (names need picking on review, or start from a task). Hindi UI copy is not native-reviewed. Claim sheet covers HBNC/HBYC only, at national rates.
 - **Built so far (all synthetic data, all offline, no API keys):**
@@ -39,14 +40,15 @@
 - **Numbers (only these exist; synthetic, same author — never on a slide without the caveat):** `eval/results/2026-11-07/holdout/report.md` — P 0.99 / R 0.87 / F1 0.93, critical-field match 16/20, unsupported values 0.000, text pipeline p50 10.7 ms. Dev set (tuned on) F1 0.99 — overfit, regression guard only. **Not measured:** STT WER (no recordings), LLM extraction (no key), time saved.
 - **Vosk:** plumbing verified on a 22 kHz WAV (English TTS → garbage text, as expected); warm 2.9 s for 4.7 s audio on this laptop. Hindi accuracy unmeasured.
 - **Demo data (v1.2):** Settings → "Remove demo data" / "Load demo data (6 beneficiaries)" (`/v1/demo`). New logins get the small set (`SMALL_DEMO` in `services.py`); the full registry stays for eval/tests via `seed_demo(..., only=None)`.
-- **Last verified commands (2026-11-10):** pytest → "433 passed"; ruff → "All checks passed!"; secret scan → see §11 entry.
+- **Last verified commands (2026-11-15):** pytest → "437 passed, 1 skipped" (skip = Vosk Hindi model not downloaded on this machine); ruff → "All checks passed!"; secret scan → "0 finding(s)".
 
 ## 3. Next actions (ordered)
 
 1. **(human)** Rehearse on a real phone (`.\make.ps1 phone`, laptop online). Team members read the app's example notes aloud (synthetic content) → first human-voice figure for Sarvam.
 2. **(human)** A native Hindi speaker reads the UI copy (`server/app/web/i18n.js`) and the monthly report PDF.
-3. **(human, when possible)** Anthropic key → LLM extractor (T-024) + bake-off (T-026).
-4. Next build: phone offline queue, ANM review of U21–U24, then Flutter (phase 4).
+3. **(human)** Anthropic API key in `server/.env` → LLM extractor (T-024) + bake-off (T-026).
+4. **(human)** Decide D-27 (Flutter deferred past the showcase) and D-28 (unsent notes on the phone have no 7-day cap).
+5. Next build: LLM extractor (T-024), then ANM review of U21–U24. Budget note: after Pro ends, work runs on ~$10 API credit — keep sessions short, `/clear` between tasks.
 
 ## 4. Blockers and waiting-on-humans
 
@@ -90,10 +92,13 @@
 | D-24 | Reports | Monthly report in both PDF and Excel; incentive stays HBNC/HBYC (immunisation incentive is per session, rate unverified) | **confirmed** (human: both formats) | 2026-11-10 |
 | D-25 | Branches | `p1-core` merged into `main` | **confirmed** (human) | 2026-11-10 |
 | D-26 | Demo data | Small demo (6 beneficiaries + mothers) by default; one Settings button removes/loads it; own notes are never removed by it | **confirmed** (human) | 2026-11-10 |
+| D-27 | Flutter | Defer past the showcase; demo the mobile web app with offline queue (budget: ~$10 API credit after Pro ends) | **proposed** | 2026-11-15 |
+| D-28 | Unsent notes on phone | Kept in IndexedDB until sent or deleted by the ASHA (no 7-day cap: dropping an unsent note loses a visit); disclosed in Settings; cleared by "Delete my data" | **proposed** | 2026-11-15 |
 
 ## 6. Environment and setup
 
-**Prerequisites:** Git ✔ (2.55); Python 3.12.10 ✔ (winget, user scope); uv 0.13.7 ✔ (winget; not on bash PATH — in Git Bash prepend `$(cygpath "$LOCALAPPDATA")/Microsoft/WinGet/Packages/astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe`); Flutter + Android SDK ✘ (phase 4); Docker ✘ (not needed, D-13); `make` ✘ → use `.\make.ps1 <target>`.
+**Machine change (2026-11-15):** now Python 3.11.0 + uv 0.13.8 (winget) + gh CLI 2.104 (winget, logged in as Serwindev; path `C:\Program Files\GitHub CLI\gh.exe`); Vosk models not downloaded; no `server/.env` yet (no Sarvam key on this machine). Edge headless driven over DevTools for browser checks.
+**Prerequisites (previous machine):** Git ✔ (2.55); Python 3.12.10 ✔ (winget, user scope); uv 0.13.7 ✔ (winget; not on bash PATH — in Git Bash prepend `$(cygpath "$LOCALAPPDATA")/Microsoft/WinGet/Packages/astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe`); Flutter + Android SDK ✘ (phase 4); Docker ✘ (not needed, D-13); `make` ✘ → use `.\make.ps1 <target>`.
 
 **Environment variables (names only; never commit values; keep in `.env`, provide `.env.example`):**
 `DATABASE_URL`, `JWT_SECRET`, `STT_PROVIDER`, `BHASHINI_USER_ID`, `BHASHINI_API_KEY`, `SARVAM_API_KEY`, `LLM_PROVIDER`, `LLM_API_KEY`, `LLM_MODEL`, `AUDIO_RETENTION_HOURS`, `APP_ENV`.
@@ -213,4 +218,12 @@ aura/
 - Human: demo data is "huge and mess"; wants a button to remove it and add ~6 back; merge to main; PR checks failing.
 - Done: `remove_demo` / `load_demo` / `demo_status` (services), `GET/POST /v1/demo`, Settings card + toggle button (hi/en). Small set = c01, c02, c07, c08, c20, w03 + mothers (11 rows, 26 demo history notes, ~10 open tasks). CI: gitleaks failed on `pull_request` with 403 → added `pull-requests: read`.
 - Evidence: pytest 433 passed; ruff clean; headless Edge (390 px) walkthrough login → Settings → remove → Home "Nothing is due" → load → 9 task cards, no console errors.
+- Next: §3.
+
+### 2026-11-15 — v1.3: offline outbox on the phone
+- New machine: cloned `Serwindev/aura`; installed gh CLI + uv; `uv sync` on Python 3.11.0. Baseline: pytest 432 passed, 1 skipped (no Vosk model); ruff clean; secret scan 0.
+- Human: Pro plan ends 2026-11-16; afterwards ~$10 API credit → build the costly items now; Flutter deferral proposed (D-27).
+- Done: outbox (`web/outbox.js`, IndexedDB) + flush/retry in `web/app.js`; `recorded_on` on `POST /v1/notes` (`routes._recorded_on`, `create_note(recorded_on=…)`); offline Home from cached tasks; offline start from cached user/meta; service worker `web/sw.js`; Settings disclosure (D-28 proposed); hi/en strings.
+- Evidence: pytest "437 passed, 1 skipped" (5 new tests in `tests/test_api.py`); ruff "All checks passed!"; secret scan "0 finding(s)". Headless Edge (390 px, DevTools offline emulation, mock STT, scratch data dir): login → offline → typed note queued + cached-list banner → "Send now" offline keeps it → online event → outbox empty, draft listed and opens in review → same idempotency key sent twice gives one draft → reload while offline opens Home + Record from the service-worker cache (localhost). No console errors.
+- Not verified: a physical phone; audio recordings in the queue (only typed notes were queued in the browser test; audio uses the same path with a Blob); service worker on the self-signed HTTPS demo (expected not to register — browser rule).
 - Next: §3.
