@@ -6,6 +6,7 @@ Never auto-submits: the result is a DRAFT for the review screen.
 
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from datetime import date
@@ -13,11 +14,14 @@ from pathlib import Path
 
 from .core.config import REPO_ROOT, load_yaml
 from .extraction import rule_based
+from .extraction.llm import LlmExtractor, LlmUnavailable
+from .extraction.llm import from_env as llm_from_env
 from .extraction.names import NameMatch, Person, resolve_beneficiary
 from .extraction.validate import ValidationResult, validate_extraction
 from .stt.base import Transcript
 
 REGISTRY_PATH = REPO_ROOT / "eval" / "data" / "registry.yaml"
+log = logging.getLogger(__name__)
 
 
 def load_people(path: Path = REGISTRY_PATH) -> list[Person]:
@@ -40,12 +44,27 @@ class PipelineResult:
     timings_ms: dict[str, float] = field(default_factory=dict)
 
 
+_UNSET = object()
+
+
 def process_transcript(transcript: Transcript, recorded_on: date, people: list[Person],
-                       extractor: str = "rule") -> PipelineResult:
-    if extractor != "rule":
-        raise ValueError(f"extractor {extractor!r} not available (no LLM key configured)")
+                       llm: LlmExtractor | None | object = _UNSET) -> PipelineResult:
+    """llm: an LlmExtractor, None for rule-based, or unset = from the environment (LLM_PROVIDER).
+    If the LLM cannot give a proposal, the rule-based extractor is used and the note is never lost."""
+    if llm is _UNSET:
+        llm = llm_from_env()
     t0 = time.perf_counter()
-    raw = rule_based.extract(transcript.text, recorded_on, people)
+    name = "rule-based-v0"
+    raw = None
+    if llm is not None:
+        try:
+            raw = llm.extract(transcript.text, recorded_on)
+            name = llm.name
+        except LlmUnavailable as exc:
+            log.warning("LLM extractor unavailable (%s); using rule-based", exc)  # no transcript in logs
+            name = "rule-based-v0 (LLM fallback)"
+    if raw is None:
+        raw = rule_based.extract(transcript.text, recorded_on, people)
     t1 = time.perf_counter()
     result = validate_extraction(raw, transcript.text, recorded_on)
     t2 = time.perf_counter()
@@ -54,21 +73,22 @@ def process_transcript(transcript: Transcript, recorded_on: date, people: list[P
         result.record.beneficiary.matched_id = match.matched_id
         result.record.beneficiary.match_confidence = min(1.0, match.confidence)
     t3 = time.perf_counter()
-    return PipelineResult(transcript, "rule-based-v0", raw, result, match, {
+    return PipelineResult(transcript, name, raw, result, match, {
         "extract": (t1 - t0) * 1000, "validate": (t2 - t1) * 1000, "names": (t3 - t2) * 1000})
 
 
-def process_text(text: str, recorded_on: date, people: list[Person]) -> PipelineResult:
-    return process_transcript(Transcript(text, "typed"), recorded_on, people)
+def process_text(text: str, recorded_on: date, people: list[Person],
+                 llm: LlmExtractor | None | object = _UNSET) -> PipelineResult:
+    return process_transcript(Transcript(text, "typed"), recorded_on, people, llm)
 
 
 def process_audio(wav_bytes: bytes, recorded_on: date, people: list[Person], stt,
-                  language: str = "hi") -> PipelineResult:
+                  language: str = "hi", llm: LlmExtractor | None | object = _UNSET) -> PipelineResult:
     t0 = time.perf_counter()
     # names in the register help the speech model spell them (Latin for English, Devanagari for Hindi)
     hints = sorted({n for p in people for n in p.names if n.isascii() == (language == "en")})
     tr = stt.transcribe(wav_bytes, language, hints=hints)
     stt_ms = (time.perf_counter() - t0) * 1000
-    res = process_transcript(tr, recorded_on, people)
+    res = process_transcript(tr, recorded_on, people, llm)
     res.timings_ms["stt"] = stt_ms
     return res

@@ -638,6 +638,7 @@ async function viewSettings() {
       <p class="small muted">${esc(t("audio_policy"))}</p>
       <p class="small muted">${esc(t("outbox_policy"))}</p>
       ${S.meta && S.meta.stt.provider === "sarvam" ? `<p class="small">${esc(t("stt_cloud"))}</p>` : ""}
+      ${S.meta && S.meta.extractor.startsWith("llm:") ? `<p class="small">${esc(t("llm_cloud"))}</p>` : ""}
       <span class="field-label">${esc(t("never"))}</span><p class="small">${esc(t("never_list"))}</p>
       <p class="small"><strong>${esc(t("perms"))}</strong></p>
       <div class="row"><button id="export">${esc(t("export_data"))}</button><button class="danger" id="delete">${esc(t("delete_data"))}</button></div>
@@ -645,7 +646,7 @@ async function viewSettings() {
     <h2>${esc(t("about"))}</h2>
     <div class="card small">
       <p>${esc(t("speech"))}: <strong>${esc(m.stt.provider)}</strong> (${esc(m.stt.languages.join(", ") || "-")})</p>
-      <p>${esc(t("extractor"))}: ${esc(t("extractor_v"))}</p>
+      <p>${esc(t("extractor"))}: ${esc(m.extractor.startsWith("llm:") ? t("extractor_llm").replace("{m}", m.extractor.split(":")[1]) : t("extractor_v"))}</p>
       <p><span class="tag sim">SIMULATED</span> ${esc(t("sim_items"))}</p>
       <p>${esc(t("advisory"))}</p><p>${esc(t("no_gov"))}</p><p>${esc(t("synthetic_only"))}</p>
     </div>

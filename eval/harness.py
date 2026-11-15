@@ -144,7 +144,16 @@ def main() -> None:
     ap.add_argument("--notes", default=str(ROOT / "eval" / "data" / "notes.yaml"))
     ap.add_argument("--audio-dir", default=None, help="score speech: <dir>/<note id>.wav")
     ap.add_argument("--stt", default=None, help="sarvam | vosk (with --audio-dir)")
+    ap.add_argument("--llm", default=None, help="LLM extractor model, e.g. claude-haiku-5-5 (spends API credit)")
+    ap.add_argument("--effort", default="low", help="LLM effort: low | medium | high")
     args = ap.parse_args()
+    llm = None
+    if args.llm:
+        from app.core.settings import load_dotenv
+        from app.extraction.llm import LlmExtractor
+
+        load_dotenv()
+        llm = LlmExtractor(model=args.llm, effort=args.effort)
     stt = None
     if args.audio_dir:
         from app.core.settings import load_dotenv
@@ -166,6 +175,7 @@ def main() -> None:
     rows, latencies, crit_ok, flags_err = [], [], [], []
     stt_ms, wer_err, wer_len, heard = [], 0, 0, {}
     stt_name = "none (text transcripts)"
+    fallbacks = 0
     for n in notes:
         text = n["transcript"]
         if stt is not None:
@@ -180,8 +190,10 @@ def main() -> None:
             wer_err, wer_len = wer_err + e, wer_len + length
             text = heard[n["id"]] = tr.text
         t = time.perf_counter()
-        res = process_text(text, n["recorded_on"], people)
+        res = process_text(text, n["recorded_on"], people, llm=llm)
         latencies.append((time.perf_counter() - t) * 1000)
+        if llm is not None and "fallback" in res.extractor:
+            fallbacks += 1  # scored as-is (rule-based result), but counted so the report says so
         gold, pred = gold_view(n["gold"]), pred_view(res.validation.record)
         per = score(gold, pred, counts, unsupported)
         score(gold, pred, by_style[n["style"]], [])
@@ -203,7 +215,12 @@ def main() -> None:
     p95 = lat[max(0, int(round(0.95 * len(lat))) - 1)]
     summary = {
         "date": date.today().isoformat(), "set": set_name, "notes": len(notes),
-        "extractor": "rule-based-v0", "stt": stt_name,
+        "extractor": llm.name if llm else "rule-based-v0", "stt": stt_name,
+        "llm": ({"model": llm.model, "effort": llm.effort, "calls": len(llm.usage), "fallbacks": fallbacks,
+                 "cost_usd": llm.cost_usd(), "cost_usd_per_note": (llm.cost_usd() or 0) / len(notes),
+                 "tokens": {k: sum(u[k] for u in llm.usage) for k in ("input", "output", "cache_read", "cache_write")},
+                 "call_seconds_p50": statistics.median([u["seconds"] for u in llm.usage]) if llm.usage else None}
+                if llm else None),
         "audio": ({"source": "AI voice (Sarvam bulbul:v3 TTS), not field speech",
                    "wer_raw": wer_err / wer_len if wer_len else None,
                    "stt_ms": {"p50": statistics.median(stt_ms), "max": max(stt_ms)}} if stt_ms else None),
@@ -226,7 +243,9 @@ def main() -> None:
           f"critical={summary['critical_exact_match_rate']:.2f} "
           f"unsupported={summary['unsupported_value_rate']:.3f} p50={lat[len(lat)//2]:.1f}ms"
           + (f" WER={summary['audio']['wer_raw']:.3f} stt_p50={summary['audio']['stt_ms']['p50']:.0f}ms"
-             if summary["audio"] else "") + f" -> {out}")
+             if summary["audio"] else "")
+          + (f" llm={llm.model} cost=${summary['llm']['cost_usd'] or 0:.4f} fallbacks={fallbacks}" if llm else "")
+          + f" -> {out}")
 
 
 def render(s: dict, rows: list[dict]) -> str:
@@ -254,7 +273,9 @@ def render(s: dict, rows: list[dict]) -> str:
         "",
         *intro,
         "",
-        f"- Extractor: `{s['extractor']}` (deterministic, offline) · STT: {s['stt']}",
+        f"- Extractor: `{s['extractor']}` "
+        + ("(LLM proposal → same code validator)" if s.get("llm") else "(deterministic, offline)")
+        + f" · STT: {s['stt']}",
         f"- Machine: {s['machine']}",
         "",
         "## Headline",
@@ -268,7 +289,10 @@ def render(s: dict, rows: list[dict]) -> str:
         f"| Text pipeline latency p50 / p95 (extract + validate + names) | {s['latency_ms_text_pipeline']['p50']:.1f} / {s['latency_ms_text_pipeline']['p95']:.1f} ms |",
         f"| Mean error flags per note (shown to the ASHA for review) | {s['mean_error_flags_per_note']:.2f} |",
         speech_row,
-        "| LLM extractor | **not measured** (no API key) |",
+        (f"| LLM `{s['llm']['model']}` (effort {s['llm']['effort']}): cost total / per note · call time p50 · "
+         f"fallbacks to rule-based | ${s['llm']['cost_usd'] or 0:.4f} / ${s['llm']['cost_usd_per_note']:.5f} · "
+         f"{(s['llm']['call_seconds_p50'] or 0):.1f} s · {s['llm']['fallbacks']}/{s['notes']} |"
+         if s.get("llm") else "| LLM extractor | not part of this run (rule-based) |"),
         "",
         "## By transcript style",
         "",

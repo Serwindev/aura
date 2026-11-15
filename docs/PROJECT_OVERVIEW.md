@@ -375,6 +375,7 @@ Errors share one shape: `{code, message, details[]}` with field paths, so the UI
 | **Phase 2 — Pipeline** (7 Nov) | Vosk/mock/Sarvam-stub STT adapters; rule-based extractor; name resolution; pipeline; eval harness with 60 synthetic notes + registry; `docs/providers.md`. |
 | **Phase 3 — Prototype v1** (9 Nov) | FastAPI server + SQLite; simulated OTP login; full `/v1` API; mobile web app (record/upload/type → review → confirm → tasks → reports → privacy); audio retention; demo seed; Hindi + English UI; PDF/XLSX export with embedded fonts; self-signed HTTPS for phone use. Tested end-to-end in headless Edge at 390 px and 320 px. |
 | **v1.1 — Voice + reports** (10 Nov) | Sarvam `saaras:v4` speech-to-text (chunking, key terms, offline fallback, `.env` loading); audio eval mode + AI-voice test audio; extractor fixes for cloud-ASR output (newborn → HBNC, "measles rubella", "102 डिग्री", "दूध भी नहीं पी"); monthly report (PDF + Excel) and Reports screen update; privacy disclosure; branches merged into `main`. |
+| **v1.3 — Offline + LLM** (15 Nov) | Offline outbox on the phone (IndexedDB, same idempotency key on retry, `recorded_on` keeps the spoken date, service-worker app shell on localhost/trusted HTTPS); LLM extractor (Claude structured output → same validator, rule-based fallback, off by default, harness `--llm`). LLM accuracy not yet measured (needs a key). |
 | **v1.2 — Clean demo** (10 Nov) | Demo data button in Settings (remove / load small set of 6 beneficiaries); new logins start with the small set; CI gitleaks permission fix for pull requests. |
 
 ---
@@ -387,7 +388,8 @@ Errors share one shape: `{code, message, details[]}` with field paths, so the UI
 - **Hindi UI text** has not been reviewed by a native speaker.
 - **Clinical rules are drafts** — need ANM/clinician review; ANC tasks disabled.
 - **Incentive** covers HBNC/HBYC only, at national rates.
-- **Not built yet:** offline queue on the phone, background sync, ANC tasks, guided entry (Tier 1), LLM extractor (needs key), Bhashini STT, Flutter app.
+- **Not built yet:** background sync when the app is closed, ANC tasks, guided entry (Tier 1), Bhashini STT, Flutter app. **Built but unmeasured:** LLM extractor (needs an Anthropic key for the bake-off).
+- **Offline limit:** on the self-signed phone demo the app cannot reopen with no connection (browsers refuse service workers on untrusted certificates); the note queue works while the page stays open.
 - **CI**: repo is on GitHub (`Serwindev/aura`, private); first CI run not yet checked.
 
 ## 11. What comes next

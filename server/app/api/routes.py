@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from ..core.config import RULES_DIR, load_yaml
 from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
+from ..extraction.llm import from_env as llm_from_env
 from ..reports import monthly
 from ..reports.claims import claim_sheet
 from ..reports.export import to_pdf, to_xlsx
@@ -99,7 +100,8 @@ def note_view(n: Note, db: Session, lang: str, **extra) -> dict:
 def meta(request: Request) -> dict:
     stt = request.app.state.stt_status()
     v = load_yaml(RULES_DIR / "validation.yaml")
-    return {"stt": stt, "extractor": "rule-based-v0",
+    llm = llm_from_env()
+    return {"stt": stt, "extractor": llm.name if llm else "rule-based-v0",
             "danger_signs": v["danger_signs"],
             "vaccines": [d["vaccine"] for d in load_yaml(RULES_DIR / "uip.yaml")["doses"]],
             "rules_status": {n: load_yaml(RULES_DIR / f"{n}.yaml")["status"] for n in ("hbnc", "hbyc", "uip")},
