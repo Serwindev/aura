@@ -69,6 +69,7 @@ const STRINGS = {
     not_said: "नोट में नहीं बोला गया", not_said_hint: "ज़रूरी हो तो पूछकर भरें, नहीं तो खाली छोड़ें।",
     edits_title: "A.U.R.A. को कितना सुधारना पड़ा", edits_hint: "यह ऐप की जाँच है, आपकी नहीं: जो खाना आपने सबसे ज़्यादा बदला, वहाँ ऐप सबसे ज़्यादा गलत सुनता है।",
     edits_unchanged: "नोट बिना किसी बदलाव के पक्के हुए", edits_none: "इस महीने अभी कोई पक्का नोट नहीं।", times: "बार",
+    form_view: "फ़ॉर्म के क्रम में देखें", form_hint: "इसे खुद कागज़ के फ़ॉर्म या ऐप में भरें — A.U.R.A. किसी सरकारी फ़ॉर्म से जुड़ा नहीं है। खाली = आपके नोट में नहीं था, खुद जाँचकर भरें।", form_filled: "सवाल आपके नोट से भरे", form_not_said: "नोट में नहीं — जाँचकर भरें", form_fill_self: "ऐप यह नहीं रखता — खुद भरें", form_source: "क्रम: HBNC दिशानिर्देश 2014, अनुलग्नक 1c (पेज 19–22)। सलाह मात्र।", back: "वापस",
     area: "इलाका / टोला (अगर चाहें)", group_by: "काम कैसे दिखाएँ", group_status: "तारीख से", group_area: "इलाके से", no_area: "इलाका नहीं लिखा",
   },
   en: {
@@ -140,6 +141,7 @@ const STRINGS = {
     not_said: "Not in the note", not_said_hint: "Ask and fill in if needed, otherwise leave it empty.",
     edits_title: "How often A.U.R.A. needed correcting", edits_hint: "This checks the app, not you: the fields you change most are where it mishears most.",
     edits_unchanged: "notes confirmed with no changes", edits_none: "No confirmed notes this month yet.", times: "times",
+    form_view: "View in form order", form_hint: "Copy this onto the paper form or app yourself — A.U.R.A. is not connected to any government form. Blank = not in your note: check and fill it yourself.", form_filled: "questions filled from your note", form_not_said: "Not in your note — check and fill", form_fill_self: "App does not record this — fill yourself", form_source: "Order: HBNC guidelines 2014, Annexure 1c (pp. 19–22). Advisory only.", back: "Back",
     area: "Area / ward (optional)", group_by: "Show tasks", group_status: "By date", group_area: "By area", no_area: "No area set",
   },
 };

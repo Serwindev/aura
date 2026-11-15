@@ -17,6 +17,7 @@ from ..core.config import RULES_DIR, load_yaml
 from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
 from ..extraction.llm import from_env as llm_from_env
+from ..forms import form_view
 from ..reports import monthly
 from ..reports.claims import claim_sheet
 from ..reports.export import to_pdf, to_xlsx
@@ -327,6 +328,19 @@ def get_notes(status: str | None = None, user: User = Depends(current_user), db:
 @router.get("/notes/{note_id}")
 def get_note(note_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
     return note_view(own_note(db, user, note_id), db, user.lang)
+
+
+@router.get("/notes/{note_id}/form")
+def get_note_form(note_id: str, lang: str | None = None, user: User = Depends(current_user),
+                  db: Session = Depends(get_db)) -> dict:
+    """Her confirmed record in the order of the official paper form, for copying by hand (not an integration)."""
+    note = own_note(db, user, note_id)
+    if note.status != "confirmed" or not note.confirmed:
+        raise RequestError(409, "NOT_CONFIRMED", "Confirm the note first")
+    view = form_view(note.confirmed, lang if lang in ("hi", "en") else user.lang)
+    if view is None:
+        raise RequestError(404, "NO_FORM", "No form layout for this visit type yet")
+    return view
 
 
 @router.get("/notes/{note_id}/audio")

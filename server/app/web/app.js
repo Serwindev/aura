@@ -68,7 +68,7 @@ function go(view, data = {}) {
   document.documentElement.lang = S.lang;
   renderNav();
   window.scrollTo(0, 0);
-  ({ login: viewLogin, home: viewHome, record: viewRecord, review: viewReview, saved: viewSaved, people: viewPeople, reports: viewReports, settings: viewSettings }[view])();
+  ({ login: viewLogin, home: viewHome, record: viewRecord, review: viewReview, saved: viewSaved, form: viewForm, people: viewPeople, reports: viewReports, settings: viewSettings }[view])();
 }
 
 function logout() {
@@ -633,9 +633,29 @@ function viewSaved() {
     <div class="card"><p class="task-name">${esc(who)}</p><p>${esc(VISIT_TYPES[S.lang][r.visit_type])} · ${esc(fmtDate(r.visit_date))}</p></div>
     ${signs.length ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}<ul class="plain">${signs.map((x) => `<li>• ${esc(dangerLabel(x.code))}</li>`).join("")}</ul></div>` : ""}
     ${speakBtn("saved")}
+    ${r.visit_type === "HBNC" ? `<button class="wide" data-nav="form" style="margin-top:8px">${esc(t("form_view"))}</button>` : ""}
     <div class="banner ok">${esc(t("saved_only_here"))}${S.note.audio_deleted ? " " + esc(t("audio_deleted")) : ""}</div>
     <button class="primary wide" data-nav="home">${esc(t("go_home"))}</button>
     <button class="wide" data-nav="record" style="margin-top:10px">${esc(t("another"))}</button>`;
+}
+
+/* ---- form view: her confirmed record in the order of the official paper form (she copies it herself) ---- */
+async function viewForm() {
+  VIEW().className = "";
+  VIEW().innerHTML = `<div class="empty"><div class="spinner" style="margin:auto"></div></div>`;
+  let f;
+  try { f = await api(`/notes/${S.note.id}/form?lang=${S.lang}`); } catch (e) { return fail(e); }
+  if (S.view !== "form") return;
+  VIEW().innerHTML = `
+    <h1>${esc(f.title)}</h1>
+    <div class="banner">${esc(t("form_hint"))}</div>
+    <p class="small muted">${esc(f.filled)} / ${esc(f.total)} ${esc(t("form_filled"))}</p>
+    ${f.sections.map((s) => `<section class="card"><span class="field-label">${esc(s.title)}</span>
+      <ul class="plain">${s.rows.map((r) => `<li class="form-row"><span>${esc(r.question)}</span>
+        ${r.value !== null ? `<strong>${esc(r.value)}</strong>` : `<span class="muted small">${esc(r.captured ? t("form_not_said") : t("form_fill_self"))}</span>`}
+        ${r.note ? `<span class="small muted" style="flex-basis:100%">${esc(r.note)}</span>` : ""}</li>`).join("")}</ul></section>`).join("")}
+    <p class="small muted">${esc(t("form_source"))}</p>
+    <button class="primary wide" data-nav="saved">${esc(t("back"))}</button>`;
 }
 
 /* ---- reports ---- */

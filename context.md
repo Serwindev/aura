@@ -152,10 +152,13 @@ All rules go in `rules/*.yaml` with a `source` and `status: draft | clinician_re
 - Extra visits for LBW/preterm/sick newborns (details [U]).
 - National incentive ₹250 for the visit series; conditions apply (mother and newborn alive/safe to 42 days; birth registered) [V][S17] (state rate may differ [U]).
 - A state tracker spec marks Day 1, 3, 7, 42 as mandatory cards and 14/21/28 as conditional [U][S25] — verify against UP.
+- **HBNC home-visit form (Annexure 1c) read 2026-11-15** [V][S35 pp. 19–22]: sections A Ask mother, B Examine mother, C Examine baby (eyes, weight, temperature, jaundice, BCG/OPV/Hep B-0), D Referral of mother & baby (date, reason, place), E Sepsis signs (8 items), supervisor note. Temperatures on the form are in **°F** (97 / 95.9 / 99 °F thresholds; mother fever 100 °F). Field list: `docs/form-fields.md`.
+- **SSBSK 2026 changes the schedule** [V][S36 p. 19, p. 36]: it integrates HBNC + HBYC (0–36 months). Healthy newborn **days 3, 7, 14, 42** (+ day 1 for home births); **'at-risk' newborn 9 visits: days 1, 3, 5, 7, 10, 14, 21, 28, 42** (at-risk = birth weight < 2500 g, preterm < 37 wk, breastfeeding not initiated, SNCU/NICU discharge, visible birth defect, not regained birth weight by day 14, or no gain in two visits after day 14 [S36 p. 113]). Whether and from when **UP** has adopted SSBSK is [U]. Our rules still use the 2014 schedule (decision D-32).
 
 ### 8.2 HBYC — Home Based care for Young Child [V][S16]
 - Visits at **3, 6, 9, 12, 15 months**; national incentive ₹50/visit, ₹250 per child for 5 visits [V][S17].
 - Quarterly follow-up of LBW/SNCU-discharged babies is harmonised with HBYC [V].
+- **SSBSK 2026**: young-child visits at **3, 6, 9, 12, 18, 24, 30, 36 months** (8 visits) [V][S36 p. 19, p. 36]; ASHA incentives for SSBSK visits are promised but amounts not given in the guideline [V][S36 p. 60].
 
 ### 8.3 Universal Immunisation Programme (infants) [V][S18]
 | Age | Vaccines |
@@ -177,9 +180,13 @@ Minimum **4 ANC visits** + one specialist check under PMSMA (fixed day: **9th of
 - Monthly list preparation (due list, ANC list, eligible-couple list): ₹300 each per month in the annexure; BCG adult due-list ₹300/month × 3 months [V][S17].
 - Anaemia Mukt Bharat IFA mobilisation ₹100/month/ASHA [V][S17].
 - **UP's current rates and claim form [U]** → obtain (T-005, T-013).
+- Re-checked 2026-11-15 against the NHSRC April 2024 list [V][S37 p. 2]: HBNC ₹250 (6 visits institutional / 7 home), HBYC ₹50 × 5 = ₹250, LBW/SNCU quarterly follow-up ₹50/quarter (3rd month to 1 year), full immunisation (0–1 yr) ₹100, complete immunisation (1–2 yr) ₹75. Matches `rules`/claim config.
+- Claim-form layout example (Assam draft 2024, **not UP**) [V][S38 p. 1]: columns Sl no · Activity · Parameter for payment · Rate · FMR code · No. of claims · Amount claimed · Documents submitted · Amount approved (office use) · Remarks; addressed to the block officer with the claim period.
 
 ### 8.6 Records ASHAs keep [V][S26]
 Village Health Register (≈96% had it in one study), delivery forms, home-visit form, ASHA diary (≈28%), drug-kit stock register, birth-preparedness plan, newborn examination format. Registers are meant to be updated monthly (due lists etc.).
+- UP RCH register (kept by the **ANM**) [V][S39]: Section III Tracking of Children — Index + CH-1 (child details: RCH ID, name, sex, mother, mother's RCH ID, address, DOB, birth weight (kg), place of birth, religion, caste), CH-2 (vaccines incl. Vitamin A), CH-3 (exclusive breastfeeding to 6 months, complementary feeding, diarrhoea/pneumonia in last 15 days). **An unnamed baby is written "Male/Female child of <mother's name>"** (CH-1 col. 3) — same convention as our newborn labels.
+- SSBSK **Shaishav App reporting format** (the newer digital ASHA form) [V][S36 Annexure 3, pp. 112–118]: Form 1 general (ABHA-autofilled), availability, at-risk checklist, newborn form (temperature °F, 10 danger signs, weight in grams, feeding, eyes/umbilicus/pustules), mother PNC form (temperature °F, 10 danger signs, diet, IFA/calcium, spacing, 2-question distress screen), young-child forms (weight kg, length cm, at-risk, temperature °F, 10 danger signs, feeding by age, deworming, Vitamin A, IFA syrup, ORS at home), ECD and household profile. Field list: `docs/form-fields.md`.
 
 ### 8.7 Reporting cadence
 Monthly is supported (HMIS by the 10th; ASHA incentive claims monthly) [V]. **Weekly is not established** → answer to the team's open question: build monthly first.
@@ -308,5 +315,10 @@ ASHA: Accredited Social Health Activist. ANM: Auxiliary Nurse Midwife. AWW: Anga
 - [S32] Anthropic Claude API model table and pricing (claude-api skill, cached 2026-10-06; confirm live before quoting)
 - [S33] Flutter `record` package — https://pub.dev/documentation/record/5.2.1 ; https://docs.flutter.dev/cookbook/audio/record
 - [S34] ANC / PMSMA — https://eparlib.sansad.in/bitstream/123456789/2983672/1/AS66_pXAnrP.pdf ; https://nhm.gov.in/images/pdf/programmes/maternal-health/guidelines/Pradhan_Mantri_Surakshit_Matritva_Abhiyan.pdf ; https://bmcpregnancychildbirth.biomedcentral.com/counter/pdf/10.1186/s12884-023-06117-z.pdf
+- [S35] MoHFW, *Home Based Newborn Care Operational Guidelines (Revised 2014)*, Annexures 1a–1c (PDF pp. 26–32) — copy at https://medbox.org/index.php/dl/5e148832db60a2044c2d3cf4 (read 2026-11-15)
+- [S36] MoHFW/NHM, *Samagra Shishu Bal Swasthya Karyakram (SSBSK) Operational Guidelines 2026* (final 06-08-2026) — https://nhm.gov.in/New-Update-2025-26/Guidelines/SSBSK/SSBSK_Operational%20Guidline_Final_06-08-2026.pdf (page numbers = printed page; read 2026-11-15)
+- [S37] NHSRC, *ASHA Incentives — April 2024* — https://nhsrcindia.org/sites/default/files/2024-06/ASHA%20Incentives-Apr24.pdf (the July 2025 NHM version could not be downloaded; re-check)
+- [S38] NHM Assam, *ASHA Incentive Master Claim Form (draft, English, 2024)* — https://nhmssd.assam.gov.in/APPMS_2024_25/ASHA_documents/ASHA_Incentive_Master_Claim_Form_Draft_ENGLISH_2024.pdf
+- [S39] UP NHM, *Instruction manual for ANM to record information in RCH register v1.1* (Section III, Tables 12–14) — https://upnrhm.gov.in/assets/site-files/downloads/Instruction_manual_for_ANM_to_record_information_in_RCH_register_version_1.1.pdf
 
 Team-provided documents: Envision '26 deck; Home/Data-Entry/Report/Settings workflow PDF; "Team Research Compilation" (UP focus).

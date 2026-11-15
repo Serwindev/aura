@@ -140,3 +140,8 @@ label.chip input { width: 20px; height: 20px; margin: 0; }
 .guide li { padding: 3px 0; }
 .guide li.on { font-weight: 700; color: var(--primary); }
 .guide li.done { color: var(--muted); text-decoration: line-through; }
+
+/* form view rows */
+.form-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.form-row:last-child { border-bottom: 0; }
+.form-row > span:first-child { flex: 1 1 60%; }
