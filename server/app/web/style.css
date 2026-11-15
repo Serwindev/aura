@@ -53,10 +53,10 @@ textarea { min-height: 96px; resize: vertical; }
 /* navigation */
 #nav {
   position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom); z-index: 5;
+  display: grid; grid-template-columns: repeat(5, 1fr); padding-bottom: env(safe-area-inset-bottom); z-index: 5;
 }
 #nav[hidden] { display: none; }
-#nav button { border: 0; border-radius: 0; background: none; flex-direction: column; gap: 2px; font-size: 13px; min-height: 64px; color: var(--muted); padding: 6px 2px; }
+#nav button { border: 0; border-radius: 0; background: none; flex-direction: column; gap: 2px; font-size: 12px; min-width: 0; overflow-wrap: anywhere; min-height: 64px; color: var(--muted); padding: 6px 2px; }
 #nav button[aria-current="page"] { color: var(--primary); }
 #nav svg { width: 24px; height: 24px; }
 
@@ -132,3 +132,5 @@ ul.plain li { padding: 3px 0; }
 .spinner { width: 54px; height: 54px; border-radius: 50%; border: 6px solid var(--soft); border-top-color: var(--primary); animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .mic.on { transition: none; } }
+label.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); cursor: pointer; }
+label.chip input { width: 20px; height: 20px; margin: 0; }

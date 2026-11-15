@@ -15,12 +15,13 @@ from typing import Any
 from fastapi.encoders import jsonable_encoder
 from pydantic import ValidationError
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .core.config import RULES_DIR, load_yaml, validation_config
 from .core.schema import VisitRecord
 from .core.settings import Settings
-from .db.models import AuditEvent, Note, Person, TaskAction, utcnow
+from .db.models import AuditEvent, Note, Person, TaskAction, new_id, utcnow
 from .extraction.dates_hi import add_months
 from .extraction.names import Person as NamePerson
 from .extraction.validate import Flag
@@ -146,7 +147,16 @@ def create_note(db: Session, cfg: Settings, stt: Any, owner_id: str, *, text: st
                 flags=jsonable_encoder([asdict(f) for f in result.validation.needs_review]),
                 candidates=result.match.candidates if result.match else [])
     db.add(note)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Same idempotency key sent twice at once (e.g. a page reload while a queued note was sending):
+        # the other request won the race, so this one returns its note instead of failing.
+        db.rollback()
+        found = db.scalar(select(Note).where(Note.owner_id == owner_id, Note.idempotency_key == idempotency_key))
+        if found is None:
+            raise
+        return found
     if wav is not None:
         cfg.audio_dir.mkdir(parents=True, exist_ok=True)
         path = cfg.audio_dir / f"{note.id}.wav"
@@ -410,8 +420,9 @@ def seed_demo(db: Session, owner_id: str, today: date, only: tuple[str, ...] | N
 
 
 def _own_people(db: Session, owner_id: str) -> set[str]:
-    """People the ASHA's own notes (voice or typed, any status) refer to, plus their mothers."""
-    ids: set[str] = set()
+    """People the ASHA added herself or whose own notes (voice or typed, any status) refer to, plus their mothers."""
+    ids: set[str] = {p.id for p in db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
+                     if p.id.startswith(OWN_PREFIX)}
     for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.source != "seed")).all():
         for rec in (n.confirmed, n.draft):
             bid = ((rec or {}).get("beneficiary") or {}).get("matched_id")
@@ -457,6 +468,114 @@ def _seed_note(owner_id: str, bid: str, vtype: str, when: date, idx: dict, vacci
                       services_given=[{"type": "VACCINE", "detail": v} for v in vaccines])
     return Note(owner_id=owner_id, status="confirmed", source="seed", recorded_on=when, transcript="",
                 draft={}, confirmed=rec.model_dump(mode="json"), confirmed_at=datetime.combine(when, datetime.min.time()))
+
+
+# ---- people the ASHA registers herself (T-045) ---------------------------------------------
+# Ids start with "p-" so "Remove demo data" never touches them (demo ids are fixed, e.g. c01, w03).
+
+OWN_PREFIX = "p-"
+CATEGORIES = ("newborn", "child", "pregnant", "other")
+MAX_NEWBORN_DAYS = 60   # HBNC runs to day 42; a little slack for late registration
+MAX_CHILD_YEARS = 5
+MAX_NAME = 60
+
+
+def _clean(name: str | None) -> str | None:
+    name = " ".join((name or "").split())
+    if len(name) > MAX_NAME:
+        raise RequestError(422, "NAME_TOO_LONG", f"Keep the name under {MAX_NAME} characters", [{"path": "name"}])
+    return name or None
+
+
+def _check_person(category: str, dob: date | None, today: date, delivery_place: str | None) -> None:
+    if category not in CATEGORIES:
+        raise RequestError(422, "BAD_CATEGORY", "Choose newborn, child, pregnant or other", [{"path": "category"}])
+    if category in ("newborn", "child"):
+        if dob is None:
+            raise RequestError(422, "DOB_REQUIRED", "Date of birth is needed to work out visits and vaccines",
+                               [{"path": "dob"}])
+        if dob > today:
+            raise RequestError(422, "DOB_IN_FUTURE", "Date of birth cannot be in the future", [{"path": "dob"}])
+        age = (today - dob).days
+        if category == "newborn" and age > MAX_NEWBORN_DAYS:
+            raise RequestError(422, "NOT_NEWBORN", f"Older than {MAX_NEWBORN_DAYS} days: add as a child",
+                               [{"path": "category"}])
+        if category == "child" and age > MAX_CHILD_YEARS * 366:
+            raise RequestError(422, "TOO_OLD", f"Children up to {MAX_CHILD_YEARS} years only", [{"path": "dob"}])
+    if delivery_place not in (None, "home", "institution"):
+        raise RequestError(422, "BAD_PLACE", "Birth place must be home or institution", [{"path": "delivery_place"}])
+
+
+def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, name_en: str | None, category: str,
+               dob: date | None = None, mother_id: str | None = None, mother_name_hi: str | None = None,
+               mother_name_en: str | None = None, delivery_place: str | None = None) -> Person:
+    """Register a person. A newborn/child may be linked to an existing mother or to a new one added here;
+    an unnamed newborn is labelled "<mother>'s baby" (that is also how notes name them)."""
+    name_hi, name_en = _clean(name_hi), _clean(name_en)
+    _check_person(category, dob, today, delivery_place)
+    if category not in ("newborn", "child"):
+        dob, delivery_place, mother_id, mother_name_hi, mother_name_en = None, None, None, None, None
+    elif category == "child":
+        delivery_place = None
+    mother = None
+    if mother_id:
+        mother = db.get(Person, (owner_id, mother_id))
+        if mother is None or mother.category in ("newborn", "child"):
+            raise RequestError(422, "BAD_MOTHER", "Choose the mother from the list", [{"path": "mother_id"}])
+    elif _clean(mother_name_hi) or _clean(mother_name_en):
+        mother = add_person(db, owner_id, today, name_hi=mother_name_hi, name_en=mother_name_en, category="other")
+    if not (name_hi or name_en) and mother is None:
+        raise RequestError(422, "NAME_REQUIRED", "Add a name (or the mother, for a newborn)", [{"path": "name"}])
+    names = [n for n in (name_hi, name_en) if n]
+    if names:
+        label_hi, label_en = name_hi or name_en, name_en or name_hi
+    else:
+        label_hi = f"{mother.label_hi or mother.label_en} का बच्चा"
+        label_en = f"{mother.label_en or mother.label_hi}'s baby"
+    for p in db.scalars(select(Person).where(Person.owner_id == owner_id)).all():
+        if (p.label_en == label_en and p.category == category and p.dob == dob
+                and p.mother_id == (mother.id if mother else None)):
+            raise RequestError(409, "PERSON_EXISTS", "This person is already in your list", [{"id": p.id}])
+    person = Person(owner_id=owner_id, id=OWN_PREFIX + new_id()[:8], names=names, category=category,
+                    mother_id=mother.id if mother else None, dob=dob, delivery_place=delivery_place,
+                    label_hi=label_hi, label_en=label_en)
+    db.add(person)
+    db.add(AuditEvent(owner_id=owner_id, action="person_added", detail={"id": person.id, "category": category}))
+    db.commit()
+    return person
+
+
+def update_person(db: Session, owner_id: str, person_id: str, today: date, *, name_hi: str | None,
+                  name_en: str | None, dob: date | None, delivery_place: str | None) -> Person:
+    p = db.get(Person, (owner_id, person_id))
+    if p is None or not p.id.startswith(OWN_PREFIX):
+        raise RequestError(404, "NOT_FOUND", "Only people you added can be edited")
+    name_hi, name_en = _clean(name_hi), _clean(name_en)
+    if p.category in ("newborn", "child"):
+        _check_person(p.category, dob, today, delivery_place if p.category == "newborn" else None)
+        p.dob, p.delivery_place = dob, delivery_place if p.category == "newborn" else None
+    if name_hi or name_en:
+        p.names = [n for n in (name_hi, name_en) if n]
+        p.label_hi, p.label_en = name_hi or name_en, name_en or name_hi
+    db.add(AuditEvent(owner_id=owner_id, action="person_updated", detail={"id": p.id}))
+    db.commit()
+    return p
+
+
+def delete_person(db: Session, owner_id: str, person_id: str) -> None:
+    p = db.get(Person, (owner_id, person_id))
+    if p is None or not p.id.startswith(OWN_PREFIX):
+        raise RequestError(404, "NOT_FOUND", "Only people you added can be removed")
+    used = any(((rec or {}).get("beneficiary") or {}).get("matched_id") == person_id
+               for n in db.scalars(select(Note).where(Note.owner_id == owner_id)).all()
+               for rec in (n.draft, n.confirmed))
+    kids = db.scalars(select(Person).where(Person.owner_id == owner_id, Person.mother_id == person_id)).first()
+    if used or kids:
+        raise RequestError(409, "PERSON_IN_USE", "This person has notes or children recorded and cannot be removed")
+    db.delete(p)
+    db.execute(delete(TaskAction).where(TaskAction.owner_id == owner_id, TaskAction.beneficiary_id == person_id))
+    db.add(AuditEvent(owner_id=owner_id, action="person_removed", detail={"id": person_id}))
+    db.commit()
 
 
 def wipe_owner_data(db: Session, owner_id: str, today: date) -> int:

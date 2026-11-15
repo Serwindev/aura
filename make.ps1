@@ -43,6 +43,21 @@ switch ($Target) {
         Invoke-InServer @('run', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '0.0.0.0', '--port', '8443',
             '--ssl-keyfile', 'data/certs/key.pem', '--ssl-certfile', 'data/certs/cert.pem')
     }
+    'phone-usb' {
+        # Phone on USB: it opens http://localhost:8000, which browsers treat as secure, so the microphone,
+        # offline start (service worker) and "Install app" all work. No certificate warning, no Wi-Fi needed.
+        Write-Host @'
+Phone over USB (Android + Chrome):
+  1. Phone: Settings > About phone > tap "Build number" 7 times; then Developer options > USB debugging ON.
+  2. Connect the USB cable and allow debugging on the phone.
+  3. Laptop Chrome or Edge: open chrome://inspect/#devices (edge://inspect/#devices)
+     > "Port forwarding..." > add 8000 -> localhost:8000 > tick "Enable port forwarding" > Done.
+     (Or, with Android platform-tools: adb reverse tcp:8000 tcp:8000)
+  4. Phone Chrome: open http://localhost:8000  (keep the inspect tab open on the laptop)
+  5. Phone Chrome menu > "Add to Home screen / Install app" for an app icon.
+'@
+        Invoke-InServer @('run', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '127.0.0.1', '--port', '8000')
+    }
     'db-reset' {
         Remove-Item (Join-Path $root 'server\data\aura.db') -ErrorAction SilentlyContinue
         Remove-Item (Join-Path $root 'server\data\audio\*') -ErrorAction SilentlyContinue

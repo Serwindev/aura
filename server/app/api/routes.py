@@ -21,11 +21,14 @@ from ..reports import monthly
 from ..reports.claims import claim_sheet
 from ..reports.export import to_pdf, to_xlsx
 from ..services import (
+    OWN_PREFIX,
     RequestError,
     TaskHint,
+    add_person,
     confirm_note,
     create_note,
     delete_audio,
+    delete_person,
     demo_status,
     engine_inputs,
     label,
@@ -35,6 +38,7 @@ from ..services import (
     remove_demo,
     seed_demo,
     set_task_action,
+    update_person,
     wipe_owner_data,
 )
 from ..stt.base import NotConfigured, SttError, wav_info
@@ -192,10 +196,63 @@ def update_me(body: Profile, user: User = Depends(current_user), db: Session = D
     return user_view(user)
 
 
+def person_view(p, lang: str, by_id: dict) -> dict:
+    mother = by_id.get(p.mother_id) if p.mother_id else None
+    return {"id": p.id, "label": label(p, lang), "category": p.category, "own": p.id.startswith(OWN_PREFIX),
+            "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place,
+            "mother_id": p.mother_id, "mother_label": label(mother, lang) if mother else None,
+            "names": list(p.names)}
+
+
 @router.get("/beneficiaries")
 def beneficiaries(user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
-    rows = [{"id": p.id, "label": label(p, user.lang), "category": p.category} for p in people_for(db, user.id)]
-    return sorted(rows, key=lambda r: r["label"])
+    people = people_for(db, user.id)
+    by_id = {p.id: p for p in people}
+    return sorted((person_view(p, user.lang, by_id) for p in people), key=lambda r: r["label"])
+
+
+class NewPerson(BaseModel):
+    category: str
+    name_hi: str | None = None
+    name_en: str | None = None
+    dob: date | None = None
+    mother_id: str | None = None
+    mother_name_hi: str | None = None
+    mother_name_en: str | None = None
+    delivery_place: str | None = None
+
+
+class PersonEdit(BaseModel):
+    name_hi: str | None = None
+    name_en: str | None = None
+    dob: date | None = None
+    delivery_place: str | None = None
+
+
+def _one_person(db: Session, user: User, person_id: str) -> dict:
+    people = people_for(db, user.id)
+    by_id = {p.id: p for p in people}
+    return person_view(by_id[person_id], user.lang, by_id)
+
+
+@router.post("/beneficiaries", status_code=201)
+def post_person(body: NewPerson, request: Request, user: User = Depends(current_user),
+                db: Session = Depends(get_db)) -> dict:
+    p = add_person(db, user.id, settings(request).today(), **body.model_dump())
+    return _one_person(db, user, p.id)
+
+
+@router.patch("/beneficiaries/{person_id}")
+def patch_person(person_id: str, body: PersonEdit, request: Request, user: User = Depends(current_user),
+                 db: Session = Depends(get_db)) -> dict:
+    update_person(db, user.id, person_id, settings(request).today(), **body.model_dump())
+    return _one_person(db, user, person_id)
+
+
+@router.delete("/beneficiaries/{person_id}")
+def remove_person(person_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    delete_person(db, user.id, person_id)
+    return {"deleted": person_id}
 
 
 # ---- notes ----------------------------------------------------------------------------------
@@ -410,7 +467,11 @@ def privacy_export(user: User = Depends(current_user), db: Session = Depends(get
     notes = db.scalars(select(Note).where(Note.owner_id == user.id, Note.source != "seed")).all()
     from fastapi.responses import JSONResponse
 
-    return JSONResponse({"profile": user_view(user), "notes": [note_view(n, db, user.lang) for n in notes],
+    people = people_for(db, user.id)
+    by_id = {p.id: p for p in people}
+    added = [person_view(p, user.lang, by_id) for p in people if p.id.startswith(OWN_PREFIX)]
+    return JSONResponse({"profile": user_view(user), "people_added": added,
+                         "notes": [note_view(n, db, user.lang) for n in notes],
                          "task_actions": [{"beneficiary_id": a.beneficiary_id, "rule_id": a.rule_id, "action": a.action,
                                            "until": a.until.isoformat() if a.until else None} for a in db.scalars(
                                                select(TaskAction).where(TaskAction.owner_id == user.id)).all()]},

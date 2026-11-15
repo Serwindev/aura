@@ -1,0 +1,22 @@
+{
+ "date": "2026-11-15",
+ "result": "PASS",
+ "notes_created": 401,
+ "notes_on_server": 401,
+ "typed": 301,
+ "voice": 100,
+ "voice_on_server": 100,
+ "missing": [],
+ "duplicates": 0,
+ "cycles": 200,
+ "reloads": 20,
+ "server_down_cycles": 8,
+ "queued_seen": 3,
+ "seconds": 69.0,
+ "console_exceptions": [],
+ "outbox_failed": 0,
+ "server_errors_5xx": 0,
+ "browser": "msedge",
+ "machine": "Windows 10",
+ "note": "Synthetic notes, mock speech-to-text (SIMULATED), headless browser with DevTools offline emulation on one laptop. Not a physical phone or a real mobile network."
+}

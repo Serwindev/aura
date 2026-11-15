@@ -7,11 +7,6 @@ import wave
 from datetime import date, timedelta
 
 import pytest
-from fastapi.testclient import TestClient
-
-from app.core.settings import load_settings
-from app.main import create_app
-from app.stt.providers import MockStt
 
 TODAY = date(2026, 11, 9)
 NOTE = "Visited Sunita Devi baby today, newborn visit day 3. Weight is 2.8 kg, temperature 37 degrees."
@@ -25,14 +20,6 @@ def wav(seconds: float = 0.5) -> bytes:
         w.setframerate(16000)
         w.writeframes(b"\0\0" * int(16000 * seconds))
     return buf.getvalue()
-
-
-@pytest.fixture
-def env(tmp_path):
-    cfg = load_settings(tmp_path)
-    cfg.today_override = TODAY
-    stt = MockStt(NOTE)
-    return TestClient(create_app(cfg, stt=stt, warm_stt=False)), cfg, stt
 
 
 def login(client, phone="9000000001"):
@@ -82,6 +69,32 @@ def test_idempotent_create(env):
     a = post_text(c, h, idempotency_key="k1").json()
     b = post_text(c, h, idempotency_key="k1").json()
     assert a["id"] == b["id"]
+
+
+def test_same_key_twice_at_once_returns_one_note(env, monkeypatch):
+    """Race found by the offline soak test: two requests with one idempotency key both pass the
+    'already exists?' check; the second insert must return the first note, not a 500."""
+    c, cfg, _ = env
+    h = login(c)
+    from app import services
+    from app.db.models import Note
+
+    real = services.purge_expired_audio
+
+    def racing_insert(db, cfg_):  # runs after the check, before the insert: the other request wins here
+        with c.app.state.sessions() as other:
+            other.add(Note(owner_id=uid, idempotency_key="race-1", source="text", language="en",
+                           recorded_on=TODAY, transcript="first", draft={}, flags=[], candidates=[]))
+            other.commit()
+        monkeypatch.setattr(services, "purge_expired_audio", real)
+        return real(db, cfg_)
+
+    uid = c.get("/v1/me", headers=h).json()["id"]
+    monkeypatch.setattr(services, "purge_expired_audio", racing_insert)
+    r = post_text(c, h, idempotency_key="race-1")
+    assert r.status_code == 201
+    assert r.json()["transcript"] == "first"
+    assert sum(1 for n in c.get("/v1/notes", headers=h).json() if n["transcript"] == "first") == 1
 
 
 def test_queued_note_keeps_its_recording_date(env):

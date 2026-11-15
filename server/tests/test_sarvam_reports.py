@@ -14,7 +14,7 @@ from app.core.settings import load_dotenv
 from app.stt.base import SttError, Transcript
 from app.stt.providers import SARVAM_URL, MockStt, SarvamStt, get_stt, keyterms, split_pcm
 
-from .test_api import env, login, post_text, wav  # noqa: F401  (fixture re-use)
+from .test_api import login, post_text, wav
 
 
 def client_returning(handler) -> httpx.Client:

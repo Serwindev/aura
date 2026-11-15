@@ -48,6 +48,7 @@ const ICONS = {
   mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   stop: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
   doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/></svg>',
+  people: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2c2.8.3 5 2.6 5 5.8"/></svg>',
   gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>',
 };
 
@@ -55,7 +56,7 @@ function renderNav() {
   const nav = $("#nav");
   nav.hidden = !S.user;
   if (!S.user) return;
-  const items = [["home", "nav_home", "home"], ["record", "nav_record", "mic"], ["reports", "nav_reports", "doc"], ["settings", "nav_settings", "gear"]];
+  const items = [["home", "nav_home", "home"], ["record", "nav_record", "mic"], ["people", "nav_people", "people"], ["reports", "nav_reports", "doc"], ["settings", "nav_settings", "gear"]];
   const active = S.view === "review" || S.view === "saved" ? "record" : S.view;
   nav.innerHTML = items.map(([v, k, i]) => `<button data-nav="${v}" ${v === active ? 'aria-current="page"' : ""}>${ICONS[i]}<span>${esc(t(k))}</span></button>`).join("");
 }
@@ -66,7 +67,7 @@ function go(view, data = {}) {
   document.documentElement.lang = S.lang;
   renderNav();
   window.scrollTo(0, 0);
-  ({ login: viewLogin, home: viewHome, record: viewRecord, review: viewReview, saved: viewSaved, reports: viewReports, settings: viewSettings }[view])();
+  ({ login: viewLogin, home: viewHome, record: viewRecord, review: viewReview, saved: viewSaved, people: viewPeople, reports: viewReports, settings: viewSettings }[view])();
 }
 
 function logout() {
@@ -602,6 +603,66 @@ async function download(path, filename) {
   } catch (e) { fail(e); }
 }
 
+/* ---- people (T-045): she registers a newborn, child or pregnant woman herself ---- */
+const PCATS = ["newborn", "child", "pregnant", "other"];
+
+async function viewPeople() {
+  VIEW().className = "";
+  let list;
+  try { list = await api("/beneficiaries"); } catch (e) { return fail(e); }
+  if (S.view !== "people") return;
+  S.people = list;
+  const cat = S.newCat || "newborn";
+  const kid = cat === "newborn" || cat === "child";
+  const mothers = list.filter((p) => p.category === "pregnant" || p.category === "other");
+  const own = list.filter((p) => p.own), demo = list.filter((p) => !p.own);
+  const row = (p) => `<div class="card"><div class="task-head"><span class="task-name">${esc(p.label)}</span>
+      ${p.own ? "" : '<span class="tag sim">SIMULATED</span>'}</div>
+      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}</p>
+      ${p.own ? `<div class="task-actions"><button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
+  VIEW().innerHTML = `
+    <h1>${esc(t("people_title"))}</h1>
+    <p class="muted">${esc(t("people_hint"))}</p>
+    <form class="card" id="f-person">
+      <span class="field-label">${esc(t("who"))}</span>
+      <div class="chips">${PCATS.map((c) => `<button type="button" class="chip" data-pcat="${c}" aria-pressed="${c === cat}">${esc(t("cat_" + c))}</button>`).join("")}</div>
+      <label class="field"><span>${esc(t("name_hi"))}${cat === "newborn" ? " " + esc(t("optional")) : ""}</span><input name="name_hi" lang="hi" autocomplete="off" maxlength="60"></label>
+      <label class="field"><span>${esc(t("name_en"))}${cat === "newborn" ? " " + esc(t("optional")) : ""}</span><input name="name_en" lang="en" autocomplete="off" maxlength="60"></label>
+      ${kid ? `
+        <label class="field"><span>${esc(t("dob"))}</span><input type="date" name="dob" max="${todayIso()}" value="${cat === "newborn" ? todayIso() : ""}" required></label>
+        <label class="field"><span>${esc(t("mother"))}</span><select name="mother_id">
+          <option value="">${esc(t("mother_new"))}</option>
+          ${mothers.map((m) => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join("")}</select></label>
+        <div id="new-mother">
+          <label class="field"><span>${esc(t("mother_name_hi"))}</span><input name="mother_name_hi" lang="hi" autocomplete="off" maxlength="60"></label>
+          <label class="field"><span>${esc(t("mother_name_en"))}</span><input name="mother_name_en" lang="en" autocomplete="off" maxlength="60"></label>
+        </div>` : ""}
+      ${cat === "newborn" ? `
+        <span class="field-label">${esc(t("birth_place"))}</span>
+        <div class="chips"><label class="chip"><input type="radio" name="delivery_place" value="institution" checked> ${esc(t("place_institution"))}</label>
+        <label class="chip"><input type="radio" name="delivery_place" value="home"> ${esc(t("place_home"))}</label></div>` : ""}
+      <p class="small muted">${esc(t("two_scripts"))}</p>
+      <button class="primary wide">${esc(t("add_person"))}</button>
+    </form>
+    ${own.length ? `<h2>${esc(t("people_mine"))} (${own.length})</h2>` + own.map(row).join("") : ""}
+    ${demo.length ? `<h2>${esc(t("people_demo"))} (${demo.length})</h2>` + demo.map(row).join("") : ""}`;
+  const f = $("#f-person");
+  if (f.mother_id) f.mother_id.onchange = () => { $("#new-mother").hidden = !!f.mother_id.value; };
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const v = (n) => (f[n] && f[n].value.trim()) || null;
+    const body = { category: cat, name_hi: v("name_hi"), name_en: v("name_en") };
+    if (kid) Object.assign(body, { dob: v("dob"), mother_id: v("mother_id"), mother_name_hi: v("mother_name_hi"), mother_name_en: v("mother_name_en") });
+    if (cat === "newborn") body.delivery_place = f.querySelector("input[name=delivery_place]:checked")?.value || null;
+    try {
+      await api("/beneficiaries", { method: "POST", json: body });
+      S.people = null; S.newCat = null;
+      toast(kid ? t("person_added_tasks") : t("person_added"));
+      viewPeople();
+    } catch (err) { fail(err); }
+  };
+}
+
 /* ---- settings ---- */
 async function viewSettings() {
   VIEW().className = "";
@@ -689,6 +750,11 @@ document.addEventListener("click", (e) => {
   if (d.taskLater) return taskLater(d.taskLater);
   if (d.taskDismiss) return taskDismiss(d.taskDismiss);
   if (d.openNote) return api(`/notes/${d.openNote}`).then(openNote).catch(fail);
+  if (d.pcat) { S.newCat = d.pcat; return viewPeople(); }
+  if (d.personDel) {
+    if (!confirm(t("delete_person_q"))) return;
+    return api(`/beneficiaries/${encodeURIComponent(d.personDel)}`, { method: "DELETE" }).then(() => { S.people = null; viewPeople(); }).catch(fail);
+  }
   if (d.outboxSend) { b.disabled = true; b.textContent = t("sending"); return flushOutbox({ manual: true }); }
   if (d.outboxDel) { if (!confirm(t("delete_queued_q"))) return; return Outbox.remove(d.outboxDel).then(viewHome).catch(fail); }
   if (d.example !== undefined) { $("#note-text").value = EXAMPLES[S.noteLang][+d.example]; return $("#note-text").scrollIntoView({ block: "center" }); }
