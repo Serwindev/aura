@@ -136,3 +136,39 @@ def test_export_includes_people_added(env):
     pid = newborn(c, h).json()["id"]
     added = c.get("/v1/privacy/export", headers=h).json()["people_added"]
     assert pid in {p["id"] for p in added}
+
+
+def test_area_set_inherited_and_shown_on_tasks(env):
+    c = env[0]
+    h = login(c)
+    p = newborn(c, h, area="  Naya   tola ").json()
+    assert p["area"] == "Naya tola"
+    mother = next(x for x in c.get("/v1/beneficiaries", headers=h).json() if x["id"] == p["mother_id"])
+    assert mother["area"] == "Naya tola"  # the new mother was added in the same area
+    assert {t["area"] for t in c.get("/v1/tasks", headers=h).json() if t["beneficiary_id"] == p["id"]} == {"Naya tola"}
+    r = c.patch(f"/v1/beneficiaries/{p['id']}", json={"area": "", "dob": p["dob"]}, headers=h)
+    assert r.json()["area"] is None
+    assert add(c, h, category="other", name_en="Y", area="x" * 41).json()["error"]["code"] == "AREA_TOO_LONG"
+
+
+def test_demo_people_have_invented_areas_shared_by_mother_and_child(env):
+    c = env[0]
+    people = c.get("/v1/beneficiaries", headers=login(c)).json()
+    by_id = {p["id"]: p for p in people}
+    assert all(p["area"] for p in people)
+    assert all(p["area"] == by_id[p["mother_id"]]["area"] for p in people if p["mother_id"] in by_id)
+
+
+def test_old_database_gets_area_column(tmp_path):
+    import sqlite3
+
+    from app.db.models import make_session_factory
+    db = tmp_path / "old.db"
+    con = sqlite3.connect(db)
+    con.execute("CREATE TABLE people (owner_id VARCHAR, id VARCHAR, names JSON, category VARCHAR, mother_id VARCHAR,"
+                " dob DATE, delivery_place VARCHAR, label_hi VARCHAR, label_en VARCHAR, PRIMARY KEY (owner_id, id))")
+    con.commit()
+    con.close()
+    make_session_factory(f"sqlite:///{db}")
+    cols = {r[1] for r in sqlite3.connect(db).execute("PRAGMA table_info(people)")}
+    assert "area" in cols

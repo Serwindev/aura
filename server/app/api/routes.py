@@ -30,6 +30,7 @@ from ..services import (
     delete_audio,
     delete_person,
     demo_status,
+    edit_stats,
     engine_inputs,
     label,
     list_tasks,
@@ -201,7 +202,7 @@ def person_view(p, lang: str, by_id: dict) -> dict:
     return {"id": p.id, "label": label(p, lang), "category": p.category, "own": p.id.startswith(OWN_PREFIX),
             "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place,
             "mother_id": p.mother_id, "mother_label": label(mother, lang) if mother else None,
-            "names": list(p.names)}
+            "names": list(p.names), "area": p.area}
 
 
 @router.get("/beneficiaries")
@@ -220,6 +221,7 @@ class NewPerson(BaseModel):
     mother_name_hi: str | None = None
     mother_name_en: str | None = None
     delivery_place: str | None = None
+    area: str | None = None
 
 
 class PersonEdit(BaseModel):
@@ -227,6 +229,7 @@ class PersonEdit(BaseModel):
     name_en: str | None = None
     dob: date | None = None
     delivery_place: str | None = None
+    area: str | None = None
 
 
 def _one_person(db: Session, user: User, person_id: str) -> dict:
@@ -424,6 +427,16 @@ def get_monthly(request: Request, month: str | None = None, format: str = "json"
         return Response(monthly.to_xlsx(rep, user_view(user)), media_type=XLSX,
                         headers={"Content-Disposition": f'attachment; filename="{name}.xlsx"'})
     return rep
+
+
+@router.get("/reports/edits")
+def get_edit_stats(request: Request, month: str | None = None, user: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> dict:
+    """Which fields she corrected most often: a quality signal for the extractor (not a score of her work)."""
+    m = re.fullmatch(r"(\d{4})-(0[1-9]|1[0-2])", month or settings(request).today().strftime("%Y-%m"))
+    if not m:
+        raise RequestError(422, "BAD_MONTH", "Month must look like 2026-11")
+    return edit_stats(db, user.id, int(m[1]), int(m[2]))
 
 
 # ---- demo data (SIMULATED) -------------------------------------------------------------------

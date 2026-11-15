@@ -63,6 +63,7 @@ class Person(Base):
     delivery_place: Mapped[str | None] = mapped_column(String, nullable=True)
     label_hi: Mapped[str | None] = mapped_column(String, nullable=True)
     label_en: Mapped[str | None] = mapped_column(String, nullable=True)
+    area: Mapped[str | None] = mapped_column(String, nullable=True)  # ward/tola/village she groups visits by (no GPS)
 
 
 class Note(Base):
@@ -113,4 +114,20 @@ def make_session_factory(url: str) -> sessionmaker:
     args = {"check_same_thread": False} if url.startswith("sqlite") else {}
     engine = create_engine(url, connect_args=args)
     Base.metadata.create_all(engine)
+    _add_missing_columns(engine)
     return sessionmaker(engine, expire_on_commit=False)
+
+
+# Columns added after v1.0. create_all() does not alter existing tables, so add them here (additive only).
+_LATER_COLUMNS = {"people": {"area": "VARCHAR"}}
+
+
+def _add_missing_columns(engine) -> None:
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        for table, cols in _LATER_COLUMNS.items():
+            have = {c["name"] for c in insp.get_columns(table)}
+            for name, sqltype in cols.items():
+                if name not in have:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {sqltype}"))

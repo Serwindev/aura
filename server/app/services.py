@@ -59,7 +59,7 @@ def people_for(db: Session, owner_id: str) -> list[NamePerson]:
     rows = db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
     return [NamePerson(id=p.id, names=tuple(p.names or ()), category=p.category, mother_id=p.mother_id,
                        dob=p.dob, delivery_place=p.delivery_place, label_hi=p.label_hi,
-                       label_en=p.label_en) for p in rows]
+                       label_en=p.label_en, area=p.area) for p in rows]
 
 
 # ---- doses ---------------------------------------------------------------------------------
@@ -314,7 +314,8 @@ def list_tasks(db: Session, owner_id: str, today: date, lang: str) -> list[dict]
         out.append({"id": f"{t.beneficiary_id}:{t.rule_id}", "beneficiary_id": t.beneficiary_id,
                     "rule_id": t.rule_id, "programme": t.programme, "label": label(p, lang),
                     "due_date": t.due_date.isoformat(), "status": t.status,
-                    "reason": t.reason_hi if lang == "hi" else t.reason_en, "advisory": t.advisory})
+                    "reason": t.reason_hi if lang == "hi" else t.reason_en, "advisory": t.advisory,
+                    "area": p.area})
     return out
 
 
@@ -387,12 +388,12 @@ def seed_demo(db: Session, owner_id: str, today: date, only: tuple[str, ...] | N
         if (keep is None or p.id in keep) and p.id not in have:
             db.add(Person(owner_id=owner_id, id=p.id, names=list(p.names), category=p.category, mother_id=p.mother_id,
                           dob=p.dob + shift if p.dob else None, delivery_place=p.delivery_place,
-                          label_hi=p.label_hi, label_en=p.label_en))
+                          label_hi=p.label_hi, label_en=p.label_en, area=demo_area(p.id, p.mother_id)))
             added.add(p.id)
     extra_dob = {"c20": today - timedelta(days=45), "c21": add_months(today, -3) - timedelta(days=3)}
     for e in _EXTRA_PEOPLE:
         if (keep is None or e["id"] in keep) and e["id"] not in have:
-            db.add(Person(owner_id=owner_id, dob=extra_dob.get(e["id"]), **e))
+            db.add(Person(owner_id=owner_id, dob=extra_dob.get(e["id"]), area=demo_area(e["id"], e.get("mother_id")), **e))
             added.add(e["id"])
     db.flush()
 
@@ -478,6 +479,8 @@ CATEGORIES = ("newborn", "child", "pregnant", "other")
 MAX_NEWBORN_DAYS = 60   # HBNC runs to day 42; a little slack for late registration
 MAX_CHILD_YEARS = 5
 MAX_NAME = 60
+MAX_AREA = 40
+DEMO_AREAS = ("पूरब टोला", "पश्चिम टोला", "बाज़ार टोला")  # invented ward names (SIMULATED)
 
 
 def _clean(name: str | None) -> str | None:
@@ -485,6 +488,19 @@ def _clean(name: str | None) -> str | None:
     if len(name) > MAX_NAME:
         raise RequestError(422, "NAME_TOO_LONG", f"Keep the name under {MAX_NAME} characters", [{"path": "name"}])
     return name or None
+
+
+def _clean_area(area: str | None) -> str | None:
+    area = " ".join((area or "").split())
+    if len(area) > MAX_AREA:
+        raise RequestError(422, "AREA_TOO_LONG", f"Keep the area under {MAX_AREA} characters", [{"path": "area"}])
+    return area or None
+
+
+def demo_area(person_id: str, mother_id: str | None) -> str:
+    """Stable invented area for demo people; a child lives where the mother lives."""
+    root = mother_id or person_id
+    return DEMO_AREAS[sum(map(ord, root)) % len(DEMO_AREAS)]
 
 
 def _check_person(category: str, dob: date | None, today: date, delivery_place: str | None) -> None:
@@ -508,10 +524,12 @@ def _check_person(category: str, dob: date | None, today: date, delivery_place: 
 
 def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, name_en: str | None, category: str,
                dob: date | None = None, mother_id: str | None = None, mother_name_hi: str | None = None,
-               mother_name_en: str | None = None, delivery_place: str | None = None) -> Person:
+               mother_name_en: str | None = None, delivery_place: str | None = None,
+               area: str | None = None) -> Person:
     """Register a person. A newborn/child may be linked to an existing mother or to a new one added here;
     an unnamed newborn is labelled "<mother>'s baby" (that is also how notes name them)."""
     name_hi, name_en = _clean(name_hi), _clean(name_en)
+    area = _clean_area(area)
     _check_person(category, dob, today, delivery_place)
     if category not in ("newborn", "child"):
         dob, delivery_place, mother_id, mother_name_hi, mother_name_en = None, None, None, None, None
@@ -523,7 +541,8 @@ def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, 
         if mother is None or mother.category in ("newborn", "child"):
             raise RequestError(422, "BAD_MOTHER", "Choose the mother from the list", [{"path": "mother_id"}])
     elif _clean(mother_name_hi) or _clean(mother_name_en):
-        mother = add_person(db, owner_id, today, name_hi=mother_name_hi, name_en=mother_name_en, category="other")
+        mother = add_person(db, owner_id, today, name_hi=mother_name_hi, name_en=mother_name_en, category="other",
+                            area=area)
     if not (name_hi or name_en) and mother is None:
         raise RequestError(422, "NAME_REQUIRED", "Add a name (or the mother, for a newborn)", [{"path": "name"}])
     names = [n for n in (name_hi, name_en) if n]
@@ -538,7 +557,7 @@ def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, 
             raise RequestError(409, "PERSON_EXISTS", "This person is already in your list", [{"id": p.id}])
     person = Person(owner_id=owner_id, id=OWN_PREFIX + new_id()[:8], names=names, category=category,
                     mother_id=mother.id if mother else None, dob=dob, delivery_place=delivery_place,
-                    label_hi=label_hi, label_en=label_en)
+                    label_hi=label_hi, label_en=label_en, area=area or (mother.area if mother else None))
     db.add(person)
     db.add(AuditEvent(owner_id=owner_id, action="person_added", detail={"id": person.id, "category": category}))
     db.commit()
@@ -546,7 +565,8 @@ def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, 
 
 
 def update_person(db: Session, owner_id: str, person_id: str, today: date, *, name_hi: str | None,
-                  name_en: str | None, dob: date | None, delivery_place: str | None) -> Person:
+                  name_en: str | None, dob: date | None, delivery_place: str | None,
+                  area: str | None = None) -> Person:
     p = db.get(Person, (owner_id, person_id))
     if p is None or not p.id.startswith(OWN_PREFIX):
         raise RequestError(404, "NOT_FOUND", "Only people you added can be edited")
@@ -557,6 +577,8 @@ def update_person(db: Session, owner_id: str, person_id: str, today: date, *, na
     if name_hi or name_en:
         p.names = [n for n in (name_hi, name_en) if n]
         p.label_hi, p.label_en = name_hi or name_en, name_en or name_hi
+    if area is not None:  # "" clears it, None leaves it
+        p.area = _clean_area(area)
     db.add(AuditEvent(owner_id=owner_id, action="person_updated", detail={"id": p.id}))
     db.commit()
     return p
@@ -588,3 +610,20 @@ def wipe_owner_data(db: Session, owner_id: str, today: date) -> int:
     db.commit()
     seed_demo(db, owner_id, today)
     return count
+
+
+def edit_stats(db: Session, owner_id: str, year: int, month: int) -> dict:
+    """How often the ASHA had to correct each field before confirming (her own notes, this month).
+    It measures the *extractor*, not her: it shows where A.U.R.A. mishears. Demo notes are excluded."""
+    start = date(year, month, 1)
+    end = add_months(start, 1)
+    notes = [n for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.status == "confirmed",
+                                                      Note.source != "seed")).all()
+             if start <= n.recorded_on < end]
+    counts: dict[str, int] = {}
+    for n in notes:
+        for p in set(n.edited_paths or []):
+            counts[p] = counts.get(p, 0) + 1
+    fields = sorted(({"path": p, "edited": c} for p, c in counts.items()), key=lambda r: (-r["edited"], r["path"]))
+    return {"month": f"{year:04d}-{month:02d}", "notes": len(notes),
+            "unchanged": sum(1 for n in notes if not n.edited_paths), "fields": fields}

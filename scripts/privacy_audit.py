@@ -37,6 +37,7 @@ ALLOWED_WEB_APIS = {
     "IndexedDB (unsent notes, this phone only)": r"indexedDB\.open",
     "localStorage (login token, language, last task list)": r"localStorage\.",
     "service worker (app shell, no API data)": r"serviceWorker\.register",
+    "speech synthesis (read aloud; on-device voices only)": r"localService",
 }
 # Outside hosts the server may call, and where each is disclosed
 ALLOWED_HOSTS = {

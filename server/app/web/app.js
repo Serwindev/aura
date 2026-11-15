@@ -63,6 +63,7 @@ function renderNav() {
 
 function go(view, data = {}) {
   stopRecorder();
+  stopSpeaking();
   Object.assign(S, { view }, data);
   document.documentElement.lang = S.lang;
   renderNav();
@@ -147,7 +148,13 @@ async function viewHome() {
   try { queued = await Outbox.list(owner()); } catch { /* no storage */ }
   if (S.view !== "home") return;
   S.tasks = mergeVaccines(tasks);
-  const groups = ["overdue", "due", "due_soon"].map((s) => [s, S.tasks.filter((x) => x.status === s)]).filter(([, l]) => l.length);
+  const byArea = store.get("aura.homeGroup") === "area";
+  const ORDER = { overdue: 0, due: 1, due_soon: 2 };
+  const groups = byArea
+    ? [...new Set(S.tasks.map((x) => x.area || ""))].sort((a, b) => (a === "") - (b === "") || a.localeCompare(b))
+      .map((a) => [a || t("no_area"), S.tasks.filter((x) => (x.area || "") === a)
+        .sort((p, q) => ORDER[p.status] - ORDER[q.status] || p.due_date.localeCompare(q.due_date))])
+    : ["overdue", "due", "due_soon"].map((s) => [t(s), S.tasks.filter((x) => x.status === s)]).filter(([, l]) => l.length);
   const hello = S.user.name ? `${t("hello")}, ${S.user.name}` : t("hello");
   VIEW().innerHTML = `
     <p class="muted">${esc(hello)}</p><h1>${esc(t("today_tasks"))}</h1>
@@ -158,7 +165,8 @@ async function viewHome() {
     ${drafts.length ? `<h2>${esc(t("drafts"))}</h2>` + drafts.map((d) => `
       <div class="card"><p>${esc(d.transcript.slice(0, 90))}${d.transcript.length > 90 ? "…" : ""}</p>
       <button class="wide" data-open-note="${esc(d.id)}">${esc(t("open_draft"))}</button></div>`).join("") : ""}
-    ${groups.length ? groups.map(([s, list]) => `<h2>${esc(t(s))} (${list.length})</h2>` + list.map(taskCard).join("")) .join("") : `<div class="card empty">${esc(t("no_tasks"))}</div>`}`;
+    ${S.tasks.length ? `<div class="chips" role="group" aria-label="${esc(t("group_by"))}"><button class="chip" data-home-group="status" aria-pressed="${!byArea}">${esc(t("group_status"))}</button><button class="chip" data-home-group="area" aria-pressed="${byArea}">${esc(t("group_area"))}</button></div>` : ""}
+    ${groups.length ? groups.map(([g, list]) => `<h2>${esc(g)} (${list.length})</h2>` + list.map((x) => taskCard(x, byArea)).join("")).join("") : `<div class="card empty">${esc(t("no_tasks"))}</div>`}`;
 }
 
 /* One visit, one card: vaccines due together for a child are given together. */
@@ -183,9 +191,9 @@ function mergeVaccines(tasks) {
   return out;
 }
 
-function taskCard(x) {
+function taskCard(x, showStatus = false) {
   return `<article class="card status-${esc(x.status)}">
-    <div class="task-head"><span class="task-name">${esc(x.label)}</span><span class="due">${esc(fmtDate(x.due_date))}</span></div>
+    <div class="task-head"><span class="task-name">${esc(x.label)}</span><span class="due">${showStatus ? `<span class="pill ${esc(x.status)}">${esc(t(x.status))}</span> ` : ""}${esc(fmtDate(x.due_date))}</span></div>
     <p class="muted" style="margin:4px 0 0">${esc(x.reason)}</p>
     <div class="task-actions" id="act-${esc(x.id.replace(":", "-"))}">
       <button class="primary" data-task-note="${esc(x.id)}">${ICONS.mic.replace("<svg", '<svg width="20" height="20"')} ${esc(t("speak_note"))}</button>
@@ -229,10 +237,31 @@ const EXAMPLES = {
   en: ["Visited Sunita Devi baby today, newborn visit day 3. Weight is 2.8 kg, no fever.", "Ishaan vaccination done, MR 1 given today.", "Rekha baby has fever and is not feeding. Newborn visit done.", "Pooja Yadav pregnant, BP 120/80, hemoglobin 10.5, iron tablets given."],
 };
 
+/* Guided mode: a short list of what to say for this kind of visit; "Next" moves the highlight while she talks.
+   It only prompts. The note is still one free recording and she still checks every field. */
+const GUIDE = {
+  HBNC: ["g_who", "g_day", "weight_kg", "temp_c", "g_feeding", "g_danger", "g_services"],
+  HBYC: ["g_who", "g_month", "weight_kg", "g_feeding", "g_danger", "g_services"],
+  UIP: ["g_who", "g_vaccine", "g_next"],
+  ANC: ["g_who", "g_anc", "g_bp", "weight_kg", "g_services", "g_danger"],
+  "": ["g_who", "g_what", "g_danger", "g_services", "g_next"],
+};
+function guideKeys() { return GUIDE[S.task?.programme] || GUIDE[""]; }
+function guideList() {
+  const step = S.guideStep || 0;
+  return guideKeys().map((k, i) => `<li class="${i < step ? "done" : i === step ? "on" : ""}">${esc(t(k))}</li>`).join("");
+}
+function guideCard() {
+  return `<section class="card"><div class="task-head"><span class="field-label" style="margin:0">${esc(t("guide_title"))}</span>
+    <button class="link" data-guide-next="1">${esc(t("guide_next"))} ›</button></div>
+    <ol class="guide" id="guide">${guideList()}</ol></section>`;
+}
+
 function stopRecorder() { if (S.recorder) { S.recorder.release(); S.recorder = null; } }
 
 function viewRecord() {
   VIEW().className = "";
+  if (S.guideFor !== (S.task?.id || "")) { S.guideFor = S.task?.id || ""; S.guideStep = 0; }
   if (!S.noteLang) S.noteLang = S.lang;
   const taskBox = S.task ? `<div class="banner ok">${esc(t("for_task"))}: <strong>${esc(S.task.label)}</strong><br><span class="small">${esc(S.task.reason)}</span></div>` : "";
   const noModel = S.meta && !S.meta.stt.languages.includes(S.noteLang);
@@ -246,6 +275,7 @@ function viewRecord() {
       <div id="mic-label" style="font-weight:600">${esc(noModel ? t("no_stt") : t("tap_to_speak"))}</div>
     </div>
     <p class="muted" style="text-align:center">${esc(t("record_hint"))}</p>
+    ${guideCard()}
     <div class="banner">${esc(t("synthetic_only"))}</div>
     <label class="btn file-btn wide">${esc(t("upload"))}<input type="file" id="audio-file" accept="audio/*"></label>
     <div class="divider">${esc(t("or"))}</div>
@@ -393,7 +423,7 @@ const VITALS_BY_TYPE = { HBNC: ["weight_kg", "temp_c"], HBYC: ["weight_kg", "tem
 function flagText(f) { return FLAG_TEXT[S.lang][f.code] || f.message; }
 function fieldName(path) {
   const leaf = path.replace(/\[\d+\]$/, "").split(".").pop();
-  const map = { matched_id: "person", mention: "person", services_given: "services" };
+  const map = { matched_id: "person", mention: "person", services_given: "services", needed: "referral_needed" };
   const k = map[leaf] || leaf;
   return STRINGS[S.lang][k] || k;
 }
@@ -441,7 +471,9 @@ function viewReview() {
       <span class="field-label">${esc(t("heard"))} ${n.stt_provider ? `<span class="tag">${esc(n.stt_provider)}</span>` : ""}</span>
       <div class="transcript" id="transcript">${esc(n.transcript)}</div>
       <div id="audio-slot"></div>
+      ${speakBtn("draft")}
     </section>
+    ${notSaid(d)}
     <section>
       ${top.length ? `<h2>${esc(t("check_first"))}</h2>` + top.map((f) => `<button type="button" class="flag ${esc(f.severity)}" data-scroll="${esc(f.path)}"><strong>${esc(fieldName(f.path))}:</strong> ${esc(flagText(f))}${f.proposed !== null && typeof f.proposed !== "object" ? ` (${esc(f.proposed)})` : ""}</button>`).join("") : `<div class="banner ok">${esc(t("all_clear"))}</div>`}
     </section>
@@ -494,6 +526,55 @@ function viewReview() {
     <button class="danger wide" id="discard" style="margin-top:8px">${esc(t("discard"))}</button>`;
   if (n.has_audio) loadAudio(n.id);
   updateConfirm();
+}
+
+/* What the visit type usually needs but the note did not say, so she can ask before confirming. */
+function notSaid(d) {
+  const keys = (VITALS_BY_TYPE[d.visit_type] || []).filter((k) => d.vitals[k] === null);
+  if ((d.visit_type === "HBNC" || d.visit_type === "HBYC") && !d.danger_signs.length) keys.push("danger_signs");
+  if (!keys.length) return "";
+  return `<div class="banner warn"><strong>${esc(t("not_said"))}:</strong> ${keys.map((k) => esc(t(k))).join(", ")}<br><span class="small">${esc(t("not_said_hint"))}</span></div>`;
+}
+
+/* Read aloud with the phone's own voice. Only on-device voices are used, so the text never leaves the phone. */
+function speakBtn(which) {
+  return "speechSynthesis" in window ? `<button class="wide" data-speak="${which}" style="margin-top:8px">🔊 ${esc(t("read_aloud"))}</button>` : "";
+}
+function stopSpeaking() { if ("speechSynthesis" in window) speechSynthesis.cancel(); S.speaking = false; }
+async function localVoice(lang) {
+  let all = speechSynthesis.getVoices();
+  if (!all.length) {
+    await new Promise((r) => { speechSynthesis.addEventListener("voiceschanged", r, { once: true }); setTimeout(r, 1500); });
+    all = speechSynthesis.getVoices();
+  }
+  const mine = all.filter((v) => v.localService && v.lang.toLowerCase().startsWith(lang));
+  return mine.find((v) => /-in$/i.test(v.lang)) || mine[0] || null;
+}
+function recordSpeech(r) {
+  const L = S.lang, parts = [];
+  const plain = (s) => String(s).replace(/\s*\(.*?\)/g, "");
+  const who = (S.people || []).find((p) => p.id === r.beneficiary.matched_id)?.label;
+  if (who) parts.push(who);
+  if (r.visit_type) parts.push(plain(VISIT_TYPES[L][r.visit_type]));
+  if (r.visit_index?.hbnc_day) parts.push(`${t("hbnc_day")} ${r.visit_index.hbnc_day}`);
+  if (r.visit_index?.hbyc_month) parts.push(`${t("hbyc_month")} ${r.visit_index.hbyc_month}`);
+  for (const [k, v] of Object.entries(r.vitals || {})) if (v !== null) parts.push(`${plain(t(k))} ${v}`);
+  const signs = r.danger_signs.filter((x) => x.present).map((x) => dangerLabel(x.code));
+  parts.push(signs.length ? `${t("danger_signs")}: ${signs.join(", ")}` : t("no_danger_marked"));
+  for (const s of r.services_given) parts.push(`${SERVICE_TYPES[L][s.type] || s.type}${s.detail ? " " + s.detail : ""}`);
+  if (r.referral.needed) parts.push(t("referral_needed") + (r.referral.facility ? ": " + r.referral.facility : ""));
+  return parts.join(". ");
+}
+async function speak(which, btn) {
+  if (S.speaking) return stopSpeaking();
+  const v = await localVoice(S.lang);
+  if (!v) return toast(t("no_voice"));
+  const u = new SpeechSynthesisUtterance(recordSpeech(which === "draft" ? S.draft : S.note.record));
+  Object.assign(u, { voice: v, lang: v.lang, rate: 0.9 });
+  u.onend = u.onerror = () => { S.speaking = false; if (btn) btn.textContent = "🔊 " + t("read_aloud"); };
+  S.speaking = true;
+  if (btn) btn.textContent = "■ " + t("stop_reading");
+  speechSynthesis.speak(u);
 }
 
 async function loadAudio(id) {
@@ -551,6 +632,7 @@ function viewSaved() {
     <h1>${esc(t("saved_title"))}</h1>
     <div class="card"><p class="task-name">${esc(who)}</p><p>${esc(VISIT_TYPES[S.lang][r.visit_type])} · ${esc(fmtDate(r.visit_date))}</p></div>
     ${signs.length ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}<ul class="plain">${signs.map((x) => `<li>• ${esc(dangerLabel(x.code))}</li>`).join("")}</ul></div>` : ""}
+    ${speakBtn("saved")}
     <div class="banner ok">${esc(t("saved_only_here"))}${S.note.audio_deleted ? " " + esc(t("audio_deleted")) : ""}</div>
     <button class="primary wide" data-nav="home">${esc(t("go_home"))}</button>
     <button class="wide" data-nav="record" style="margin-top:10px">${esc(t("another"))}</button>`;
@@ -561,9 +643,9 @@ async function viewReports() {
   VIEW().className = "";
   const month = S.reportMonth || todayIso().slice(0, 7);
   VIEW().innerHTML = `<h1>${esc(t("reports_title"))}</h1><div class="empty"><div class="spinner" style="margin:auto"></div></div>`;
-  let s, m;
+  let s, m, ed;
   try {
-    [s, m] = await Promise.all([api(`/reports/claims?month=${month}&lang=${S.lang}`), api(`/reports/monthly?month=${month}&lang=${S.lang}`)]);
+    [s, m, ed] = await Promise.all([api(`/reports/claims?month=${month}&lang=${S.lang}`), api(`/reports/monthly?month=${month}&lang=${S.lang}`), api(`/reports/edits?month=${month}`)]);
   } catch (e) { return fail(e); }
   if (S.view !== "reports") return;
   VIEW().innerHTML = `
@@ -586,7 +668,14 @@ async function viewReports() {
       ${r.conditions ? `<p class="small" style="margin:6px 0 0">${esc(r.conditions)}</p>` : ""}
       ${r.seeded ? `<p style="margin:6px 0 0"><span class="tag sim">SIMULATED</span> <span class="small muted">${esc(t("demo_row"))}</span></p>` : ""}
     </article>`).join("") : `<div class="card empty">${esc(t("nothing_month"))}</div>`}
-    <p class="muted small">${esc(s.not_computed)}</p>`;
+    <p class="muted small">${esc(s.not_computed)}</p>
+    <section class="card">
+      <h2 style="margin:0 0 4px">${esc(t("edits_title"))}</h2>
+      <p class="small muted" style="margin:0 0 8px">${esc(t("edits_hint"))}</p>
+      ${ed.notes ? `<p style="margin:0 0 6px"><strong>${esc(ed.unchanged)} / ${esc(ed.notes)}</strong> ${esc(t("edits_unchanged"))}</p>
+        <ul class="plain">${ed.fields.slice(0, 6).map((f) => `<li class="task-head"><span>${esc(fieldName(f.path))}</span><strong>${esc(f.edited)} ${esc(t("times"))}</strong></li>`).join("")}</ul>`
+        : `<p class="small muted" style="margin:0">${esc(t("edits_none"))}</p>`}
+    </section>`;
   $("#month").onchange = (e) => { if (e.target.value) { S.reportMonth = e.target.value; viewReports(); } };
 }
 
@@ -618,7 +707,7 @@ async function viewPeople() {
   const own = list.filter((p) => p.own), demo = list.filter((p) => !p.own);
   const row = (p) => `<div class="card"><div class="task-head"><span class="task-name">${esc(p.label)}</span>
       ${p.own ? "" : '<span class="tag sim">SIMULATED</span>'}</div>
-      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}</p>
+      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}${p.area ? " · " + esc(p.area) : ""}</p>
       ${p.own ? `<div class="task-actions"><button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
   VIEW().innerHTML = `
     <h1>${esc(t("people_title"))}</h1>
@@ -641,6 +730,8 @@ async function viewPeople() {
         <span class="field-label">${esc(t("birth_place"))}</span>
         <div class="chips"><label class="chip"><input type="radio" name="delivery_place" value="institution" checked> ${esc(t("place_institution"))}</label>
         <label class="chip"><input type="radio" name="delivery_place" value="home"> ${esc(t("place_home"))}</label></div>` : ""}
+      <label class="field"><span>${esc(t("area"))}</span><input name="area" list="areas" autocomplete="off" maxlength="40"></label>
+      <datalist id="areas">${[...new Set(list.map((p) => p.area).filter(Boolean))].map((a) => `<option value="${esc(a)}">`).join("")}</datalist>
       <p class="small muted">${esc(t("two_scripts"))}</p>
       <button class="primary wide">${esc(t("add_person"))}</button>
     </form>
@@ -651,7 +742,7 @@ async function viewPeople() {
   f.onsubmit = async (e) => {
     e.preventDefault();
     const v = (n) => (f[n] && f[n].value.trim()) || null;
-    const body = { category: cat, name_hi: v("name_hi"), name_en: v("name_en") };
+    const body = { category: cat, name_hi: v("name_hi"), name_en: v("name_en"), area: v("area") };
     if (kid) Object.assign(body, { dob: v("dob"), mother_id: v("mother_id"), mother_name_hi: v("mother_name_hi"), mother_name_en: v("mother_name_en") });
     if (cat === "newborn") body.delivery_place = f.querySelector("input[name=delivery_place]:checked")?.value || null;
     try {
@@ -751,6 +842,9 @@ document.addEventListener("click", (e) => {
   if (d.taskDismiss) return taskDismiss(d.taskDismiss);
   if (d.openNote) return api(`/notes/${d.openNote}`).then(openNote).catch(fail);
   if (d.pcat) { S.newCat = d.pcat; return viewPeople(); }
+  if (d.homeGroup) { store.set("aura.homeGroup", d.homeGroup); return viewHome(); }
+  if (d.speak) return speak(d.speak, b);
+  if (d.guideNext) { S.guideStep = Math.min((S.guideStep || 0) + 1, guideKeys().length); const g = $("#guide"); if (g) g.innerHTML = guideList(); return; }
   if (d.personDel) {
     if (!confirm(t("delete_person_q"))) return;
     return api(`/beneficiaries/${encodeURIComponent(d.personDel)}`, { method: "DELETE" }).then(() => { S.people = null; viewPeople(); }).catch(fail);

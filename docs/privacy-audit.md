@@ -20,6 +20,7 @@
 | Uses IndexedDB (unsent notes, this phone only) | INFO | server/app/web/outbox.js |
 | Uses localStorage (login token, language, last task list) | INFO | server/app/web/app.js |
 | Uses service worker (app shell, no API data) | INFO | server/app/web/app.js |
+| Uses speech synthesis (read aloud; on-device voices only) | INFO | server/app/web/app.js |
 | Permissions-Policy header allows microphone only | PASS | microphone=(self), geolocation=(), camera=() |
 | Outside host alphacephei.com | PASS | one-time Vosk model download by `make models` (developer machine, not at runtime) |
 | Outside host api.sarvam.ai | PASS | speech-to-text when SARVAM_API_KEY is set; disclosed in Settings > Privacy (stt_cloud) |

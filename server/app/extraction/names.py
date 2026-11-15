@@ -31,6 +31,7 @@ class Person:
     delivery_place: str | None = None
     label_hi: str | None = None
     label_en: str | None = None
+    area: str | None = None  # ward or tola she groups visits by (no GPS)
 
 
 @dataclass

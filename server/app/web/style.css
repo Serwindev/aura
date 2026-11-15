@@ -134,3 +134,9 @@ ul.plain li { padding: 3px 0; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } .mic.on { transition: none; } }
 label.chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); cursor: pointer; }
 label.chip input { width: 20px; height: 20px; margin: 0; }
+
+/* guided "what to say" list */
+.guide { margin: 6px 0 0; padding-left: 22px; }
+.guide li { padding: 3px 0; }
+.guide li.on { font-weight: 700; color: var(--primary); }
+.guide li.done { color: var(--muted); text-decoration: line-through; }
