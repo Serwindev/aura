@@ -57,7 +57,7 @@ function renderNav() {
   nav.hidden = !S.user;
   if (!S.user) return;
   const items = [["home", "nav_home", "home"], ["record", "nav_record", "mic"], ["people", "nav_people", "people"], ["reports", "nav_reports", "doc"], ["settings", "nav_settings", "gear"]];
-  const active = S.view === "review" || S.view === "saved" ? "record" : S.view;
+  const active = ["review", "saved", "form"].includes(S.view) ? (S.reopened || S.editing ? "home" : "record") : S.view;
   nav.innerHTML = items.map(([v, k, i]) => `<button data-nav="${v}" ${v === active ? 'aria-current="page"' : ""}>${ICONS[i]}<span>${esc(t(k))}</span></button>`).join("");
 }
 
@@ -433,7 +433,7 @@ function outboxCard(x) {
 /* ---- review ---- */
 async function openNote(note) {
   if (!S.people) S.people = await api("/beneficiaries");
-  if (note.status === "confirmed") return go("saved", { note, editing: false }); // a settled visit: view form, edit…
+  if (note.status === "confirmed") return go("saved", { note, editing: false, reopened: true }); // a settled visit: view form, edit…
   const draft = JSON.parse(JSON.stringify(note.record));
   draft.extras = draft.extras || {};
   go("review", { note, draft, errors: {}, showAllVitals: false, addPerson: null, editing: false });
@@ -560,6 +560,7 @@ function viewReview() {
       ${top.length ? `<h2>${esc(t("check_first"))}</h2>` + top.map((f) => `<button type="button" class="flag ${esc(f.severity)}" data-scroll="${esc(f.path)}"><strong>${esc(fieldName(f.path))}:</strong> ${esc(flagText(f))}${f.proposed !== null && typeof f.proposed !== "object" ? ` (${esc(f.proposed)})` : ""}</button>`).join("") : `<div class="banner ok">${esc(t("all_clear"))}</div>`}
     </section>
     ${danger ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}</div>` : ""}
+    ${adultForChildVisit()}
     ${newNameCards()}
     <section class="card">
       <label class="field ${isBad("beneficiary.matched_id")}" data-path="beneficiary.matched_id"><span>${esc(t("person"))}</span>
@@ -628,6 +629,12 @@ function prefillFor(name) {
     return { cat: vt === "HBYC" || vt === "IMMUNIZATION" ? "child" : "newborn", heard: name.text, pre: { ["mother_name_" + key]: name.text } };
   }
   return { cat: catForVisit(vt), heard: name.text, pre: { ["name_" + key]: name.text } };
+}
+function adultForChildVisit() {
+  const d = S.draft, p = (S.people || []).find((x) => x.id === d.beneficiary.matched_id);
+  if (S.addPerson || !p || !CHILD_VISITS.includes(d.visit_type) || ["newborn", "child"].includes(p.category)) return "";
+  return `<div class="banner warn"><strong>${esc(t("child_visit_adult").replace("{name}", p.label))}</strong>
+    <button class="primary wide" style="margin-top:8px" data-add-baby="${esc(p.id)}">+ ${esc(t("add_baby_of").replace("{name}", p.label))}</button></div>`;
 }
 function newNameCards() {
   if (S.addPerson) {
@@ -796,7 +803,7 @@ async function confirmNote() {
   try {
     const done = await api(`/notes/${S.note.id}/confirm`, { method: "POST", json: { record: S.draft, edit: !!S.editing } });
     if (S.editing) toast(t("edited_saved"));
-    go("saved", { note: done, task: null, editing: false });
+    go("saved", { note: done, task: null, editing: false, reopened: false });
   } catch (e) {
     if (e.details?.length) {
       S.errors = Object.fromEntries(e.details.map((x) => [x.path, x]));
@@ -814,7 +821,7 @@ function viewSaved() {
   const signs = r.danger_signs.filter((x) => x.present);
   const who = S.note.person_label || (S.people || []).find((p) => p.id === r.beneficiary.matched_id)?.label;
   VIEW().innerHTML = `
-    <h1>${esc(t("saved_title"))}</h1>
+    <h1>${esc(t(S.reopened ? "saved_visit" : "saved_title"))}</h1>
     <div class="card"><p class="task-name">${esc(who)}</p><p>${esc(VISIT_TYPES[S.lang][r.visit_type])} · ${esc(fmtDate(r.visit_date))}</p></div>
     ${signs.length ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}<ul class="plain">${signs.map((x) => `<li>• ${esc(dangerLabel(x.code))}</li>`).join("")}</ul></div>` : ""}
     ${speakBtn("saved")}
@@ -1030,8 +1037,8 @@ function personForm(cat, list, pre, chip, { title = "", onCancel = false } = {})
         <label class="field"><span>${esc(t("dob"))}</span><input type="date" name="dob" max="${todayIso()}" value="${cat === "newborn" ? todayIso() : ""}" required></label>
         <label class="field"><span>${esc(t("mother"))}</span><select name="mother_id">
           <option value="">${esc(t("mother_new"))}</option>
-          ${mothers.map((m) => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join("")}</select></label>
-        <div id="new-mother">
+          ${mothers.map((m) => `<option value="${esc(m.id)}"${pre.mother_id === m.id ? " selected" : ""}>${esc(m.label)}</option>`).join("")}</select></label>
+        <div id="new-mother"${pre.mother_id ? " hidden" : ""}>
           <label class="field"><span>${esc(t("mother_name_hi"))}</span><input name="mother_name_hi" lang="hi" autocomplete="off" maxlength="60" value="${esc(pre.mother_name_hi || "")}"></label>
           <label class="field"><span>${esc(t("mother_name_en"))}</span><input name="mother_name_en" lang="en" autocomplete="off" maxlength="60" value="${esc(pre.mother_name_en || "")}"></label>
         </div>` : ""}
@@ -1256,6 +1263,11 @@ document.addEventListener("click", (e) => {
   if (d.newName !== undefined) { S.addPerson = prefillFor(S.note.new_names[+d.newName]); viewReview(); return scrollToPath("beneficiary.matched_id"); }
   if (d.npcat) { S.addPerson = { ...S.addPerson, cat: d.npcat }; return viewReview(); }
   if (d.npcatCancel) { S.addPerson = null; return viewReview(); }
+  if (d.addBaby) {
+    S.addPerson = { cat: S.draft.visit_type === "HBNC" ? "newborn" : "child", heard: "", pre: { mother_id: d.addBaby } };
+    viewReview();
+    return scrollToPath("beneficiary.matched_id");
+  }
   if (b.id === "discard") {
     if (!confirm(t("discard_q"))) return;
     return api(`/notes/${S.note.id}/discard`, { method: "POST" }).then(() => go("home", { task: null })).catch(fail);
