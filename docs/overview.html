@@ -1,0 +1,354 @@
+<title>A.U.R.A. at a Glance</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Mukta:wght@400;600&display=swap">
+<style>
+/* Layout: a single reading column (max 980px) of bands; the mind map and the flow are the two visual anchors. */
+:root {
+  --bg: #f6f4ee;          /* village-wall lime wash */
+  --surface: #fffdf8;
+  --ink: #1d2b26;
+  --muted: #5b6b64;
+  --line: #d9d4c6;
+  --green: #1f5a47;       /* the app's own green */
+  --green-soft: #dcebe4;
+  --turmeric: #c98a12;    /* the dot in the app icon */
+  --turmeric-soft: #f6e7c5;
+  --rose: #a8434a;
+  --rose-soft: #f4dcdc;
+  --sky: #2f5f8a;
+  --sky-soft: #dde8f2;
+  --display: "Baloo 2", "Mukta", system-ui, sans-serif;
+  --body: "Mukta", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121a17; --surface: #19241f; --ink: #e6eee9; --muted: #9db0a7; --line: #2d3b35;
+  --green: #6fc2a2; --green-soft: #1f3a30; --turmeric: #e9b04a; --turmeric-soft: #3a2e15;
+  --rose: #e88f95; --rose-soft: #3d2023; --sky: #8ab8e0; --sky-soft: #1c2b3a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121a17; --surface: #19241f; --ink: #e6eee9; --muted: #9db0a7; --line: #2d3b35;
+  --green: #6fc2a2; --green-soft: #1f3a30; --turmeric: #e9b04a; --turmeric-soft: #3a2e15;
+  --rose: #e88f95; --rose-soft: #3d2023; --sky: #8ab8e0; --sky-soft: #1c2b3a; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 400 17px/1.6 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 56px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0 }
+h1 { font-size: clamp(2.2rem, 6vw, 3.4rem); font-weight: 700; color: var(--green) }
+h2 { font-size: clamp(1.5rem, 3.6vw, 2rem); font-weight: 700 }
+h3 { font-size: 1.15rem; font-weight: 700 }
+p { margin: 0 }
+.lede { font-size: 1.2rem; max-width: 62ch }
+.muted { color: var(--muted) }
+.small { font-size: .9rem }
+.eyebrow { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--turmeric); font-weight: 600 }
+section { display: grid; gap: 18px; min-width: 0 }
+.sim { display: inline-block; font-size: .72rem; letter-spacing: .08em; font-weight: 600; padding: 1px 8px; border-radius: 4px;
+  background: var(--ink); color: var(--bg) }
+a { color: var(--green) }
+
+/* hero: the note she speaks, and the record it becomes */
+.hero { display: grid; gap: 22px }
+.speech { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 14px; align-items: center }
+.bubble { background: var(--surface); border: 1px solid var(--line); border-radius: 18px 18px 18px 4px; padding: 16px 18px; min-width: 0 }
+.bubble .hi { font-size: 1.15rem }
+.arrow { font-family: var(--display); font-size: 2rem; color: var(--turmeric) }
+.record { background: var(--surface); border: 2px solid var(--green); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; min-width: 0 }
+.record div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 3px }
+.record div:last-child { border: 0 }
+.record b { font-variant-numeric: tabular-nums }
+@media (max-width: 640px) { .speech { grid-template-columns: 1fr } .arrow { transform: rotate(90deg); justify-self: center } }
+
+/* mind map */
+.map { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px }
+.map svg { display: block; width: 100%; min-width: 760px; height: auto }
+.map text { font-family: var(--body); fill: var(--ink) }
+.map .leaf { font-size: 14px }
+.map .bn { font-family: var(--display); font-size: 17px; font-weight: 700 }
+.map .core { font-family: var(--display); font-size: 22px; font-weight: 700; fill: var(--bg) }
+.map path { fill: none; stroke-width: 2 }
+
+/* her day: a real sequence, so numbered */
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; counter-reset: s }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; align-content: start; min-width: 0 }
+.step::before { counter-increment: s; content: counter(s); font-family: var(--display); font-weight: 700; font-size: 1.1rem;
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--green); color: var(--bg) }
+
+/* pipeline */
+.pipe { display: grid; gap: 0 }
+.stage { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-top: 1px solid var(--line) }
+.stage:first-child { border-top: 0 }
+.who { font-size: .8rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; align-self: start; padding: 2px 8px; border-radius: 6px; justify-self: start }
+.who.phone { background: var(--green-soft); color: var(--green) }
+.who.laptop { background: var(--sky-soft); color: var(--sky) }
+.who.her { background: var(--turmeric-soft); color: var(--turmeric) }
+@media (max-width: 520px) { .stage { grid-template-columns: 1fr; gap: 4px } }
+
+/* screens */
+.screens { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.screen { border-top: 4px solid var(--green); background: var(--surface); padding: 14px; border-radius: 0 0 10px 10px; display: grid; gap: 6px; align-content: start; min-width: 0 }
+.screen.new { border-top-color: var(--turmeric) }
+.tag { font-size: .72rem; font-weight: 600; color: var(--turmeric); letter-spacing: .06em; text-transform: uppercase }
+
+/* forms */
+.forms { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; min-width: 0 }
+ul.clean { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px }
+ul.clean li { padding-left: 18px; position: relative }
+ul.clean li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 7px; height: 7px; border-radius: 50%; background: var(--green) }
+ul.no li::before { background: var(--rose) }
+
+/* promises */
+.promises { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px }
+.promise { padding: 12px 14px; border-radius: 10px; background: var(--green-soft); display: grid; gap: 2px; min-width: 0 }
+.promise b { color: var(--green) }
+
+/* status */
+.status { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px }
+.ok { border-left: 4px solid var(--green) }
+.wait { border-left: 4px solid var(--rose) }
+
+/* versions */
+.versions { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .95rem }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top }
+th { font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+td:first-child { font-family: var(--display); font-weight: 700; white-space: nowrap; color: var(--green) }
+
+dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0 }
+dt { font-weight: 600 }
+dd { margin: 0; color: var(--muted) }
+@media (max-width: 520px) { dl { grid-template-columns: 1fr } dd { margin-bottom: 8px } }
+footer { border-top: 1px solid var(--line); padding-top: 16px }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Voice-first helper for ASHA workers · Uttar Pradesh · EnVision '26</p>
+  <h1>A.U.R.A.</h1>
+  <p class="lede">After a home visit, the ASHA <b>speaks one short note</b>. A.U.R.A. turns it into a tidy visit record, she <b>checks it once</b>, and the app reuses it for her task list, her reports and the official forms. She never has to write the same thing twice.</p>
+  <div class="speech" aria-label="Example: a spoken note becomes a record">
+    <div class="bubble">
+      <p class="small muted">She says (made-up example)</p>
+      <p class="hi" lang="hi">“आज सुनीता देवी के बच्चे का सातवें दिन का दौरा किया, वजन 2 किलो 800 ग्राम, बुखार नहीं, आँखों में मवाद नहीं।”</p>
+    </div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div class="record">
+      <p class="small muted">A.U.R.A. fills in</p>
+      <div><span>Who</span><b>Sunita Devi's baby</b></div>
+      <div><span>Visit</span><b>Newborn (HBNC), day 7</b></div>
+      <div><span>Weight</span><b>2.8 kg</b></div>
+      <div><span>Fever</span><b>No</b></div>
+      <div><span>Eyes swollen / pus</span><b>No</b></div>
+    </div>
+  </div>
+</header>
+
+<section aria-labelledby="map-h">
+  <h2 id="map-h">The whole project on one page</h2>
+  <p class="muted">Six parts. The left side is what the ASHA does with her note; the right side is what the note feeds and the rules A.U.R.A. keeps.</p>
+  <div class="map">
+    <svg viewBox="0 0 1000 620" role="img" aria-labelledby="map-t">
+      <title id="map-t">Mind map: A.U.R.A. in the middle, with branches Capture, Check, Reuse, Forms, People and Promises.</title>
+      <!-- trunk lines -->
+      <path d="M430 310 C 400 310, 420 130, 390 130" style="stroke:var(--green)"/>
+      <path d="M430 310 L 390 310" style="stroke:var(--turmeric)"/>
+      <path d="M430 310 C 400 310, 420 490, 390 490" style="stroke:var(--sky)"/>
+      <path d="M570 310 C 600 310, 580 130, 610 130" style="stroke:var(--turmeric)"/>
+      <path d="M570 310 L 610 310" style="stroke:var(--sky)"/>
+      <path d="M570 310 C 600 310, 580 490, 610 490" style="stroke:var(--rose)"/>
+      <!-- leaf twigs, left -->
+      <g style="stroke:var(--green)"><path d="M270 130 C 255 130, 260 100, 246 100"/><path d="M270 130 L 246 130"/><path d="M270 130 C 255 130, 260 160, 246 160"/></g>
+      <g style="stroke:var(--turmeric)"><path d="M270 310 C 255 310, 260 280, 246 280"/><path d="M270 310 L 246 310"/><path d="M270 310 C 255 310, 260 340, 246 340"/></g>
+      <g style="stroke:var(--sky)"><path d="M270 490 C 255 490, 260 460, 246 460"/><path d="M270 490 L 246 490"/><path d="M270 490 C 255 490, 260 520, 246 520"/></g>
+      <!-- leaf twigs, right -->
+      <g style="stroke:var(--turmeric)"><path d="M730 130 C 745 130, 740 100, 754 100"/><path d="M730 130 L 754 130"/><path d="M730 130 C 745 130, 740 160, 754 160"/></g>
+      <g style="stroke:var(--sky)"><path d="M730 310 C 745 310, 740 280, 754 280"/><path d="M730 310 L 754 310"/><path d="M730 310 C 745 310, 740 340, 754 340"/></g>
+      <g style="stroke:var(--rose)"><path d="M730 490 C 745 490, 740 445, 754 445"/><path d="M730 490 C 745 490, 740 475, 754 475"/><path d="M730 490 C 745 490, 740 505, 754 505"/><path d="M730 490 C 745 490, 740 535, 754 535"/></g>
+
+      <!-- centre -->
+      <rect x="430" y="282" width="140" height="56" rx="28" style="fill:var(--green)"/>
+      <text class="core" x="500" y="318" text-anchor="middle">A.U.R.A.</text>
+
+      <!-- branch nodes -->
+      <g text-anchor="middle">
+        <rect x="270" y="110" width="120" height="40" rx="10" style="fill:var(--green-soft);stroke:var(--green)"/><text class="bn" x="330" y="136">Capture</text>
+        <rect x="270" y="290" width="120" height="40" rx="10" style="fill:var(--turmeric-soft);stroke:var(--turmeric)"/><text class="bn" x="330" y="316">Check</text>
+        <rect x="270" y="470" width="120" height="40" rx="10" style="fill:var(--sky-soft);stroke:var(--sky)"/><text class="bn" x="330" y="496">Reuse</text>
+        <rect x="610" y="110" width="120" height="40" rx="10" style="fill:var(--turmeric-soft);stroke:var(--turmeric)"/><text class="bn" x="670" y="136">Forms</text>
+        <rect x="610" y="290" width="120" height="40" rx="10" style="fill:var(--sky-soft);stroke:var(--sky)"/><text class="bn" x="670" y="316">People</text>
+        <rect x="610" y="470" width="120" height="40" rx="10" style="fill:var(--rose-soft);stroke:var(--rose)"/><text class="bn" x="670" y="496">Promises</text>
+      </g>
+
+      <!-- leaves, left (right-aligned) -->
+      <g class="leaf" text-anchor="end">
+        <text x="240" y="105">Speak in Hindi or English</text>
+        <text x="240" y="135">…or type, or upload audio</text>
+        <text x="240" y="165">Queued if the network drops</text>
+        <text x="240" y="285">Each value shows the words it came from</text>
+        <text x="240" y="315">Danger signs and doubts flagged</text>
+        <text x="240" y="345">She confirms once (or edits later)</text>
+        <text x="240" y="465">Today's tasks and reminders</text>
+        <text x="240" y="495">Monthly report and claim sheet</text>
+        <text x="240" y="525">Read aloud on the phone</text>
+      </g>
+      <!-- leaves, right -->
+      <g class="leaf">
+        <text x="760" y="105">5 official form layouts</text>
+        <text x="760" y="135">"Still missing" questions</text>
+        <text x="760" y="165">Fill by label (practice only)</text>
+        <text x="760" y="285">Mothers, newborns, children</text>
+        <text x="760" y="315">Sex, birth weight, RCH IDs (once)</text>
+        <text x="760" y="345">Every person's visits</text>
+        <text x="760" y="450">Only mic and notifications</text>
+        <text x="760" y="480">No location, contacts or SMS</text>
+        <text x="760" y="510">Never submits anything</text>
+        <text x="760" y="540">Made-up data only</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section aria-labelledby="day-h">
+  <h2 id="day-h">Her visit, step by step</h2>
+  <div class="steps">
+    <div class="step"><h3>Speak</h3><p>Tap the big green button and say what happened. Hindi, English or a mix.</p></div>
+    <div class="step"><h3>Check</h3><p>The review screen shows every value next to the words she said. Anything doubtful is flagged.</p></div>
+    <div class="step"><h3>Add or fix</h3><p>Type a change, tap Yes/No, or speak again ("weight 3 kg"). Only what she says changes.</p></div>
+    <div class="step"><h3>Confirm</h3><p>One tap saves it. The recording is deleted. Next visits and vaccines appear on Today.</p></div>
+    <div class="step"><h3>Reuse</h3><p>Open the visit any time: see it in the official form order, fill what's still missing, copy or autofill.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="pipe-h">
+  <h2 id="pipe-h">What happens behind the button</h2>
+  <p class="muted">The phone app talks to a small server running on a laptop. Nothing goes to any government system.</p>
+  <div class="pipe">
+    <div class="stage"><span class="who phone">Phone</span><p>Records her voice (or takes typed text). If there's no connection, the note waits in an outbox and is sent later.</p></div>
+    <div class="stage"><span class="who laptop">Laptop</span><p><b>Speech to text.</b> Sarvam (cloud, good at Hindi and Hinglish) when a key is set, otherwise Vosk (offline, weaker).</p></div>
+    <div class="stage"><span class="who laptop">Laptop</span><p><b>Find the facts.</b> Fixed rules pull out who, which visit, weight, temperature, danger signs, vaccines, referral, next date, and the extra form questions. Each value must point to the exact words it came from.</p></div>
+    <div class="stage"><span class="who laptop">Laptop</span><p><b>Double-check.</b> Code checks ranges and dates, matches the name to her list of people, and leaves anything not said empty (never guessed).</p></div>
+    <div class="stage"><span class="who her">ASHA</span><p><b>Reviews and confirms.</b> Nothing is final until she taps save.</p></div>
+    <div class="stage"><span class="who laptop">Laptop</span><p><b>Works out what's due</b> from programme schedules (newborn, young child, vaccines), and builds reports and form views.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="scr-h">
+  <h2 id="scr-h">What's on each screen</h2>
+  <div class="screens">
+    <div class="screen"><h3>Today</h3><p>Visits and vaccines due, overdue first, grouped by status or area. Unsent notes. <b>Recent visits</b> to reopen.</p></div>
+    <div class="screen"><h3>Note</h3><p>Record, type or upload. A short guide of what to say for each visit type.</p></div>
+    <div class="screen"><h3>Review</h3><p>Who, visit type, vitals, danger signs, services, referral, next dates. Speak again to add. <b>Forms also ask</b> card (optional).</p></div>
+    <div class="screen new"><span class="tag">New in v1.12</span><h3>Saved visit</h3><p>Opens from Today or People. <b>View form</b>, <b>Edit note</b>, Read aloud.</p></div>
+    <div class="screen new"><span class="tag">New in v1.12</span><h3>View form</h3><p>Her visit in the order of an official form. <b>Still missing</b> list: tap, type or say the answers, then save.</p></div>
+    <div class="screen"><h3>People</h3><p>Add mothers, newborns, children. Each person's details and <b>visits</b>.</p></div>
+    <div class="screen"><h3>Reports</h3><p>Monthly report and incentive claim-support sheet as PDF or Excel. Correction stats.</p></div>
+    <div class="screen"><h3>Settings</h3><p>Language, server address, demo data, privacy notice, delete her data.</p></div>
+  </div>
+</section>
+
+<section aria-labelledby="forms-h">
+  <h2 id="forms-h">Official forms and autofill</h2>
+  <div class="forms">
+    <div class="panel">
+      <h3>Forms the app can lay out</h3>
+      <ul class="clean">
+        <li>HBNC home visit (newborn, 2014 format)</li>
+        <li>SSBSK newborn (Form 3)</li>
+        <li>SSBSK mother after delivery (Form 4)</li>
+        <li>SSBSK young child</li>
+        <li>RCH register, child tracking (CH-1, CH-2)</li>
+      </ul>
+      <p class="small muted">Questions a note rarely covers (baby kept warm? only breastfed? RCH ID?) are asked on review and listed as "still missing" on each form. Details about the child are saved on the person once.</p>
+    </div>
+    <div class="panel">
+      <h3>How autofill works (demo stage)</h3>
+      <ul class="clean">
+        <li>She opens the other app or website and logs in herself.</li>
+        <li>She taps a field; Android offers "A.U.R.A.: fill N fields".</li>
+        <li>Fields are matched by their label. She checks each one.</li>
+      </ul>
+      <ul class="clean no">
+        <li>Never reads or fills password, OTP, PIN or login fields.</li>
+        <li>Never presses Submit. Demos stop before it.</li>
+      </ul>
+      <p class="small">Practice targets are labelled <span class="sim">SIMULATED</span>. The government's permission is asked before real use.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="pr-h">
+  <h2 id="pr-h">Promises A.U.R.A. keeps</h2>
+  <div class="promises">
+    <div class="promise"><b>Two permissions only</b><span>Microphone and notifications.</span></div>
+    <div class="promise"><b>No tracking</b><span>No location, contacts, calls, SMS, attendance or scoring.</span></div>
+    <div class="promise"><b>Shows its source</b><span>Every value carries the words it came from.</span></div>
+    <div class="promise"><b>Blank, not guessed</b><span>If she didn't say it, it stays empty.</span></div>
+    <div class="promise"><b>She decides</b><span>Nothing is saved or filled without her tap.</span></div>
+    <div class="promise"><b>Advice only</b><span>Schedules are drafts until a clinician reviews them.</span></div>
+  </div>
+</section>
+
+<section aria-labelledby="st-h">
+  <h2 id="st-h">Where it stands (16 Nov 2026)</h2>
+  <div class="status">
+    <div class="panel ok">
+      <h3>Working and checked</h3>
+      <ul class="clean">
+        <li>Android app v1.12 on a real phone (realme, Android 16): reopen, edit, form questions, voice answers in Hindi.</li>
+        <li>531 automated server tests pass.</li>
+        <li>On 20 made-up test notes, the key fields were right in 17 (<span class="small">eval/results/2026-11-09/holdout</span>).</li>
+        <li>Privacy audit script: all 29 checks pass.</li>
+      </ul>
+    </div>
+    <div class="panel wait">
+      <h3>Not yet known</h3>
+      <ul class="clean">
+        <li>Accuracy with real ASHA voices, noise and dialects.</li>
+        <li>Hindi wording reviewed by a native speaker.</li>
+        <li>Schedules reviewed by an ANM or doctor.</li>
+        <li>Autofill on real government apps (needs their permission first).</li>
+        <li>Whether an AI model beats the fixed rules (not measured yet).</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="v-h">
+  <h2 id="v-h">How it grew</h2>
+  <div class="versions">
+    <table>
+      <thead><tr><th>Version</th><th>Date</th><th>What it added</th></tr></thead>
+      <tbody>
+        <tr><td>v1.0</td><td>9 Nov</td><td>Server, web app, record → review → confirm, tasks, reports</td></tr>
+        <tr><td>v1.1–1.2</td><td>10 Nov</td><td>Sarvam speech-to-text, monthly report, demo data button</td></tr>
+        <tr><td>v1.3–1.5</td><td>15 Nov</td><td>Offline outbox, People, read aloud, guided recording, areas</td></tr>
+        <tr><td>v1.6–1.7</td><td>15–16 Nov</td><td>Official form view, copy/share, free AI-model adapter</td></tr>
+        <tr><td>v1.8–1.9</td><td>16 Nov</td><td>Android app, autofill service, reminders, back button</td></tr>
+        <tr><td>v1.10</td><td>16 Nov</td><td>Speak again on review, suggest new people</td></tr>
+        <tr><td>v1.11</td><td>16 Nov</td><td>Autofill by field label, SSBSK and RCH forms, practice website</td></tr>
+        <tr><td>v1.12</td><td>16 Nov</td><td>Reopen and edit saved visits, "still missing" form questions by tap or voice</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section aria-labelledby="g-h">
+  <h2 id="g-h">Words used here</h2>
+  <dl>
+    <dt>ASHA</dt><dd>Accredited Social Health Activist, the village health worker who uses the app.</dd>
+    <dt>ANM</dt><dd>Auxiliary Nurse Midwife, her supervisor at the sub-centre.</dd>
+    <dt>HBNC / HBYC</dt><dd>Home-based care visits for newborns (first 42 days) and young children.</dd>
+    <dt>SSBSK</dt><dd>The 2026 newborn and child home-visit programme with its own forms.</dd>
+    <dt>RCH</dt><dd>The government register and portal for mothers and children; each has an RCH ID.</dd>
+    <dt>Autofill</dt><dd>Android filling a form in another app from a saved visit, after she taps.</dd>
+    <dt><span class="sim">SIMULATED</span></dt><dd>A practice stand-in for something real we don't have, such as a login or a portal.</dd>
+  </dl>
+</section>
+
+<footer class="small muted">
+  All names and numbers on this page are made up. Details: <code>docs/PROJECT_OVERVIEW.md</code>, live status: <code>handoff.md</code>.
+</footer>
+</div>
