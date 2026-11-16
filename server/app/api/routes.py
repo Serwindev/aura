@@ -45,6 +45,7 @@ from ..services import (
     remove_demo,
     save_details,
     seed_demo,
+    set_claim_checks,
     set_task_action,
     start_edit,
     update_person,
@@ -228,7 +229,8 @@ def person_view(p, lang: str, by_id: dict) -> dict:
             "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place,
             "mother_id": p.mother_id, "mother_label": label(mother, lang) if mother else None,
             "names": list(p.names), "area": p.area, "at_risk": bool(p.at_risk), "sex": p.sex,
-            "birth_weight_kg": p.birth_weight_kg, "rch_id": p.rch_id}
+            "birth_weight_kg": p.birth_weight_kg, "rch_id": p.rch_id,
+            "safe_d42": p.safe_d42, "birth_registered": p.birth_registered}
 
 
 @router.get("/beneficiaries")
@@ -277,6 +279,18 @@ def post_person(body: NewPerson, request: Request, user: User = Depends(current_
 def patch_person(person_id: str, body: PersonEdit, request: Request, user: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> dict:
     update_person(db, user.id, person_id, settings(request).today(), **body.model_dump())
+    return _one_person(db, user, person_id)
+
+
+class ClaimChecks(BaseModel):
+    safe_d42: bool | None = None
+    birth_registered: bool | None = None
+
+
+@router.post("/beneficiaries/{person_id}/claim-checks")
+def post_claim_checks(person_id: str, body: ClaimChecks, user: User = Depends(current_user),
+                      db: Session = Depends(get_db)) -> dict:
+    set_claim_checks(db, user.id, person_id, body.safe_d42, body.birth_registered)
     return _one_person(db, user, person_id)
 
 

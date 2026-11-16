@@ -331,12 +331,32 @@ def test_dismiss_reschedule_restore(env):
 
 def test_claim_sheet_demo_month(env):
     c = env[0]
-    s = c.get("/v1/reports/claims?month=2026-11&lang=en", headers=login(c)).json()
-    ready = {(r["programme"], r["beneficiary_id"]): r for r in s["rows"] if r["status"] == "ready"}
-    assert ready[("HBNC", "c20")]["amount"] == 250 and ready[("HBNC", "c20")]["seeded"] is True
-    assert ready[("HBNC", "c20")]["detail"] == "6/6"
+    h = login(c)
+
+    def sheet():
+        s = c.get("/v1/reports/claims?month=2026-11&lang=en", headers=h).json()
+        assert s["total"] == sum(r["amount"] for r in s["rows"])
+        return s, {(r["programme"], r["beneficiary_id"]): r for r in s["rows"]}
+
+    s, rows = sheet()
+    c20 = rows[("HBNC", "c20")]  # finished series, conditions not yet confirmed
+    assert (c20["status"], c20["amount"], c20["pending"], c20["detail"]) == ("check_conditions", 0, 250, "6/6")
+    assert c20["seeded"] is True and s["pending"] >= 250
     assert "confirm UP rates" in s["warning"]
-    assert s["total"] == sum(r["amount"] for r in s["rows"])
+    assert all(r["todo"] for r in s["rows"] if r["status"] in ("missing_visit", "in_progress"))
+
+    url = "/v1/beneficiaries/c20/claim-checks"
+    assert c.post(url, json={"safe_d42": True, "birth_registered": True}, headers=h).json()["birth_registered"] is True
+    s2, rows = sheet()
+    assert (rows[("HBNC", "c20")]["status"], rows[("HBNC", "c20")]["amount"]) == ("ready", 250)
+    assert s2["total"] == s["total"] + 250
+
+    c.post(url, json={"safe_d42": True, "birth_registered": False}, headers=h)
+    _, rows = sheet()
+    assert (rows[("HBNC", "c20")]["status"], rows[("HBNC", "c20")]["amount"]) == ("not_eligible", 0)
+
+    assert c.post("/v1/beneficiaries/w01/claim-checks", json={"safe_d42": True}, headers=h).status_code == 422
+    assert c.post("/v1/beneficiaries/nobody/claim-checks", json={}, headers=h).status_code == 404
 
 
 def test_exports_are_valid_files(env):

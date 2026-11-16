@@ -36,6 +36,8 @@ class Person:
     sex: str | None = None
     birth_weight_kg: float | None = None
     rch_id: str | None = None
+    safe_d42: bool | None = None  # HBNC claim condition: mother and baby safe at day 42 (she confirms)
+    birth_registered: bool | None = None  # HBNC claim condition
 
 
 @dataclass

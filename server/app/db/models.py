@@ -71,6 +71,9 @@ class Person(Base):
     sex: Mapped[str | None] = mapped_column(String, nullable=True)  # male | female
     birth_weight_kg: Mapped[float | None] = mapped_column(nullable=True)
     rch_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    # HBNC payment conditions she confirmed for the claim sheet (None = not yet asked)
+    safe_d42: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    birth_registered: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
 
 class Note(Base):
@@ -127,7 +130,7 @@ def make_session_factory(url: str) -> sessionmaker:
 
 # Columns added after v1.0. create_all() does not alter existing tables, so add them here (additive only).
 _LATER_COLUMNS = {"people": {"area": "VARCHAR", "at_risk": "BOOLEAN", "sex": "VARCHAR", "birth_weight_kg": "FLOAT",
-                             "rch_id": "VARCHAR"}, "users": {"schedule": "VARCHAR"}}
+                             "rch_id": "VARCHAR", "safe_d42": "BOOLEAN", "birth_registered": "BOOLEAN"}, "users": {"schedule": "VARCHAR"}}
 
 
 def _add_missing_columns(engine) -> None:

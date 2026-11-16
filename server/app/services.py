@@ -65,7 +65,8 @@ def people_for(db: Session, owner_id: str) -> list[NamePerson]:
     return [NamePerson(id=p.id, names=tuple(p.names or ()), category=p.category, mother_id=p.mother_id,
                        dob=p.dob, delivery_place=p.delivery_place, label_hi=p.label_hi,
                        label_en=p.label_en, area=p.area, at_risk=p.at_risk, sex=p.sex,
-                       birth_weight_kg=p.birth_weight_kg, rch_id=p.rch_id) for p in rows]
+                       birth_weight_kg=p.birth_weight_kg, rch_id=p.rch_id, safe_d42=p.safe_d42,
+                       birth_registered=p.birth_registered) for p in rows]
 
 
 # ---- doses ---------------------------------------------------------------------------------
@@ -833,6 +834,22 @@ def update_person(db: Session, owner_id: str, person_id: str, today: date, *, na
     if at_risk is not None and p.category in ("newborn", "child"):
         p.at_risk = at_risk
     db.add(AuditEvent(owner_id=owner_id, action="person_updated", detail={"id": p.id}))
+    db.commit()
+    return p
+
+
+def set_claim_checks(db: Session, owner_id: str, person_id: str, safe_d42: bool | None,
+                     birth_registered: bool | None) -> Person:
+    """The HBNC payment conditions as she confirms them on the claim sheet (None clears an answer).
+    Works for demo people too: it only records her answer, nothing about the person changes."""
+    p = db.get(Person, (owner_id, person_id))
+    if p is None:
+        raise RequestError(404, "NOT_FOUND", "Person not found")
+    if p.category not in ("newborn", "child"):
+        raise RequestError(422, "NOT_A_CHILD", "Claim conditions apply to a newborn or child")
+    p.safe_d42, p.birth_registered = safe_d42, birth_registered
+    db.add(AuditEvent(owner_id=owner_id, action="claim_checks_set",
+                      detail={"id": p.id, "safe_d42": safe_d42, "birth_registered": birth_registered}))
     db.commit()
     return p
 

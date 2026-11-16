@@ -77,7 +77,7 @@ Built for **EnVision '26 → Seva First**. Hindi first, English second.
 | **Saved visit** | **View form**, **Edit note** (same review screen; stays saved until she confirms again), Read aloud. |
 | **View form** | The visit in an official form's order. **Still missing** list: tap, type or say the answers, check them, save. Copy, share, autofill, practice form. |
 | **People** | Add mothers, newborns, children; see each person's details and visits. |
-| **Reports** | Monthly report and incentive claim-support sheet (PDF / Excel); how often she corrected the app. |
+| **Reports** | Monthly report and incentive claim-support sheet (PDF / Excel); how often she corrected the app. Each claim row says which visit was missed or comes next; a finished newborn series asks the two payment conditions (safe at day 42, birth registered) and counts only when both are Yes. |
 | **Settings** | Language, server address, demo data, privacy notice, delete her data. |
 
 ---
@@ -147,7 +147,7 @@ to use Sarvam. Without it, Vosk runs offline.
   - the "Forms also ask" card and the "still missing" list;
   - Hindi voice answers with their quotes, saved onto the child;
   - the warning when a baby's visit is linked to an adult.
-- Automated tests: 531 passed, 1 skipped (Hindi Vosk model not downloaded on this laptop).
+- Automated tests: 537 passed, 1 skipped (Hindi Vosk model not downloaded on this laptop).
 - On 20 made-up test notes the key fields were right in 17
   (`eval/results/2026-11-09/holdout/report.md`; same author wrote notes and rules, so this is optimistic).
 - Privacy audit: all 29 checks pass (`docs/privacy-audit.md`).
@@ -158,7 +158,8 @@ to use Sarvam. Without it, Vosk runs offline.
 - Schedules, reviewed by an ANM or doctor (ANC tasks are off).
 - Autofill on real government apps (government permission is needed before real use).
 - Whether an AI model beats the fixed rules (bake-off not run).
-- The claim sheet uses national rates for HBNC/HBYC only (UP rates not public).
+- The claim sheet uses national rates for HBNC/HBYC only (UP rates not public). Immunisation and low-birth-weight
+  follow-up incentives are not counted yet: the official "fully immunised" vaccine list must be checked first.
 
 ---
 

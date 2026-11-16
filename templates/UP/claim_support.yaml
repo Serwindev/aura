@@ -7,9 +7,9 @@ source: "[S17] context.md §8.5"
 rates:
   hbnc_series: 250   # one payment per newborn for the full 6/7-visit series
   hbyc_visit: 50     # per visit, 5 visits (₹250 per child)
-hbnc_conditions:
-  en: "ANM to verify: mother and newborn safe to day 42; birth registered"
-  hi: "ANM जाँच करें: 42वें दिन तक माँ और शिशु सुरक्षित; जन्म पंजीकृत"
+# HBNC payment conditions [S17]: mother and newborn safe to day 42; birth registered. She confirms both on the
+# child (Reports → claim row); a finished series counts in the total only when both are confirmed
+# (server/app/reports/claims.py). The ANM still verifies before payment.
 not_computed:
   en: "Not included: immunisation session mobilisation, monthly lists, Anaemia Mukt Bharat. These are not derived from visit notes."
   hi: "शामिल नहीं: टीकाकरण सत्र मोबिलाइज़ेशन, मासिक सूचियाँ, एनीमिया मुक्त भारत। ये भ्रमण नोट से नहीं बनते।"

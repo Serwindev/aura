@@ -975,6 +975,7 @@ async function viewReports() {
     [s, m, ed] = await Promise.all([api(`/reports/claims?month=${month}&lang=${S.lang}`), api(`/reports/monthly?month=${month}&lang=${S.lang}`), api(`/reports/edits?month=${month}`)]);
   } catch (e) { return fail(e); }
   if (S.view !== "reports") return;
+  S.claimRows = s.rows;
   VIEW().innerHTML = `
     <h1>${esc(t("reports_title"))}</h1>
     <label class="field"><span>${esc(t("month"))}</span><input type="month" id="month" value="${esc(month)}"></label>
@@ -986,13 +987,15 @@ async function viewReports() {
     </section>
     <h2>${esc(t("claims_title"))}</h2>
     <div class="banner">${esc(s.warning)}</div>
-    <div class="card"><span class="muted">${esc(t("est_total"))}</span><div class="money">₹${esc(s.total)}</div></div>
+    <div class="card"><span class="muted">${esc(t("est_total"))}</span><div class="money">₹${esc(s.total)}</div>
+      ${s.pending ? `<p class="small" style="margin:4px 0 0">${esc(t("pending_total").replace("{n}", s.pending))}</p>` : ""}</div>
     <div class="row"><button data-dl="pdf">${esc(t("download_pdf"))}</button><button data-dl="xlsx">${esc(t("download_xlsx"))}</button></div>
     ${s.rows.length ? s.rows.map((r) => `<article class="card">
       <div class="task-head"><span class="task-name">${esc(r.label)}</span><span class="pill ${esc(r.status)}">${esc(t(r.status))}</span></div>
       <p class="muted" style="margin:4px 0">${esc(r.programme)} · ${esc(t("visits"))}: ${esc(r.detail)}${r.amount ? ` · ₹${esc(r.amount)}` : ""}</p>
       ${r.dates.length ? `<p class="small muted" style="margin:0">${r.dates.map((x) => esc(fmtDate(x))).join(", ")}</p>` : ""}
-      ${r.conditions ? `<p class="small" style="margin:6px 0 0">${esc(r.conditions)}</p>` : ""}
+      ${(r.todo || []).map((x) => `<p class="small todo" style="margin:6px 0 0">${esc(x)}</p>`).join("")}
+      ${r.checks ? claimChecks(r) : ""}
       ${r.seeded ? `<p style="margin:6px 0 0"><span class="tag sim">SIMULATED</span> <span class="small muted">${esc(t("demo_row"))}</span></p>` : ""}
     </article>`).join("") : `<div class="card empty">${esc(t("nothing_month"))}</div>`}
     <p class="muted small">${esc(s.not_computed)}</p>
@@ -1004,6 +1007,30 @@ async function viewReports() {
         : `<p class="small muted" style="margin:0">${esc(t("edits_none"))}</p>`}
     </section>`;
   $("#month").onchange = (e) => { if (e.target.value) { S.reportMonth = e.target.value; viewReports(); } };
+}
+
+/* HBNC payment conditions [S17] for a finished series: she answers Yes/No; tapping the pressed answer clears it.
+   The series counts in the total only when both are Yes. The ANM still verifies before payment. */
+function claimChecks(r) {
+  return `<div style="margin-top:8px">${["safe_d42", "birth_registered"].map((k) => `<div class="item" style="flex-wrap:wrap;gap:6px">
+    <span class="item-name" style="flex:1 1 55%">${esc(t(`cc_${k}`))}</span>
+    <span class="seg">${[["1", t("yes"), r.checks[k] === true], ["0", t("no"), r.checks[k] === false]].map(([v, l, on]) =>
+      `<button type="button" data-claim-check="${esc(k)}" data-person="${esc(r.beneficiary_id)}" data-val="${v}" aria-pressed="${on}">${esc(l)}</button>`).join("")}</span></div>`).join("")}
+    <p class="small muted" style="margin:6px 0 0">${esc(t("cc_hint"))}</p></div>`;
+}
+
+async function saveClaimCheck(d) {
+  const row = (S.claimRows || []).find((r) => r.beneficiary_id === d.person && r.checks);
+  if (!row) return;
+  const want = d.val === "1", checks = { ...row.checks };
+  checks[d.claimCheck] = checks[d.claimCheck] === want ? null : want;
+  try {
+    await api(`/beneficiaries/${encodeURIComponent(d.person)}/claim-checks`, { method: "POST", json: checks });
+  } catch (e) { return fail(e); }
+  S.people = null;
+  const y = window.scrollY;
+  await viewReports();
+  window.scrollTo(0, y);
 }
 
 async function download(path, filename) {
@@ -1252,6 +1279,7 @@ document.addEventListener("click", (e) => {
   if (d.outboxDel) { if (!confirm(t("delete_queued_q"))) return; return Outbox.remove(d.outboxDel).then(viewHome).catch(fail); }
   if (d.example !== undefined) { $("#note-text").value = EXAMPLES[S.noteLang][+d.example]; return $("#note-text").scrollIntoView({ block: "center" }); }
   if (d.rdl) return download(`/reports/monthly?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.rdl}&lang=${S.lang}`, `aura-monthly-report-${S.reportMonth || todayIso().slice(0, 7)}.${d.rdl}`);
+  if (d.claimCheck) return saveClaimCheck(d);
   if (d.dl) return download(`/reports/claims?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.dl}&lang=${S.lang}`, `claim-support-${S.reportMonth || todayIso().slice(0, 7)}.${d.dl}`);
   if (S.view !== "review") return;
   if (b.id === "confirm") return confirmNote();

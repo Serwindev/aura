@@ -16,14 +16,16 @@ LATIN_FONT = Path(__file__).parent / "fonts" / "NotoSans-Regular.ttf"
 STRINGS = {
     "hi": {"title": "प्रोत्साहन राशि दावा सहायक पत्रक", "month": "माह", "asha": "आशा", "id": "आशा आईडी",
            "programme": "कार्यक्रम", "person": "लाभार्थी", "detail": "भ्रमण", "dates": "तारीखें", "status": "स्थिति",
-           "amount": "राशि (₹)", "conditions": "जाँच", "total": "कुल अनुमान (₹)", "demo": "डेमो इतिहास (SIMULATED)",
+           "amount": "राशि (₹)", "conditions": "क्या करें", "total": "कुल अनुमान (₹)", "demo": "डेमो इतिहास (SIMULATED)",
            "synthetic": "डेमो — केवल काल्पनिक डेटा", "none": "इस माह के लिए कुछ नहीं",
-           "ready": "तैयार", "missing_visit": "भ्रमण छूटा", "in_progress": "जारी"},
+           "ready": "तैयार", "missing_visit": "भ्रमण छूटा", "in_progress": "जारी",
+           "check_conditions": "शर्तें जाँचें", "not_eligible": "भुगतान योग्य नहीं"},
     "en": {"title": "Incentive claim support sheet", "month": "Month", "asha": "ASHA", "id": "ASHA ID",
            "programme": "Programme", "person": "Beneficiary", "detail": "Visits", "dates": "Dates", "status": "Status",
-           "amount": "Amount (₹)", "conditions": "To check", "total": "Estimated total (₹)", "demo": "Demo history (SIMULATED)",
+           "amount": "Amount (₹)", "conditions": "What to do", "total": "Estimated total (₹)", "demo": "Demo history (SIMULATED)",
            "synthetic": "Demo — synthetic data only", "none": "Nothing for this month",
-           "ready": "Ready", "missing_visit": "Missing visit", "in_progress": "In progress"},
+           "ready": "Ready", "missing_visit": "Missing visit", "in_progress": "In progress",
+           "check_conditions": "Check conditions", "not_eligible": "Not payable"},
 }
 
 

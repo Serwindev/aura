@@ -34,6 +34,8 @@ monthly claim. A.U.R.A. lets her **say it once**, check it once, and reuses it e
 ## 3:50 — Reports (40 s)
 - Monthly report and claim-support sheet → PDF / Excel. "Rates are national NHM rates; UP top-ups are
   not confirmed, so the sheet says *check with your ANM*. It supports a claim; it does not file one."
+  Show one row: it says which visit was missed or comes next. A finished newborn series asks "Mother and baby
+  safe at day 42?" and "Birth registered?"; tap Yes on both and the ₹250 moves into the total.
 - **A.U.R.A. को कितना सुधारना पड़ा**: which fields she corrects most — "this grades the app, not her."
 
 ## 4:30 — Honest numbers + close (30 s)

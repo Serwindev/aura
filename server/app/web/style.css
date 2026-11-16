@@ -118,6 +118,8 @@ audio { width: 100%; margin-top: 8px; }
 .pill.ready { background: var(--soft); color: #164536; }
 .pill.missing_visit { background: var(--danger-soft); color: #74200f; }
 .pill.in_progress { background: #ece6d6; color: #55503f; }
+.pill.check_conditions { background: #fbeac2; color: #5c4300; }
+.pill.not_eligible { background: #e4e4e4; color: #444; }
 ul.plain { list-style: none; margin: 6px 0; padding: 0; }
 ul.plain li { padding: 3px 0; }
 
