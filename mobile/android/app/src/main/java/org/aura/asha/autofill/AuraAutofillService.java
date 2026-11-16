@@ -11,6 +11,7 @@ import android.service.autofill.FillRequest;
 import android.service.autofill.FillResponse;
 import android.service.autofill.SaveCallback;
 import android.service.autofill.SaveRequest;
+import android.util.Log;
 import android.util.Pair;
 import android.view.View;
 import android.view.ViewStructure;
@@ -35,12 +36,14 @@ import java.util.Map;
  * Nothing from the other screen is stored, logged or sent.
  */
 public class AuraAutofillService extends AutofillService {
+    private static final String TAG = "AuraAutofill"; // counts only, never field content
 
     @Override
     public void onFillRequest(FillRequest request, CancellationSignal cancellationSignal, FillCallback callback) {
         try {
             callback.onSuccess(buildResponse(request));
         } catch (RuntimeException e) {
+            Log.w(TAG, "fill failed: " + e.getClass().getSimpleName());
             callback.onSuccess(null); // never break the other app; just offer nothing
         }
     }
@@ -50,10 +53,10 @@ public class AuraAutofillService extends AutofillService {
         if (contexts == null || contexts.isEmpty()) return null;
         AssistStructure structure = contexts.get(contexts.size() - 1).getStructure();
         ComponentName comp = structure.getActivityComponent();
-        if (!FillPlanner.screenAllowed(comp.getPackageName(), comp.getClassName())) return null;
+        if (!FillPlanner.screenAllowed(comp.getPackageName(), comp.getClassName())) { Log.d(TAG, "screen not allowed"); return null; }
 
         VisitStore.Visit visit = VisitStore.load(this);
-        if (visit == null || visit.answers.isEmpty()) return null;
+        if (visit == null || visit.answers.isEmpty()) { Log.d(TAG, "no copied visit"); return null; }
 
         List<FieldMatcher.Field> fields = new ArrayList<>();
         Map<String, AutofillId> ids = new HashMap<>();
@@ -62,6 +65,7 @@ public class AuraAutofillService extends AutofillService {
             collect(structure.getWindowNodeAt(i).getRootViewNode(), fields, ids, lastLabel);
         }
         List<FieldMatcher.Fill> plan = FieldMatcher.plan(fields, visit.answers);
+        Log.d(TAG, "fields=" + fields.size() + " answers=" + visit.answers.size() + " matched=" + plan.size());
         if (plan.isEmpty()) return null;
 
         RemoteViews presentation = new RemoteViews(getPackageName(), android.R.layout.simple_list_item_1);

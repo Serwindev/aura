@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
@@ -80,6 +81,9 @@ public class SimulatedFormActivity extends Activity {
                 recreate(); // fresh, empty screen
             });
             col.addView(submit);
+            // start with no field focused (otherwise the cursor lands in the PIN box, which autofill must skip)
+            col.setFocusableInTouchMode(true);
+            col.requestFocus();
         }
 
         ScrollView scroll = new ScrollView(this);
@@ -96,7 +100,10 @@ public class SimulatedFormActivity extends Activity {
         if (r == null) return;
         String en = r.optString("label_en"), local = r.optString("question");
         String label = local.isEmpty() || local.equals(en) ? en : en + " / " + local;
-        col.addView(text(label, 15, false));
+        TextView lbl = text(label, 15, false);
+        // like a labelled field in a real app: the label is part of what Android shows the autofill service
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) lbl.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_YES);
+        col.addView(lbl);
         String input = r.optString("input", "text");
         View field;
         if ("yesno".equals(input)) {
@@ -104,6 +111,7 @@ public class SimulatedFormActivity extends Activity {
             ArrayAdapter<String> ad = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item,
                     new String[]{"-- Select --", "Yes", "No"});
             ad.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ad.setAutofillOptions("-- Select --", "Yes", "No"); // lets autofill pick Yes/No
             sp.setAdapter(ad);
             sp.setContentDescription(en);
             field = sp;
@@ -112,6 +120,8 @@ public class SimulatedFormActivity extends Activity {
             if ("number".equals(input)) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
             else et.setInputType(InputType.TYPE_CLASS_TEXT);
             et.setHint("date".equals(input) ? "dd-mm-yyyy" : en);
+            // Android strips label text set at runtime from what autofill sees; the field's own description is kept
+            et.setContentDescription(en);
             field = et;
         }
         field.setId(View.generateViewId());
