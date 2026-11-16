@@ -156,3 +156,7 @@ label.chip input { width: 20px; height: 20px; margin: 0; }
 .record-fab svg { width: 26px; height: 26px; }
 main:has(.record-fab) { padding-bottom: 184px; }
 .copy-btn { min-height: 44px; padding: 6px 12px; font-size: 14px; margin-left: auto; }
+/* review: speak again */
+.voice-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.voice-btn svg { width: 22px; height: 22px; }
+.voice-btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); }

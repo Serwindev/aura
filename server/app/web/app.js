@@ -63,6 +63,7 @@ function renderNav() {
 
 function go(view, data = {}) {
   stopRecorder();
+  if (view !== "record" && view !== "review" && !("replaceNoteId" in data)) S.replaceNoteId = null; // left without sending
   stopSpeaking();
   Object.assign(S, { view }, data);
   document.documentElement.lang = S.lang;
@@ -271,7 +272,7 @@ function viewRecord() {
   const taskBox = S.task ? `<div class="banner ok">${esc(t("for_task"))}: <strong>${esc(S.task.label)}</strong><br><span class="small">${esc(S.task.reason)}</span></div>` : "";
   const noModel = S.meta && !S.meta.stt.languages.includes(S.noteLang);
   VIEW().innerHTML = `
-    <h1>${esc(t("record_title"))}</h1>${taskBox}
+    <h1>${esc(t("record_title"))}</h1>${taskBox}${S.replaceNoteId ? `<div class="banner warn">${esc(t("redo_banner"))}</div>` : ""}
     <span class="field-label">${esc(t("speak_lang"))}</span>
     <div class="chips">${langChips("note")}</div>
     <div class="mic-wrap">
@@ -350,6 +351,7 @@ async function submitNote({ text, wav }) {
   busy(true, t("listening"));
   try {
     const note = await api("/notes", { method: "POST", form: noteForm(item) });
+    await dropReplaced();
     await openNote(note);
   } catch (e) {
     if (retryable(e) && await queueNote(item)) return;
@@ -358,8 +360,16 @@ async function submitNote({ text, wav }) {
   } finally { busy(false); }
 }
 
+/* "Record again from scratch": the old draft goes only once the new note is safe (on the server or queued). */
+async function dropReplaced() {
+  const id = S.replaceNoteId;
+  S.replaceNoteId = null;
+  if (id) await api(`/notes/${id}/discard`, { method: "POST" }).catch(() => {}); // offline: it stays a draft she can discard
+}
+
 async function queueNote(item) {
   try { await Outbox.put(item); } catch { return false; } // private window / no storage: show the error instead
+  await dropReplaced();
   toast(t("queued"));
   go("home", { task: null });
   scheduleFlush();
@@ -420,7 +430,7 @@ function outboxCard(x) {
 /* ---- review ---- */
 async function openNote(note) {
   if (!S.people) S.people = await api("/beneficiaries");
-  go("review", { note, draft: JSON.parse(JSON.stringify(note.record)), errors: {}, showAllVitals: false });
+  go("review", { note, draft: JSON.parse(JSON.stringify(note.record)), errors: {}, showAllVitals: false, addPerson: null });
 }
 
 const VITALS_BY_TYPE = { HBNC: ["weight_kg", "temp_c"], HBYC: ["weight_kg", "temp_c"], IMMUNIZATION: [], ANC: ["weight_kg", "bp_sys", "bp_dia", "hb_g_dl"], PNC: ["temp_c", "bp_sys", "bp_dia"] };
@@ -478,14 +488,16 @@ function viewReview() {
       <div id="audio-slot"></div>
       ${speakBtn("draft")}
     </section>
+    ${voiceCard()}
     ${notSaid(d)}
     <section>
       ${top.length ? `<h2>${esc(t("check_first"))}</h2>` + top.map((f) => `<button type="button" class="flag ${esc(f.severity)}" data-scroll="${esc(f.path)}"><strong>${esc(fieldName(f.path))}:</strong> ${esc(flagText(f))}${f.proposed !== null && typeof f.proposed !== "object" ? ` (${esc(f.proposed)})` : ""}</button>`).join("") : `<div class="banner ok">${esc(t("all_clear"))}</div>`}
     </section>
     ${danger ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}</div>` : ""}
+    ${newNameCards()}
     <section class="card">
       <label class="field ${isBad("beneficiary.matched_id")}" data-path="beneficiary.matched_id"><span>${esc(t("person"))}</span>
-        <select data-bind="beneficiary.matched_id">${options(Object.fromEntries(people.map((p) => [p.id, p.label])), d.beneficiary.matched_id, t("choose"))}</select>
+        <select data-bind="beneficiary.matched_id">${options(Object.fromEntries(people.map((p) => [p.id, p.label])), d.beneficiary.matched_id, t("choose"))}<option value="__new__">${esc(t("add_new_person_opt"))}</option></select>
         ${fieldNote("beneficiary.mention")}${fieldNote("beneficiary.matched_id")}</label>
       <label class="field ${isBad("visit_type")}" data-path="visit_type"><span>${esc(t("visit_type"))}</span>
         <select data-bind="visit_type" data-rerender>${options(VISIT_TYPES[S.lang], d.visit_type, t("choose"))}</select>${fieldNote("visit_type")}</label>
@@ -530,7 +542,105 @@ function viewReview() {
     <div class="sticky"><button class="primary wide" id="confirm">${esc(t("confirm"))}</button></div>
     <button class="danger wide" id="discard" style="margin-top:8px">${esc(t("discard"))}</button>`;
   if (n.has_audio) loadAudio(n.id);
+  if (S.addPerson) bindPersonForm(S.addPerson.cat, personAddedFromReview);
   updateConfirm();
+}
+
+/* ---- review: a name she said that is not in her list → prefilled add-person form (she saves it) ---- */
+const CHILD_VISITS = ["HBNC", "HBYC", "IMMUNIZATION"];
+function catForVisit(vt) {
+  if (vt === "HBNC") return "newborn";
+  if (vt === "HBYC" || vt === "IMMUNIZATION") return "child";
+  return vt === "ANC" ? "pregnant" : "other";
+}
+function prefillFor(name) {
+  const vt = S.draft.visit_type;
+  const key = name.script === "hi" ? "hi" : "en";
+  if (name.role === "mother" || CHILD_VISITS.includes(vt)) { // the visit is for her baby/child
+    return { cat: vt === "HBYC" || vt === "IMMUNIZATION" ? "child" : "newborn", heard: name.text, pre: { ["mother_name_" + key]: name.text } };
+  }
+  return { cat: catForVisit(vt), heard: name.text, pre: { ["name_" + key]: name.text } };
+}
+function newNameCards() {
+  if (S.addPerson) {
+    const title = S.addPerson.heard ? `${t("new_person_title")}: “${S.addPerson.heard}”` : t("new_person_title");
+    return personForm(S.addPerson.cat, S.people || [], S.addPerson.pre, "npcat", { title, onCancel: true });
+  }
+  return (S.note.new_names || []).map((x, i) => `<div class="banner warn"><strong>${esc(t("new_name_heard"))}:</strong> “${esc(x.text)}” ${esc(t("new_name_not_listed"))}
+    <button class="primary wide" style="margin-top:8px" data-new-name="${i}">+ ${esc(t("add_as_new"))}</button></div>`).join("");
+}
+async function personAddedFromReview(person) {
+  const heard = S.addPerson?.heard;
+  S.addPerson = null;
+  try { S.people = await api("/beneficiaries"); } catch { /* keep the old list; the new id is still set */ }
+  S.draft.beneficiary.matched_id = person.id;
+  delete S.errors["beneficiary.matched_id"];
+  S.note.new_names = (S.note.new_names || []).filter((x) => x.text !== heard);
+  S.note.flags = (S.note.flags || []).filter((f) => !(f.path === "beneficiary.matched_id" && f.code === "NEEDS_CHOICE"));
+  toast(t("person_picked"));
+  viewReview();
+  scrollToPath("beneficiary.matched_id");
+}
+
+/* ---- review: speak again. "Add or change" sends only the new clip; the server changes only the fields
+   the new words state (each with its quote) and the phone applies the same changes on top of her typed edits. ---- */
+function voiceCard() {
+  const on = !!S.recorder;
+  return `<section class="card">
+    <button class="${on ? "danger" : "primary"} wide voice-btn" id="voice-add">${on ? ICONS.stop : ICONS.mic} ${esc(on ? t("voice_stop") : t("voice_add"))}</button>
+    <div class="timer" id="timer" aria-live="off" style="text-align:center;min-height:0;margin:0"></div>
+    <p class="small muted">${esc(t("voice_add_hint"))}</p>
+    <button class="link" id="voice-redo">${esc(t("voice_redo"))}</button></section>`;
+}
+async function toggleVoiceAdd() {
+  if (S.recorder) {
+    const rec = S.recorder;
+    S.recorder = null;
+    busy(true, t("listening"));
+    try {
+      const wav = await rec.stop();
+      const form = new FormData();
+      form.append("language", S.note.language || S.noteLang || S.lang);
+      form.append("audio", wav, "add.wav");
+      applyVoice(await api(`/notes/${S.note.id}/add`, { method: "POST", form }));
+    } catch (e) {
+      viewReview();
+      toast(retryable(e) ? t("voice_needs_net") : FLAG_TEXT[S.lang][e.code] || e.message);
+    } finally { busy(false); }
+    return;
+  }
+  const rec = new AuraAudio.Recorder((sec, level, limit) => {
+    const el = $("#timer");
+    if (el) el.textContent = `${Math.floor(sec / 60)}:${String(Math.floor(sec) % 60).padStart(2, "0")}`;
+    if (limit && S.recorder === rec) toggleVoiceAdd();
+  });
+  try { await rec.start(); } catch (e) { rec.release(); return toast(e.message === "insecure" ? t("insecure_mic") : t("no_mic")); }
+  S.recorder = rec;
+  const b = $("#voice-add");
+  if (b) { b.className = "danger wide voice-btn"; b.innerHTML = `${ICONS.stop} ${esc(t("voice_stop"))}`; }
+}
+function applyVoice(res) {
+  const ch = res.changes || {};
+  const d = S.draft;
+  for (const [path, value] of Object.entries(ch.scalars || {})) { setPath(d, path, value); delete S.errors[path]; }
+  if (ch.scalars && "beneficiary.matched_id" in ch.scalars) d.beneficiary.match_confidence = res.record.beneficiary.match_confidence;
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  for (const item of ch.danger_signs || []) {
+    const i = d.danger_signs.findIndex((x) => x.code === item.code);
+    if (i < 0) d.danger_signs.push(item); else d.danger_signs[i] = item;
+  }
+  for (const item of ch.services_given || []) if (!d.services_given.some((x) => same(x, item))) d.services_given.push(item);
+  for (const item of ch.next_due || []) {
+    const i = d.next_due.findIndex((x) => (x.what || "").trim().toLowerCase() === (item.what || "").trim().toLowerCase());
+    if (i < 0) d.next_due.push(item); else d.next_due[i] = item;
+  }
+  const names = [...Object.keys(ch.scalars || {}).map(fieldName),
+    ...(ch.danger_signs || []).map((x) => dangerLabel(x.code)),
+    ...(ch.services_given || []).map((x) => SERVICE_TYPES[S.lang][x.type] || x.type),
+    ...(ch.next_due || []).map((x) => x.what)];
+  S.note = res; // new transcript, quotes and flags
+  viewReview();
+  toast(`${t("voice_updated")} ${[...new Set(names)].join(", ")}`);
 }
 
 /* What the visit type usually needs but the note did not say, so she can ask before confirming. */
@@ -760,36 +870,24 @@ async function download(path, filename) {
 /* ---- people (T-045): she registers a newborn, child or pregnant woman herself ---- */
 const PCATS = ["newborn", "child", "pregnant", "other"];
 
-async function viewPeople() {
-  VIEW().className = "";
-  let list;
-  try { list = await api("/beneficiaries"); } catch (e) { return fail(e); }
-  if (S.view !== "people") return;
-  S.people = list;
-  const cat = S.newCat || "newborn";
+/* Add-person form, used on People and (prefilled from a name she said) on the review screen. */
+function personForm(cat, list, pre, chip, { title = "", onCancel = false } = {}) {
   const kid = cat === "newborn" || cat === "child";
   const mothers = list.filter((p) => p.category === "pregnant" || p.category === "other");
-  const own = list.filter((p) => p.own), demo = list.filter((p) => !p.own);
-  const row = (p) => `<div class="card"><div class="task-head"><span class="task-name">${esc(p.label)}</span>
-      ${p.own ? "" : '<span class="tag sim">SIMULATED</span>'}</div>
-      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}${p.area ? " · " + esc(p.area) : ""}${p.at_risk ? ` <span class="tag warn">${esc(t("at_risk_tag"))}</span>` : ""}</p>
-      ${p.own ? `<div class="task-actions">${ssbskOn() && p.category === "newborn" ? `<button data-person-risk="${esc(p.id)}">${esc(p.at_risk ? t("at_risk_clear") : t("at_risk_mark"))}</button>` : ""}<button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
-  VIEW().innerHTML = `
-    <h1>${esc(t("people_title"))}</h1>
-    <p class="muted">${esc(t("people_hint"))}</p>
-    <form class="card" id="f-person">
+  return `
+    <form class="card" id="f-person">${title ? `<h2 style="margin-top:0">${esc(title)}</h2>` : ""}
       <span class="field-label">${esc(t("who"))}</span>
-      <div class="chips">${PCATS.map((c) => `<button type="button" class="chip" data-pcat="${c}" aria-pressed="${c === cat}">${esc(t("cat_" + c))}</button>`).join("")}</div>
-      <label class="field"><span>${esc(t("name_hi"))}${cat === "newborn" ? " " + esc(t("optional")) : ""}</span><input name="name_hi" lang="hi" autocomplete="off" maxlength="60"></label>
-      <label class="field"><span>${esc(t("name_en"))}${cat === "newborn" ? " " + esc(t("optional")) : ""}</span><input name="name_en" lang="en" autocomplete="off" maxlength="60"></label>
+      <div class="chips">${PCATS.map((c) => `<button type="button" class="chip" data-${chip}="${c}" aria-pressed="${c === cat}">${esc(t("cat_" + c))}</button>`).join("")}</div>
+      <label class="field"><span>${esc(t("name_hi"))}${cat === "newborn" ? " " + esc(t("optional")) : ""}</span><input name="name_hi" lang="hi" autocomplete="off" maxlength="60" value="${esc(pre.name_hi || "")}"></label>
+      <label class="field"><span>${esc(t("name_en"))}${cat === "newborn" ? " " + esc(t("optional")) : ""}</span><input name="name_en" lang="en" autocomplete="off" maxlength="60" value="${esc(pre.name_en || "")}"></label>
       ${kid ? `
         <label class="field"><span>${esc(t("dob"))}</span><input type="date" name="dob" max="${todayIso()}" value="${cat === "newborn" ? todayIso() : ""}" required></label>
         <label class="field"><span>${esc(t("mother"))}</span><select name="mother_id">
           <option value="">${esc(t("mother_new"))}</option>
           ${mothers.map((m) => `<option value="${esc(m.id)}">${esc(m.label)}</option>`).join("")}</select></label>
         <div id="new-mother">
-          <label class="field"><span>${esc(t("mother_name_hi"))}</span><input name="mother_name_hi" lang="hi" autocomplete="off" maxlength="60"></label>
-          <label class="field"><span>${esc(t("mother_name_en"))}</span><input name="mother_name_en" lang="en" autocomplete="off" maxlength="60"></label>
+          <label class="field"><span>${esc(t("mother_name_hi"))}</span><input name="mother_name_hi" lang="hi" autocomplete="off" maxlength="60" value="${esc(pre.mother_name_hi || "")}"></label>
+          <label class="field"><span>${esc(t("mother_name_en"))}</span><input name="mother_name_en" lang="en" autocomplete="off" maxlength="60" value="${esc(pre.mother_name_en || "")}"></label>
         </div>` : ""}
       ${cat === "newborn" ? `
         <span class="field-label">${esc(t("birth_place"))}</span>
@@ -801,10 +899,13 @@ async function viewPeople() {
       <datalist id="areas">${[...new Set(list.map((p) => p.area).filter(Boolean))].map((a) => `<option value="${esc(a)}">`).join("")}</datalist>
       <p class="small muted">${esc(t("two_scripts"))}</p>
       <button class="primary wide">${esc(t("add_person"))}</button>
-    </form>
-    ${own.length ? `<h2>${esc(t("people_mine"))} (${own.length})</h2>` + own.map(row).join("") : ""}
-    ${demo.length ? `<h2>${esc(t("people_demo"))} (${demo.length})</h2>` + demo.map(row).join("") : ""}`;
+      ${onCancel ? `<button type="button" class="wide" data-${chip}-cancel="1" style="margin-top:8px">${esc(t("cancel"))}</button>` : ""}
+    </form>`;
+}
+
+function bindPersonForm(cat, onAdded) {
   const f = $("#f-person");
+  const kid = cat === "newborn" || cat === "child";
   if (f.mother_id) f.mother_id.onchange = () => { $("#new-mother").hidden = !!f.mother_id.value; };
   f.onsubmit = async (e) => {
     e.preventDefault();
@@ -814,12 +915,32 @@ async function viewPeople() {
     if (cat === "newborn") body.delivery_place = f.querySelector("input[name=delivery_place]:checked")?.value || null;
     if (cat === "newborn" && f.at_risk) body.at_risk = f.at_risk.checked;
     try {
-      await api("/beneficiaries", { method: "POST", json: body });
-      S.people = null; S.newCat = null;
+      const person = await api("/beneficiaries", { method: "POST", json: body });
       toast(kid ? t("person_added_tasks") : t("person_added"));
-      viewPeople();
+      onAdded(person);
     } catch (err) { fail(err); }
   };
+}
+
+async function viewPeople() {
+  VIEW().className = "";
+  let list;
+  try { list = await api("/beneficiaries"); } catch (e) { return fail(e); }
+  if (S.view !== "people") return;
+  S.people = list;
+  const cat = S.newCat || "newborn";
+  const own = list.filter((p) => p.own), demo = list.filter((p) => !p.own);
+  const row = (p) => `<div class="card"><div class="task-head"><span class="task-name">${esc(p.label)}</span>
+      ${p.own ? "" : '<span class="tag sim">SIMULATED</span>'}</div>
+      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}${p.area ? " · " + esc(p.area) : ""}${p.at_risk ? ` <span class="tag warn">${esc(t("at_risk_tag"))}</span>` : ""}</p>
+      ${p.own ? `<div class="task-actions">${ssbskOn() && p.category === "newborn" ? `<button data-person-risk="${esc(p.id)}">${esc(p.at_risk ? t("at_risk_clear") : t("at_risk_mark"))}</button>` : ""}<button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
+  VIEW().innerHTML = `
+    <h1>${esc(t("people_title"))}</h1>
+    <p class="muted">${esc(t("people_hint"))}</p>
+    ${personForm(cat, list, {}, "pcat")}
+    ${own.length ? `<h2>${esc(t("people_mine"))} (${own.length})</h2>` + own.map(row).join("") : ""}
+    ${demo.length ? `<h2>${esc(t("people_demo"))} (${demo.length})</h2>` + demo.map(row).join("") : ""}`;
+  bindPersonForm(cat, () => { S.people = null; S.newCat = null; viewPeople(); });
 }
 
 function ssbskOn() { return !!(S.user && S.user.schedule === "ssbsk2026"); }
@@ -966,6 +1087,14 @@ document.addEventListener("click", (e) => {
   if (d.dl) return download(`/reports/claims?month=${S.reportMonth || todayIso().slice(0, 7)}&format=${d.dl}&lang=${S.lang}`, `claim-support-${S.reportMonth || todayIso().slice(0, 7)}.${d.dl}`);
   if (S.view !== "review") return;
   if (b.id === "confirm") return confirmNote();
+  if (b.id === "voice-add") return toggleVoiceAdd();
+  if (b.id === "voice-redo") {
+    if (!confirm(t("voice_redo_q"))) return;
+    return go("record", { replaceNoteId: S.note.id, noteLang: S.note.language || S.noteLang });
+  }
+  if (d.newName !== undefined) { S.addPerson = prefillFor(S.note.new_names[+d.newName]); viewReview(); return scrollToPath("beneficiary.matched_id"); }
+  if (d.npcat) { S.addPerson = { ...S.addPerson, cat: d.npcat }; return viewReview(); }
+  if (d.npcatCancel) { S.addPerson = null; return viewReview(); }
   if (b.id === "discard") {
     if (!confirm(t("discard_q"))) return;
     return api(`/notes/${S.note.id}/discard`, { method: "POST" }).then(() => go("home", { task: null })).catch(fail);
@@ -989,6 +1118,13 @@ document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.id === "add-danger" && el.value) { S.draft.danger_signs.push({ code: el.value, present: true }); return viewReview(); }
   if (S.view !== "review") return;
+  if (el.dataset.bind === "beneficiary.matched_id" && el.value === "__new__") {
+    el.value = S.draft.beneficiary.matched_id || "";
+    S.addPerson = { cat: catForVisit(S.draft.visit_type), heard: "", pre: {} };
+    viewReview();
+    return scrollToPath("beneficiary.matched_id");
+  }
+  if (el.closest("#f-person")) return; // the add-person form is not part of the record
   if (el.dataset.bind) {
     const raw = el.value.trim();
     const value = raw === "" ? null : el.dataset.num !== undefined ? Number(raw) : raw;

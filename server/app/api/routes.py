@@ -17,6 +17,7 @@ from ..core.config import RULES_DIR, SCHEDULES, load_yaml, schedule_or_default
 from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
 from ..extraction.llm import from_env as llm_from_env
+from ..extraction.names import new_names
 from ..forms import form_view
 from ..reports import monthly
 from ..reports.claims import claim_sheet
@@ -26,6 +27,7 @@ from ..services import (
     RequestError,
     TaskHint,
     add_person,
+    add_to_note,
     confirm_note,
     create_note,
     delete_audio,
@@ -92,12 +94,16 @@ def own_note(db: Session, user: User, note_id: str) -> Note:
 
 
 def note_view(n: Note, db: Session, lang: str, **extra) -> dict:
-    people = {p.id: p for p in people_for(db, n.owner_id)}
+    plist = people_for(db, n.owner_id)
+    people = {p.id: p for p in plist}
+    # names heard that are not in her list → the review screen offers "Add as new person" (drafts only)
+    heard_new = [{"text": x.text, "role": x.role, "script": x.script}
+                 for x in new_names(n.transcript, plist)] if n.status == "draft" else []
     return {"id": n.id, "status": n.status, "source": n.source, "language": n.language,
             "recorded_on": n.recorded_on.isoformat(), "transcript": n.transcript, "stt_provider": n.stt_provider,
             "stt_confidence": n.stt_confidence, "record": n.confirmed or n.draft, "flags": n.flags,
             "candidates": [{"id": c, "label": label(people[c], lang)} for c in n.candidates if c in people],
-            "has_audio": bool(n.audio_path), "edited_paths": n.edited_paths,
+            "has_audio": bool(n.audio_path), "edited_paths": n.edited_paths, "new_names": heard_new,
             "created_at": n.created_at.isoformat() + "Z", **extra}
 
 
@@ -279,6 +285,18 @@ def post_note(request: Request, audio: UploadFile | None = File(default=None), t
     if language not in ("hi", "en"):
         raise RequestError(422, "BAD_LANGUAGE", "Language must be hi or en")
     spoken_on = _recorded_on(recorded_on, settings(request).today())
+    typed, wav, stt = _note_input(request, audio, text)
+    try:
+        note = create_note(db, settings(request), stt, user.id, text=typed, wav=wav, language=language,
+                           hint=TaskHint(beneficiary_id, programme, rule_id), idempotency_key=idempotency_key,
+                           recorded_on=spoken_on)
+    except SttError as exc:
+        raise RequestError(503, "STT_FAILED", str(exc)) from exc
+    return note_view(note, db, user.lang)
+
+
+def _note_input(request: Request, audio: UploadFile | None, text: str | None) -> tuple[str, bytes | None, object]:
+    """Exactly one of audio / text, within size limits; the speech service when there is audio."""
     typed = (text or "").strip()
     if (audio is None) == (not typed):
         raise RequestError(422, "NEED_ONE_INPUT", "Send either audio or text")
@@ -298,13 +316,7 @@ def post_note(request: Request, audio: UploadFile | None = File(default=None), t
             raise RequestError(503, "STT_UNAVAILABLE", str(exc)) from exc
         except SttError as exc:
             raise RequestError(415, "BAD_AUDIO", str(exc)) from exc
-    try:
-        note = create_note(db, settings(request), stt, user.id, text=typed, wav=wav, language=language,
-                           hint=TaskHint(beneficiary_id, programme, rule_id), idempotency_key=idempotency_key,
-                           recorded_on=spoken_on)
-    except SttError as exc:
-        raise RequestError(503, "STT_FAILED", str(exc)) from exc
-    return note_view(note, db, user.lang)
+    return typed, wav, stt
 
 
 MAX_QUEUE_DAYS = 60
@@ -362,6 +374,22 @@ def get_audio(note_id: str, user: User = Depends(current_user), db: Session = De
 
 class ConfirmBody(BaseModel):
     record: dict
+
+
+@router.post("/notes/{note_id}/add")
+def post_add(note_id: str, request: Request, audio: UploadFile | None = File(default=None),
+             text: str | None = Form(default=None), language: str = Form(default="hi"),
+             user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Add to or change a draft by speaking again. Only fields the new words state change."""
+    if language not in ("hi", "en"):
+        raise RequestError(422, "BAD_LANGUAGE", "Language must be hi or en")
+    note = own_note(db, user, note_id)
+    typed, wav, stt = _note_input(request, audio, text)
+    try:
+        changes = add_to_note(db, settings(request), stt, note, text=typed, wav=wav, language=language)
+    except SttError as exc:
+        raise RequestError(503, "STT_FAILED", str(exc)) from exc
+    return note_view(note, db, user.lang, changes=changes)
 
 
 @router.post("/notes/{note_id}/confirm")

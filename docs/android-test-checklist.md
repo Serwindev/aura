@@ -1,4 +1,4 @@
-# Android app — test checklist (v1.9.0)
+# Android app — test checklist (v1.10.0)
 
 Synthetic data only. Tick each line and note anything that went wrong next to it. If the APK fails, use the web app instead (`.\make.ps1 phone-usb`).
 
@@ -38,6 +38,15 @@ Synthetic data only. Tick each line and note anything that went wrong next to it
 - [ ] People → add a newborn with "At-risk newborn" ticked → 9 visits (days 1, 3, 5, 7, 10, 14, 21, 28, 42).
 - [ ] A note for "day 5" can be confirmed under SSBSK; under HBNC 2014 it is flagged.
 - [ ] Switch back to HBNC 2014 → the old tasks return.
+
+## Speak again and new people (v1.10)
+- [ ] Review → **Add or change by voice** → say "temperature 38 degrees, ORS given" → Stop → only temperature and ORS change, each marked "Changed by your added recording"; the transcript shows both clips.
+- [ ] Type a change in a field first, then add by voice about a different field → your typed change stays.
+- [ ] Say something with no field ("okay that is all") → "Nothing new was heard"; nothing changes.
+- [ ] Airplane mode → Add by voice → "needs the server" message; the draft is unchanged.
+- [ ] **Record again from scratch** → confirm → record a new note → the new draft opens; Home no longer lists the old draft.
+- [ ] Record "Bhagwati ki bachchi ka newborn visit day 3, weight 2.9 kg" (a name not in your list) → banner "New name heard: Bhagwati" → **Add as new person** → form opens with Newborn and mother "Bhagwati" filled → Add → the new baby is chosen for the note → Confirm works.
+- [ ] Person dropdown → **+ Add new person** → empty form → Cancel → back to the review, nothing changed.
 
 ## Report back
 Phone model and Android version, plus every unticked line with a short note or a screenshot (synthetic data only).

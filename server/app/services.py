@@ -24,6 +24,7 @@ from .core.settings import Settings
 from .db.models import AuditEvent, Note, Person, TaskAction, User, new_id, utcnow
 from .extraction.dates_hi import add_months
 from .extraction.names import Person as NamePerson
+from .extraction.names import resolve_beneficiary
 from .extraction.validate import Flag
 from .pipeline import PipelineResult, load_people, process_audio, process_text
 from .rules import engine
@@ -166,6 +167,104 @@ def create_note(db: Session, cfg: Settings, stt: Any, owner_id: str, *, text: st
     db.add(AuditEvent(owner_id=owner_id, note_id=note.id, action="draft_created", detail={"source": note.source}))
     db.commit()
     return note
+
+
+def _set(d: dict, path: str, value: Any) -> None:
+    parts = path.split(".")
+    for part in parts[:-1]:
+        d = d.setdefault(part, {})
+    d[parts[-1]] = value
+
+
+def add_to_note(db: Session, cfg: Settings, stt: Any, note: Note, *, text: str | None, wav: bytes | None,
+                language: str) -> dict:
+    """She speaks (or types) more on the review screen. Only what the new words STATE changes — a field
+    changes only if the new clip carries a quote for it — and newer speech wins. The machine draft is
+    updated (so these are not counted as her manual corrections) and the clip's text is appended to the
+    transcript. The added audio is never stored. Returns the changes so the phone can apply them on top
+    of her own typed edits."""
+    if note.status != "draft":
+        raise RequestError(409, "NOT_A_DRAFT", "This note is already confirmed or discarded")
+    people = people_for(db, note.owner_id)
+    vcfg = validation_config(schedule=user_schedule(db, note.owner_id))
+    if wav is not None:
+        result = process_audio(wav, note.recorded_on, people, stt, language, config=vcfg)
+    else:
+        result = process_text(text or "", note.recorded_on, people, config=vcfg)
+    added = result.transcript.text.strip()
+    if not added:
+        raise RequestError(422, "EMPTY_TRANSCRIPT", "No speech could be recognised in this audio")
+    new = result.validation.record.model_dump(mode="json")
+    ev_new = new.get("evidence") or {}
+    draft = jsonable_encoder(note.draft)
+    ev = draft.setdefault("evidence", {})
+    scalars: dict[str, Any] = {}
+    lists: dict[str, list] = {lp: [] for lp in LIST_PATHS}
+    remap: dict[str, str] = {}  # flag/evidence path in the clip → path in the draft
+    for p in SCALAR_PATHS:
+        if p == "beneficiary.matched_id" or p not in ev_new or _get(new, p) is None:
+            continue
+        _set(draft, p, _get(new, p))
+        ev[p] = ev_new[p]
+        scalars[p] = _get(new, p)
+        remap[p] = p
+    match = result.match
+    if new.get("visit_type") is None and draft.get("visit_type"):
+        # the clip did not say the visit type: "Sunita baby" on a newborn visit is her newborn, not Sunita
+        match = resolve_beneficiary(added, people, draft["visit_type"])
+    if match and match.matched_id:
+        result.match = match
+        _set(draft, "beneficiary.matched_id", result.match.matched_id)
+        _set(draft, "beneficiary.match_confidence", min(1.0, result.match.confidence))
+        if "beneficiary.mention" in ev_new:
+            ev["beneficiary.mention"] = ev_new["beneficiary.mention"]
+            _set(draft, "beneficiary.mention", _get(new, "beneficiary.mention"))
+        scalars["beneficiary.matched_id"] = result.match.matched_id
+        remap["beneficiary.matched_id"] = "beneficiary.matched_id"
+        note.candidates = result.match.candidates
+    for lp in LIST_PATHS:
+        cur = draft.setdefault(lp, [])
+        for i, item in enumerate(new.get(lp) or []):
+            key = f"{lp}[{i}]"
+            if key not in ev_new:
+                continue
+            if lp == "danger_signs":
+                j = next((k for k, x in enumerate(cur) if x.get("code") == item["code"]), None)
+            elif lp == "next_due":
+                j = next((k for k, x in enumerate(cur) if (x.get("what") or "").strip().lower()
+                          == (item.get("what") or "").strip().lower()), None)
+            else:  # services: the same service twice is one service
+                j = next((k for k, x in enumerate(cur) if x == item), None)
+            if j is None:
+                cur.append(item)
+                j = len(cur) - 1
+            else:
+                cur[j] = item
+            ev[f"{lp}[{j}]"] = ev_new[key]
+            remap[key] = f"{lp}[{j}]"
+            lists[lp].append(item)
+    changed = set(remap.values())
+    if not changed:
+        raise RequestError(422, "NOTHING_NEW", "Nothing new was heard. Say the field and its value, e.g. 'temperature 37'")
+    flags = [f for f in note.flags if f["path"] not in changed and f["path"] not in {p.split("[")[0] for p in changed}]
+    if "beneficiary.matched_id" in changed:
+        flags = [f for f in flags if f["path"] != "beneficiary.matched_id"]
+    for f in jsonable_encoder([asdict(f) for f in result.validation.needs_review]):
+        if f["path"] in remap:
+            flags.append({**f, "path": remap[f["path"]]})
+    for p in sorted(changed):
+        flags.append(asdict(Flag(p, "VOICE_ADDED", "info", "Changed by your added recording")))
+    if draft.get("visit_type") == "HBNC" and _get(draft, "visit_index.hbnc_day") is None \
+            and not any(f["path"] == "visit_index.hbnc_day" for f in flags):
+        flags.append(asdict(Flag("visit_index.hbnc_day", "NEEDS_DAY", "warning",
+                                 "Add the HBNC day so the schedule can be updated")))
+    note.draft = draft
+    note.flags = jsonable_encoder(flags)
+    note.transcript = f"{note.transcript}\n{added}"
+    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="voice_added",
+                      detail={"source": "audio" if wav is not None else "text", "paths": sorted(changed)}))
+    db.commit()
+    return {"added_text": added, "scalars": scalars, **lists}
 
 
 def delete_audio(note: Note) -> bool:
