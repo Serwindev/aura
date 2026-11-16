@@ -7,21 +7,20 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-/** The one visit that is ready to autofill: confirmed answers only, kept on this phone (app-private storage, not backed up). */
+/** The one form that is ready to autofill: confirmed answers only, kept on this phone (app-private, not backed up). */
 public final class VisitStore {
     private static final String PREFS = "aura_autofill";
     private static final String KEY = "visit";
 
     public static final class Visit {
-        public final String noteId;
-        public final String title;
+        public final String noteId, title;
         public final long savedAt;
-        public final Map<String, String> answers; // form row id -> value
+        public final List<FieldMatcher.Answer> answers;
 
-        Visit(String noteId, String title, long savedAt, Map<String, String> answers) {
+        Visit(String noteId, String title, long savedAt, List<FieldMatcher.Answer> answers) {
             this.noteId = noteId;
             this.title = title;
             this.savedAt = savedAt;
@@ -35,25 +34,27 @@ public final class VisitStore {
         return c.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    /** @param fields array of {id, value}; rows without a value are dropped (blank stays blank). */
+    /** @param fields array of {id, fill, input, match[]}; rows without a fill value are dropped (blank stays blank). */
     public static int save(Context c, String noteId, String title, JSONArray fields) throws JSONException {
-        JSONObject answers = new JSONObject();
-        int n = 0;
+        JSONArray kept = new JSONArray();
         for (int i = 0; i < fields.length(); i++) {
             JSONObject f = fields.getJSONObject(i);
-            String id = f.optString("id", "");
-            String value = f.isNull("value") ? "" : f.optString("value", "");
-            if (id.isEmpty() || value.trim().isEmpty()) continue;
-            answers.put(id, value);
-            n++;
+            String fill = f.isNull("fill") ? "" : f.optString("fill", "");
+            if (f.optString("id", "").isEmpty() || fill.trim().isEmpty()) continue;
+            JSONObject a = new JSONObject();
+            a.put("id", f.getString("id"));
+            a.put("fill", fill);
+            a.put("input", f.optString("input", "text"));
+            a.put("match", f.optJSONArray("match") == null ? new JSONArray() : f.getJSONArray("match"));
+            kept.put(a);
         }
         JSONObject o = new JSONObject();
         o.put("noteId", noteId);
         o.put("title", title);
         o.put("savedAt", System.currentTimeMillis());
-        o.put("answers", answers);
+        o.put("answers", kept);
         prefs(c).edit().putString(KEY, o.toString()).apply();
-        return n;
+        return kept.length();
     }
 
     public static Visit load(Context c) {
@@ -62,14 +63,19 @@ public final class VisitStore {
         try {
             JSONObject o = new JSONObject(raw);
             long savedAt = o.optLong("savedAt", 0);
-            if (FillPlanner.expired(savedAt, System.currentTimeMillis())) {
+            JSONArray arr = o.optJSONArray("answers");
+            if (FillPlanner.expired(savedAt, System.currentTimeMillis()) || arr == null) {
                 clear(c);
                 return null;
             }
-            JSONObject a = o.getJSONObject("answers");
-            Map<String, String> answers = new LinkedHashMap<>();
-            JSONArray names = a.names();
-            if (names != null) for (int i = 0; i < names.length(); i++) answers.put(names.getString(i), a.getString(names.getString(i)));
+            List<FieldMatcher.Answer> answers = new ArrayList<>();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject a = arr.getJSONObject(i);
+                List<String> words = new ArrayList<>();
+                JSONArray m = a.optJSONArray("match");
+                if (m != null) for (int k = 0; k < m.length(); k++) words.add(m.getString(k));
+                answers.add(new FieldMatcher.Answer(a.getString("id"), a.getString("fill"), a.optString("input"), words));
+            }
             return new Visit(o.optString("noteId"), o.optString("title"), savedAt, answers);
         } catch (JSONException e) {
             clear(c);

@@ -433,6 +433,29 @@ def label(p: NamePerson, lang: str) -> str:
     return (p.label_hi if lang == "hi" else p.label_en) or p.label_en or p.id
 
 
+def form_context(db: Session, owner_id: str, person_id: str | None, lang: str) -> tuple[dict, str | None]:
+    """Her saved details for the person a note is about, and the first date each vaccine dose appears in her
+    CONFIRMED notes for that person (for the RCH child-tracking form). Returns (ctx, person category)."""
+    people = {p.id: p for p in people_for(db, owner_id)}
+    p = people.get(person_id or "")
+    if p is None:
+        return {}, None
+    mother = people.get(p.mother_id or "")
+    person = {"name": label(p, lang), "mother": label(mother, lang) if mother else None,
+              "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place, "area": p.area}
+    table = dose_table()
+    doses: dict[str, str] = {}
+    for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.status == "confirmed")).all():
+        rec = n.confirmed or {}
+        if (rec.get("beneficiary") or {}).get("matched_id") != p.id or not rec.get("visit_date"):
+            continue
+        for sv in rec.get("services_given") or []:
+            did = dose_id(sv.get("detail"), table) if sv.get("type") == "VACCINE" else None
+            if did and (did not in doses or rec["visit_date"] < doses[did]):
+                doses[did] = rec["visit_date"]
+    return {"person": person, "doses": doses}, p.category
+
+
 def set_task_action(db: Session, owner_id: str, beneficiary_id: str, rule_id: str, action: str, until: date | None,
                     today: date) -> None:
     if action not in ("dismiss", "reschedule", "restore"):

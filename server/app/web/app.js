@@ -748,7 +748,7 @@ function viewSaved() {
     <div class="card"><p class="task-name">${esc(who)}</p><p>${esc(VISIT_TYPES[S.lang][r.visit_type])} · ${esc(fmtDate(r.visit_date))}</p></div>
     ${signs.length ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}<ul class="plain">${signs.map((x) => `<li>• ${esc(dangerLabel(x.code))}</li>`).join("")}</ul></div>` : ""}
     ${speakBtn("saved")}
-    ${r.visit_type === "HBNC" ? `<button class="wide" data-nav="form" style="margin-top:8px">${esc(t("form_view"))}</button>` : ""}
+    ${["HBNC", "HBYC", "IMMUNIZATION", "PNC"].includes(r.visit_type) ? `<button class="wide" data-nav="form" style="margin-top:8px">${esc(t("form_view"))}</button>` : ""}
     <div class="banner ok">${esc(t("saved_only_here"))}${S.note.audio_deleted ? " " + esc(t("audio_deleted")) : ""}</div>
     <button class="primary wide" data-nav="home">${esc(t("go_home"))}</button>
     <button class="wide" data-nav="record" style="margin-top:10px">${esc(t("another"))}</button>`;
@@ -758,13 +758,18 @@ function viewSaved() {
 async function viewForm() {
   VIEW().className = "";
   VIEW().innerHTML = `<div class="empty"><div class="spinner" style="margin:auto"></div></div>`;
-  let f;
-  try { f = await api(`/notes/${S.note.id}/form?lang=${S.lang}`); } catch (e) { return fail(e); }
+  let f, list;
+  try {
+    list = await api(`/notes/${S.note.id}/forms?lang=${S.lang}`);
+    if (!list.some((x) => x.id === S.formId)) S.formId = list[0]?.id;
+    f = await api(`/notes/${S.note.id}/form?lang=${S.lang}${S.formId ? `&form=${encodeURIComponent(S.formId)}` : ""}`);
+  } catch (e) { return fail(e); }
   if (S.view !== "form") return;
   S.formText = formText(f);
   S.formData = f;
   VIEW().innerHTML = `
     <h1>${esc(f.title)}</h1>
+    ${list.length > 1 ? `<span class="field-label">${esc(t("form_pick"))}</span><div class="chips">${list.map((x) => `<button class="chip" data-form-id="${esc(x.id)}" aria-pressed="${x.id === f.form}">${esc(x.short)}</button>`).join("")}</div>` : ""}
     <div class="banner">${esc(t("form_hint"))}</div>
     <p class="small">${esc(t("form_copy_hint"))}</p>
     <p class="small muted">${esc(f.filled)} / ${esc(f.total)} ${esc(t("form_filled"))}</p>
@@ -772,8 +777,10 @@ async function viewForm() {
     ${NATIVE ? `<section class="card"><div class="task-head"><strong>${esc(t("af_title"))}</strong></div>
       <p class="small">${esc(t("af_hint"))}</p>
       <button class="primary wide" data-autofill="1">${esc(t("af_ready"))}</button>
-      <div class="row" style="margin-top:8px"><button data-af-settings="1">${esc(t("af_enable"))}</button><button data-af-test="1">${esc(t("af_test"))} <span class="tag sim">SIMULATED</span></button></div>
-      <p class="small muted" id="af-status"></p></section>` : ""}
+      <div class="row" style="margin-top:8px"><button data-af-settings="1">${esc(t("af_enable"))}</button></div>
+      <div class="row" style="margin-top:8px"><button data-af-test="1">${esc(t("af_test"))} <span class="tag sim">SIMULATED</span></button><button data-af-portal="1">${esc(t("af_portal"))} <span class="tag sim">SIMULATED</span></button></div>
+      <p class="small muted" id="af-status"></p>
+      <div class="banner danger small">${esc(t("af_demo_warn"))}</div></section>` : ""}
     ${f.sections.map((s) => `<section class="card"><span class="field-label">${esc(s.title)}</span>
       <ul class="plain">${s.rows.map((r) => `<li class="form-row"><span>${esc(r.question)}</span>
         ${r.value !== null ? `<strong>${esc(r.value)}</strong><button class="copy-btn" data-copy="${esc(r.value)}" aria-label="${esc(t("copy") + ": " + r.question)}">${esc(t("copy"))}</button>` : `<span class="muted small">${esc(r.captured ? t("form_not_said") : t("form_fill_self"))}</span>`}
@@ -1064,7 +1071,9 @@ document.addEventListener("click", (e) => {
   if (d.schedule) return setSchedule(d.schedule);
   if (d.personRisk) return togglePersonRisk(d.personRisk);
   if (d.afSettings) return nativeCall("AuraAutofill", "openSettings").catch(fail);
-  if (d.afTest) return nativeCall("AuraAutofill", "openTestForm").catch(fail);
+  if (d.afTest) return S.formData && nativeCall("AuraAutofill", "openTestForm", { form: practiceForm(S.formData) }).catch(fail);
+  if (d.afPortal) return S.formData && nativeCall("AuraAutofill", "openBrowser", { url: `${serverBase()}/sim-portal/${S.formData.form}` }).catch(fail);
+  if (d.formId) { S.formId = d.formId; return viewForm(); }
   if (d.nav) return go(d.nav, { task: null });
   if (d.uiLang) return setUiLang(d.uiLang);
   if (d.noteLang) { S.noteLang = d.noteLang; return viewRecord(); }

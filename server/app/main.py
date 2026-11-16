@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import sim_portal
 from .api.routes import router
 from .core.settings import Settings, load_settings
 from .db.models import make_session_factory
@@ -89,6 +90,7 @@ def create_app(settings: Settings | None = None, stt=None, warm_stt: bool = True
                        allow_methods=["GET", "POST", "PATCH", "DELETE"],
                        allow_headers=["Authorization", "Content-Type"])
     app.include_router(router)
+    app.include_router(sim_portal.router)  # SIMULATED practice forms for the autofill demo
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app
 

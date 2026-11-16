@@ -42,9 +42,19 @@ async function nativeShareFile(blob, filename) {
   return nativeCall("AuraAutofill", "shareFile", { name: filename, mime: blob.type || "application/octet-stream", data: b64 });
 }
 
-/* Autofill (D-34 ladder step 3). Only answered rows of a CONFIRMED record are handed to Android; blank stays blank. */
+/* Autofill (D-38). Only answered rows of a CONFIRMED record are handed to Android; blank stays blank.
+   fill = the bare value a form field takes; match = label words the service looks for next to a field. */
 function autofillPayload(f, noteId) {
   const fields = [];
-  for (const s of f.sections) for (const r of s.rows) if (r.value !== null) fields.push({ id: r.id, label: r.question, value: String(r.value) });
-  return { noteId: String(noteId), title: f.title, form: f.form || "hbnc_home_visit", fields };
+  for (const s of f.sections) for (const r of s.rows) {
+    if (r.fill === null || r.fill === undefined) continue;
+    fields.push({ id: r.id, label: r.label_en, fill: String(r.fill), input: r.input, match: [...(r.match || []), r.label_en] });
+  }
+  return { noteId: String(noteId), title: f.title, form: f.form, fields };
+}
+
+/* The form's layout for the SIMULATED practice app screen (labels and input kinds only, no answers). */
+function practiceForm(f) {
+  return { title: f.title, sections: f.sections.map((s) => ({ title: s.title,
+    rows: s.rows.map((r) => ({ label_en: r.label_en, question: r.question, input: r.input })) })) };
 }

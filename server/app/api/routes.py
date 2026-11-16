@@ -18,7 +18,7 @@ from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
 from ..extraction.llm import from_env as llm_from_env
 from ..extraction.names import new_names
-from ..forms import form_view
+from ..forms import form_view, forms_for, load_form
 from ..reports import monthly
 from ..reports.claims import claim_sheet
 from ..reports.export import to_pdf, to_xlsx
@@ -35,6 +35,7 @@ from ..services import (
     demo_status,
     edit_stats,
     engine_inputs,
+    form_context,
     label,
     list_tasks,
     load_demo,
@@ -351,14 +352,38 @@ def get_note(note_id: str, user: User = Depends(current_user), db: Session = Dep
     return note_view(own_note(db, user, note_id), db, user.lang)
 
 
-@router.get("/notes/{note_id}/form")
-def get_note_form(note_id: str, lang: str | None = None, user: User = Depends(current_user),
-                  db: Session = Depends(get_db)) -> dict:
-    """Her confirmed record in the order of the official paper form, for copying by hand (not an integration)."""
+def _confirmed(db: Session, user: User, note_id: str) -> Note:
     note = own_note(db, user, note_id)
     if note.status != "confirmed" or not note.confirmed:
         raise RequestError(409, "NOT_CONFIRMED", "Confirm the note first")
-    view = form_view(note.confirmed, lang if lang in ("hi", "en") else user.lang)
+    return note
+
+
+@router.get("/notes/{note_id}/forms")
+def get_note_forms(note_id: str, lang: str | None = None, user: User = Depends(current_user),
+                   db: Session = Depends(get_db)) -> list[dict]:
+    """Official forms that fit this confirmed visit (HBNC, SSBSK, RCH child tracking…)."""
+    note = _confirmed(db, user, note_id)
+    lang = lang if lang in ("hi", "en") else user.lang
+    _, category = form_context(db, user.id, (note.confirmed.get("beneficiary") or {}).get("matched_id"), lang)
+    out = []
+    for fid in forms_for(note.confirmed.get("visit_type"), category):
+        f = load_form(fid)
+        out.append({"id": fid, "title": f["title"][lang], "short": f.get("short", {}).get(lang, f["title"][lang])})
+    return out
+
+
+@router.get("/notes/{note_id}/form")
+def get_note_form(note_id: str, lang: str | None = None, form: str | None = None, user: User = Depends(current_user),
+                  db: Session = Depends(get_db)) -> dict:
+    """Her confirmed record in the order of an official form, for copying or autofill (not an integration)."""
+    note = _confirmed(db, user, note_id)
+    lang = lang if lang in ("hi", "en") else user.lang
+    ctx, category = form_context(db, user.id, (note.confirmed.get("beneficiary") or {}).get("matched_id"), lang)
+    allowed = forms_for(note.confirmed.get("visit_type"), category)
+    if form is not None and form not in allowed:
+        raise RequestError(404, "NO_FORM", "This form does not fit this visit")
+    view = form_view(note.confirmed, lang, form or next(iter(allowed), None), ctx)
     if view is None:
         raise RequestError(404, "NO_FORM", "No form layout for this visit type yet")
     return view

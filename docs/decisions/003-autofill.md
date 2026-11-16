@@ -1,4 +1,8 @@
-# 003 — Autofill into government apps (D-34)
+# 003 — Autofill into government apps (D-34, changed by D-38)
+
+> **D-38 (2026-11-16, human):** "Remove D-34 … we are just gonna check demo and not really gonna upload details in the government server. We would only test till the form filling. If it works, we then move on for permission and then real ASHA uploading the data."
+> For the demo stage, conditions **1 (terms checked)** and **5 (allow-list by app and screen)** below are lifted. The service now matches fields **by label** in any app or Chrome page, like a password manager (`FieldMatcher.java`). Still in force: she logs in herself; credentials, OTP, PIN, login and Aadhaar fields are never read or filled; only confirmed answers are offered, and blank stays blank; she taps to fill and checks every field; A.U.R.A. never submits; answers expire after 12 h. Demos stop before Submit, so no test record reaches a government server. Before any real use, condition 1 comes back: ask UP NHM / the app owner.
+> Targets built for the demo: a SIMULATED practice app screen (built from the open form) and a SIMULATED practice website (`/sim-portal/`, for Chrome), for 5 forms: HBNC 2014, SSBSK Forms 3, 4 and 6, and RCH child tracking (CH-1/CH-2).
 
 **Date:** 2026-11-16 · **Status:** confirmed by the human, **conditional** · **Supersedes:** the blanket ban on Accessibility autofill in `CLAUDE.md` and `context.md` §6 (point 2)
 

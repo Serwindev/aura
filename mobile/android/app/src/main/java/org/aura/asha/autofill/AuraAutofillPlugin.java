@@ -75,9 +75,30 @@ public class AuraAutofillPlugin extends Plugin {
         call.resolve();
     }
 
+    /** SIMULATED government-style app screen for the form she has open (HBNC, SSBSK, RCH child). */
     @PluginMethod
     public void openTestForm(PluginCall call) {
-        getActivity().startActivity(new Intent(getContext(), SimulatedFormActivity.class));
+        Intent i = new Intent(getContext(), SimulatedFormActivity.class);
+        JSObject form = call.getObject("form");
+        if (form != null) i.putExtra(SimulatedFormActivity.EXTRA_FORM, form.toString());
+        getActivity().startActivity(i);
+        call.resolve();
+    }
+
+    /** Opens a web page in Chrome (for the SIMULATED practice portal); falls back to any browser. */
+    @PluginMethod
+    public void openBrowser(PluginCall call) {
+        String url = call.getString("url", "");
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            call.reject("Only web addresses can be opened");
+            return;
+        }
+        Intent view = new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getActivity().startActivity(new Intent(view).setPackage("com.android.chrome"));
+        } catch (ActivityNotFoundException e) {
+            getActivity().startActivity(view);
+        }
         call.resolve();
     }
 

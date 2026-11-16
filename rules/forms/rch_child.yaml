@@ -1,0 +1,51 @@
+# UP RCH register, Section III — Tracking of Children (CH-1 child details, CH-2 vaccine doses). ADVISORY ONLY.
+# This is the ANM's register; the ASHA's confirmed notes and saved person details can help fill it.
+# Person rows come from the person she saved in People; dose dates from all her CONFIRMED notes for that child.
+version: 1
+status: draft
+needs_person: true            # only for a newborn/child she has saved
+source: "[S39] UP RCH register, Section III (CH-1, CH-2) — see docs/form-fields.md §3"
+title: {en: "RCH register — child tracking (CH-1, CH-2)", hi: "RCH रजिस्टर — बच्चे की ट्रैकिंग (CH-1, CH-2)"}
+short: {en: "RCH child", hi: "RCH बच्चा"}
+sections:
+  - id: ch1
+    title: {en: "CH-1 Child details", hi: "CH-1 बच्चे का विवरण"}
+    items:
+      - {id: rch_id, kind: blank, en: "RCH ID of child", hi: "बच्चे की RCH ID"}
+      - {id: name, kind: person, field: name, en: "Child name", hi: "बच्चे का नाम", match: {en: ["child name", "name of child", "child s name"], hi: ["बच्चे का नाम"]}}
+      - {id: sex, kind: blank, en: "Sex", hi: "लिंग"}
+      - {id: mother, kind: person, field: mother, en: "Mother's name", hi: "माँ का नाम", match: {en: ["mother name", "mother s name", "name of mother"], hi: ["माँ का नाम", "माता का नाम"]}}
+      - {id: mother_rch, kind: blank, en: "Mother's RCH ID", hi: "माँ की RCH ID"}
+      - {id: address, kind: person, field: area, en: "Address (ward / tola)", hi: "पता (वार्ड / टोला)", match: {en: ["address", "ward", "tola", "village"], hi: ["पता", "वार्ड", "टोला"]}}
+      - {id: dob, kind: person, field: dob, en: "Date of birth", hi: "जन्म तिथि", match: {en: ["date of birth", "dob", "birth date"], hi: ["जन्म तिथि", "जन्म की तारीख"]}}
+      - {id: bw, kind: blank, en: "Birth weight (kg)", hi: "जन्म के समय वज़न (किलो)"}
+      - {id: place, kind: person, field: birth_place, en: "Place of birth", hi: "जन्म का स्थान", match: {en: ["place of birth", "birth place", "place of delivery"], hi: ["जन्म का स्थान", "प्रसव का स्थान"]}}
+  - id: ch2
+    title: {en: "CH-2 Vaccines (date given)", hi: "CH-2 टीके (लगने की तारीख)"}
+    items:
+      - {id: bcg, kind: dose_date, dose: bcg, en: "BCG", hi: "BCG", match: {en: ["bcg"], hi: ["बीसीजी"]}}
+      - {id: hepb0, kind: dose_date, dose: hepb0, en: "Hep B birth dose", hi: "हेपेटाइटिस B जन्म खुराक", match: {en: ["hep b", "hepatitis b", "hepb0", "hep b 0"], hi: ["हेपेटाइटिस"]}}
+      - {id: opv0, kind: dose_date, dose: opv0, en: "OPV-0", hi: "OPV-0", match: {en: ["opv 0", "opv0", "opv zero"], hi: []}}
+      - {id: opv1, kind: dose_date, dose: opv1, en: "OPV-1", hi: "OPV-1", match: {en: ["opv 1", "opv1"], hi: []}}
+      - {id: penta1, kind: dose_date, dose: penta1, en: "Penta-1", hi: "पेंटा-1", match: {en: ["penta 1", "penta1", "pentavalent 1"], hi: ["पेंटा 1"]}}
+      - {id: rota1, kind: dose_date, dose: rota1, en: "Rota-1", hi: "रोटा-1", match: {en: ["rota 1", "rota1"], hi: ["रोटा 1"]}}
+      - {id: fipv1, kind: dose_date, dose: fipv1, en: "fIPV-1", hi: "fIPV-1", match: {en: ["fipv 1", "fipv1", "ipv 1"], hi: []}}
+      - {id: pcv1, kind: dose_date, dose: pcv1, en: "PCV-1", hi: "PCV-1", match: {en: ["pcv 1", "pcv1"], hi: []}}
+      - {id: opv2, kind: dose_date, dose: opv2, en: "OPV-2", hi: "OPV-2", match: {en: ["opv 2", "opv2"], hi: []}}
+      - {id: penta2, kind: dose_date, dose: penta2, en: "Penta-2", hi: "पेंटा-2", match: {en: ["penta 2", "penta2", "pentavalent 2"], hi: ["पेंटा 2"]}}
+      - {id: rota2, kind: dose_date, dose: rota2, en: "Rota-2", hi: "रोटा-2", match: {en: ["rota 2", "rota2"], hi: ["रोटा 2"]}}
+      - {id: opv3, kind: dose_date, dose: opv3, en: "OPV-3", hi: "OPV-3", match: {en: ["opv 3", "opv3"], hi: []}}
+      - {id: penta3, kind: dose_date, dose: penta3, en: "Penta-3", hi: "पेंटा-3", match: {en: ["penta 3", "penta3", "pentavalent 3"], hi: ["पेंटा 3"]}}
+      - {id: rota3, kind: dose_date, dose: rota3, en: "Rota-3", hi: "रोटा-3", match: {en: ["rota 3", "rota3"], hi: ["रोटा 3"]}}
+      - {id: fipv2, kind: dose_date, dose: fipv2, en: "fIPV-2", hi: "fIPV-2", match: {en: ["fipv 2", "fipv2", "ipv 2"], hi: []}}
+      - {id: pcv2, kind: dose_date, dose: pcv2, en: "PCV-2", hi: "PCV-2", match: {en: ["pcv 2", "pcv2"], hi: []}}
+      - {id: mr1, kind: dose_date, dose: mr1, en: "MR-1", hi: "MR-1", match: {en: ["mr 1", "mr1", "measles rubella 1"], hi: ["खसरा 1"]}}
+      - {id: vita1, kind: dose_date, dose: vita1, en: "Vitamin A-1", hi: "विटामिन A-1", match: {en: ["vitamin a 1", "vit a 1"], hi: ["विटामिन ए 1"]}}
+      - {id: mr2, kind: dose_date, dose: mr2, en: "MR-2", hi: "MR-2", match: {en: ["mr 2", "mr2", "measles rubella 2"], hi: ["खसरा 2"]}}
+      - {id: dpt_b1, kind: dose_date, dose: dpt_b1, en: "DPT booster-1", hi: "DPT बूस्टर-1", match: {en: ["dpt booster", "dpt b1", "dpt booster 1"], hi: ["डीपीटी"]}}
+      - {id: opv_b, kind: dose_date, dose: opv_b, en: "OPV booster", hi: "OPV बूस्टर", match: {en: ["opv booster"], hi: []}}
+  - id: ch3
+    title: {en: "CH-3 Feeding", hi: "CH-3 आहार"}
+    items:
+      - {id: ebf6, kind: blank, en: "Exclusive breastfeeding up to 6 months", hi: "6 माह तक केवल स्तनपान"}
+      - {id: cf6, kind: blank, en: "Complementary feeding after 6 months", hi: "6 माह के बाद ऊपरी आहार"}

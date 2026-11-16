@@ -1,0 +1,32 @@
+# SSBSK Shaishav app reporting format — Form 4, mother (PNC). Field order for the form view. ADVISORY ONLY.
+# A.U.R.A. notes for a newborn visit record the mother's danger signs (M_*) only; her own vitals are not captured.
+version: 1
+status: draft
+source: "[S36] SSBSK Operational Guideline 2026, Annexure 3 (Form 4), pp. 112-118 — see docs/form-fields.md §2"
+title: {en: "SSBSK Form 4 — mother after delivery", hi: "SSBSK फ़ॉर्म 4 — प्रसव के बाद माँ"}
+short: {en: "SSBSK mother", hi: "SSBSK माँ"}
+sections:
+  - id: head
+    title: {en: "Visit", hi: "भ्रमण"}
+    items:
+      - {id: date, kind: date, path: visit_date, en: "Date of visit", hi: "भ्रमण की तारीख", match: {en: ["date of visit", "visit date"], hi: ["भ्रमण की तारीख"]}}
+      - {id: m_temp, kind: blank, en: "Mother's temperature (°F)", hi: "माँ का तापमान (°F)"}
+  - id: danger
+    title: {en: "Danger signs in the mother", hi: "माँ में ख़तरे के लक्षण"}
+    items:
+      - {id: m_fever, kind: sign, codes: [M_HIGH_FEVER], en: "Fever", hi: "बुखार", match: {en: ["fever"], hi: ["बुखार"]}}
+      - {id: m_bleed, kind: sign, codes: [M_HEAVY_BLEEDING], en: "Severe anaemia / bleeding (5 or more pads a day)", hi: "गंभीर ख़ून की कमी / रक्तस्राव (दिन में 5 या ज़्यादा पैड)", match: {en: ["bleeding", "anaemia", "anemia", "pads"], hi: ["रक्तस्राव", "पैड"]}}
+      - {id: m_uti, kind: blank, en: "Urinary infection (fever above 102 °F, burning)", hi: "पेशाब में संक्रमण (102 °F से ज़्यादा बुखार, जलन)"}
+      - {id: m_vag, kind: sign, codes: [M_FOUL_DISCHARGE], en: "Vaginal infection (foul discharge)", hi: "योनि संक्रमण (बदबूदार स्राव)", match: {en: ["vaginal infection", "foul discharge"], hi: ["बदबूदार स्राव", "योनि संक्रमण"]}}
+      - {id: m_abd, kind: blank, en: "Abdominal pain", hi: "पेट में दर्द"}
+      - {id: m_neuro, kind: sign, codes: [M_CONVULSIONS, M_SEVERE_HEADACHE], en: "Blurred vision / convulsions / speaking abnormally", hi: "धुंधला दिखना / दौरे / असामान्य बोलना", match: {en: ["blurred vision", "convulsions", "neurological"], hi: ["धुंधला", "दौरे"]}}
+      - {id: m_oedema, kind: sign, codes: [M_SWELLING], en: "Swelling (oedema)", hi: "सूजन", match: {en: ["oedema", "edema", "swelling"], hi: ["सूजन"]}}
+      - {id: m_breath, kind: sign, codes: [M_BREATHLESSNESS], en: "Difficulty breathing", hi: "साँस लेने में कठिनाई", match: {en: ["difficulty breathing", "breathless"], hi: ["साँस"]}}
+      - {id: m_jaund, kind: blank, en: "Jaundice", hi: "पीलिया"}
+  - id: care
+    title: {en: "Care", hi: "देखभाल"}
+    items:
+      - {id: diet, kind: blank, en: "3 meals and 2 snacks a day?", hi: "दिन में 3 भोजन और 2 नाश्ते?"}
+      - {id: ifa, kind: service, types: [IFA], en: "IFA tablets given", hi: "आयरन (IFA) की गोलियाँ दीं", match: {en: ["ifa", "iron"], hi: ["आयरन"]}}
+      - {id: calcium, kind: service, types: [CALCIUM], en: "Calcium given", hi: "कैल्शियम दिया", match: {en: ["calcium"], hi: ["कैल्शियम"]}}
+      - {id: spacing, kind: blank, en: "Spacing method", hi: "अंतराल का तरीका"}

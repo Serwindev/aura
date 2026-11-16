@@ -1,4 +1,4 @@
-# Android app — test checklist (v1.10.0)
+# Android app — test checklist (v1.11.0)
 
 Synthetic data only. Tick each line and note anything that went wrong next to it. If the APK fails, use the web app instead (`.\make.ps1 phone-usb`).
 
@@ -47,6 +47,15 @@ Synthetic data only. Tick each line and note anything that went wrong next to it
 - [ ] **Record again from scratch** → confirm → record a new note → the new draft opens; Home no longer lists the old draft.
 - [ ] Record "Bhagwati ki bachchi ka newborn visit day 3, weight 2.9 kg" (a name not in your list) → banner "New name heard: Bhagwati" → **Add as new person** → form opens with Newborn and mother "Bhagwati" filled → Add → the new baby is chosen for the note → Confirm works.
 - [ ] Person dropdown → **+ Add new person** → empty form → Cancel → back to the review, nothing changed.
+
+## Autofill v1.11 (any app / website, by label)
+- [ ] Confirm an HBNC note → **View form** → chips show HBNC 2014 · SSBSK newborn · SSBSK mother · RCH child → each opens; blanks stay blank.
+- [ ] **Copy for autofill** → "N answers copied". **Turn on autofill** → pick "A.U.R.A. visit autofill" (once).
+- [ ] **Open practice app form** → tap "Date of visit" → suggestion "A.U.R.A.: fill N fields" → tap → date, weight, temperature, yes/no dropdowns fill; Login PIN stays empty.
+- [ ] Chrome: Settings → Autofill services → "Autofill using another service" (once). Then **Open practice website (Chrome)** → tap a field → same suggestion → fields fill; User ID / Password stay empty.
+- [ ] RCH child form: mother's name, date of birth, place of birth and vaccine dates fill.
+- [ ] A.U.R.A.'s own screens never show the suggestion.
+- [ ] Optional, demo only: open a real app/website form, tap a field, see what fills. **Do not press Submit.**
 
 ## Report back
 Phone model and Android version, plus every unticked line with a short note or a screenshot (synthetic data only).

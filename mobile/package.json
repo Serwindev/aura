@@ -1,7 +1,7 @@
 {
   "name": "aura-mobile",
   "private": true,
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "A.U.R.A. Android app: the mobile web app bundled in a native shell (Capacitor) + Android Autofill service",
   "license": "MIT",
   "scripts": {

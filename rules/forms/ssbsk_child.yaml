@@ -1,0 +1,42 @@
+# SSBSK Shaishav app reporting format — Form 6 young child (2–36 months) with Form 5 growth. ADVISORY ONLY.
+version: 1
+status: draft
+source: "[S36] SSBSK Operational Guideline 2026, Annexure 3 (Forms 5 and 6), pp. 112-118 — see docs/form-fields.md §2"
+title: {en: "SSBSK Form 6 — young child visit (2–36 months)", hi: "SSBSK फ़ॉर्म 6 — छोटे बच्चे का भ्रमण (2–36 माह)"}
+short: {en: "SSBSK child", hi: "SSBSK बच्चा"}
+sections:
+  - id: head
+    title: {en: "Visit", hi: "भ्रमण"}
+    items:
+      - {id: date, kind: date, path: visit_date, en: "Date of visit", hi: "भ्रमण की तारीख", match: {en: ["date of visit", "visit date"], hi: ["भ्रमण की तारीख"]}}
+      - {id: month, kind: month, path: visit_index.hbyc_month, en: "Visit (age in months)", hi: "भ्रमण (उम्र माह में)", match: {en: ["visit month", "age in months", "month"], hi: ["माह", "महीने"]}}
+  - id: growth
+    title: {en: "Growth (Form 5)", hi: "वृद्धि (फ़ॉर्म 5)"}
+    items:
+      - {id: temp, kind: temp_f, path: vitals.temp_c, en: "Temperature (°F)", hi: "तापमान (°F)", match: {en: ["temperature", "temp"], hi: ["तापमान"]}}
+      - {id: weight, kind: number, path: vitals.weight_kg, unit: kg, en: "Weight (kg)", hi: "वज़न (किलो)", match: {en: ["weight", "wt"], hi: ["वज़न", "वजन"]}}
+      - {id: height, kind: blank, en: "Length / height (cm)", hi: "लंबाई / ऊँचाई (सेमी)"}
+      - {id: nutrition, kind: blank, en: "Underweight / SAM / MAM", hi: "कम वज़न / SAM / MAM"}
+  - id: danger
+    title: {en: "Danger signs", hi: "ख़तरे के लक्षण"}
+    items:
+      - {id: d_drink, kind: sign, codes: [CH_UNABLE_TO_DRINK], en: "Not able to feed or drink", hi: "खा-पी नहीं पा रहा", match: {en: ["not able to feed", "unable to drink", "not able to drink"], hi: ["पी नहीं पा रहा", "खा-पी नहीं"]}}
+      - {id: d_vomit, kind: sign, codes: [CH_VOMITS_EVERYTHING], en: "Vomits everything", hi: "सब कुछ उल्टी कर देता है", match: {en: ["vomits everything", "vomiting"], hi: ["उल्टी"]}}
+      - {id: d_leth, kind: sign, codes: [CH_LETHARGIC], en: "Lethargic or unconscious", hi: "सुस्त या बेहोश", match: {en: ["lethargic", "unconscious"], hi: ["सुस्त", "बेहोश"]}}
+      - {id: d_conv, kind: sign, codes: [CH_CONVULSIONS], en: "Convulsions", hi: "दौरे / झटके", match: {en: ["convulsion", "convulsions", "fits"], hi: ["दौरे", "झटके"]}}
+      - {id: d_fast, kind: sign, codes: [CH_FAST_BREATHING], en: "Fast breathing", hi: "तेज़ साँस", match: {en: ["fast breathing"], hi: ["तेज़ साँस", "तेज साँस"]}}
+      - {id: d_chest, kind: blank, en: "Severe chest in-drawing", hi: "छाती का गंभीर धँसना"}
+      - {id: d_fever7, kind: blank, en: "Fever for more than 7 days", hi: "7 दिन से ज़्यादा बुखार"}
+      - {id: d_diarr, kind: sign, codes: [CH_DIARRHOEA_DEHYDRATION], en: "Diarrhoea for 14 days or more / dehydration", hi: "14 दिन या ज़्यादा दस्त / पानी की कमी", match: {en: ["diarrhoea", "diarrhea", "dehydration"], hi: ["दस्त"]}}
+      - {id: d_blood, kind: blank, en: "Blood in stool", hi: "मल में खून"}
+      - {id: referral, kind: referral, en: "Referral status", hi: "रेफ़रल की स्थिति", match: {en: ["referral status", "referral", "referred"], hi: ["रेफ़रल", "रेफ़र", "रेफर"]}}
+  - id: care
+    title: {en: "Feeding and care", hi: "आहार और देखभाल"}
+    items:
+      - {id: bf, kind: blank, en: "Breastfeeding continued?", hi: "स्तनपान जारी?"}
+      - {id: cf, kind: blank, en: "Complementary feeding right for age?", hi: "उम्र के अनुसार ऊपरी आहार?"}
+      - {id: deworm, kind: blank, en: "Deworming (over 1 year)", hi: "कृमि मुक्ति (1 साल से ऊपर)"}
+      - {id: vita, kind: vaccine, rx: "^vit", en: "Vitamin A given", hi: "विटामिन A दिया", match: {en: ["vitamin a", "vit a"], hi: ["विटामिन"]}}
+      - {id: ifa, kind: service, types: [IFA], en: "IFA syrup given", hi: "IFA सिरप दिया", match: {en: ["ifa", "iron syrup"], hi: ["आयरन", "सिरप"]}}
+      - {id: ors, kind: service, types: [ORS], en: "ORS at home", hi: "घर में ORS", match: {en: ["ors"], hi: ["ओआरएस"]}}
+      - {id: counsel, kind: service, types: [COUNSELLING], en: "Counselling done", hi: "परामर्श दिया", match: {en: ["counselling", "counseling"], hi: ["परामर्श"]}}

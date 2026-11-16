@@ -4,6 +4,7 @@ version: 1
 status: draft                 # draft | reviewed (Hindi wording not yet reviewed by a native speaker)
 source: "[S35] HBNC Operational Guidelines (Revised 2014), Annexure 1c, pp. 19-22 — see docs/form-fields.md"
 title: {en: "HBNC home visit form (Annexure 1c)", hi: "HBNC गृह भ्रमण फ़ॉर्म (अनुलग्नक 1c)"}
+short: {en: "HBNC 2014", hi: "HBNC 2014"}
 # kinds: date | day | number | temp_f | sign (present=Yes, stated absent=No, else blank) |
 #        vaccine (given in this note=Yes, else blank — never "No") | referral | blank (app does not capture it)
 # Rule: anything not said stays blank. Never turn "not mentioned" into "No".
@@ -11,48 +12,48 @@ sections:
   - id: head
     title: {en: "Visit", hi: "भ्रमण"}
     items:
-      - {id: date, kind: date, path: visit_date, en: "Date of ASHA's visit", hi: "आशा के भ्रमण की तारीख"}
-      - {id: day, kind: day, path: visit_index.hbnc_day, en: "Visit day", hi: "भ्रमण का दिन"}
+      - {id: date, kind: date, path: visit_date, en: "Date of ASHA's visit", hi: "आशा के भ्रमण की तारीख", match: {en: ["date of visit", "visit date", "date of asha visit"], hi: ["भ्रमण की तारीख", "भ्रमण तिथि"]}}
+      - {id: day, kind: day, path: visit_index.hbnc_day, en: "Visit day", hi: "भ्रमण का दिन", match: {en: ["visit day", "hbnc day", "day of visit"], hi: ["भ्रमण का दिन", "दिन"]}}
   - id: A
     title: {en: "A. Ask mother", hi: "A. माँ से पूछें"}
     items:
       - {id: A1, kind: blank, en: "Is the baby alive?", hi: "क्या बच्चा जीवित है?"}
       - {id: A2, kind: blank, en: "Times mother takes a full meal in 24 h", hi: "माँ 24 घंटे में कितनी बार पूरा खाना खाती है"}
-      - {id: A3, kind: sign, codes: [M_HEAVY_BLEEDING], en: "Bleeding: pads changed in a day (more than 5 = refer)", hi: "रक्तस्राव: दिन में कितने पैड बदले (5 से ज़्यादा = रेफ़र)", note: {en: "App records only 'heavy bleeding' yes/no — write the number of pads yourself", hi: "ऐप सिर्फ़ 'अधिक रक्तस्राव' हाँ/नहीं रखता — पैड की संख्या खुद लिखें"}}
+      - {id: A3, kind: sign, codes: [M_HEAVY_BLEEDING], en: "Bleeding: pads changed in a day (more than 5 = refer)", hi: "रक्तस्राव: दिन में कितने पैड बदले (5 से ज़्यादा = रेफ़र)", note: {en: "App records only 'heavy bleeding' yes/no — write the number of pads yourself", hi: "ऐप सिर्फ़ 'अधिक रक्तस्राव' हाँ/नहीं रखता — पैड की संख्या खुद लिखें"}, match: {en: ["heavy bleeding", "bleeding", "pads"], hi: ["रक्तस्राव", "पैड"]}}
       - {id: A4, kind: blank, en: "Is the baby kept warm?", hi: "क्या बच्चे को गर्म रखा जा रहा है?"}
-      - {id: A5, kind: sign, codes: [NB_NOT_FEEDING], invert: true, en: "Is the baby fed properly (7–8 times in 24 h)?", hi: "क्या बच्चा ठीक से दूध पी रहा है (24 घंटे में 7–8 बार)?"}
+      - {id: A5, kind: sign, codes: [NB_NOT_FEEDING], invert: true, en: "Is the baby fed properly (7–8 times in 24 h)?", hi: "क्या बच्चा ठीक से दूध पी रहा है (24 घंटे में 7–8 बार)?", match: {en: ["fed properly", "feeding well", "breastfeeding", "feeding ok"], hi: ["ठीक से दूध", "स्तनपान"]}}
       - {id: A6, kind: blank, en: "Crying incessantly or passing urine less than 6 times a day?", hi: "लगातार रोना या दिन में 6 बार से कम पेशाब?"}
   - id: B
     title: {en: "B. Examine mother", hi: "B. माँ की जाँच"}
     items:
       - {id: B1, kind: blank, en: "Mother's temperature (°F)", hi: "माँ का तापमान (°F)"}
-      - {id: B2, kind: sign, codes: [M_FOUL_DISCHARGE], en: "Foul-smelling discharge and fever above 100 °F", hi: "बदबूदार स्राव और 100 °F से ज़्यादा बुखार"}
-      - {id: B3, kind: sign, codes: [M_CONVULSIONS], en: "Speaking abnormally or having fits?", hi: "असामान्य बोलना या दौरे?"}
+      - {id: B2, kind: sign, codes: [M_FOUL_DISCHARGE], en: "Foul-smelling discharge and fever above 100 °F", hi: "बदबूदार स्राव और 100 °F से ज़्यादा बुखार", match: {en: ["foul smelling discharge", "foul discharge"], hi: ["बदबूदार स्राव"]}}
+      - {id: B3, kind: sign, codes: [M_CONVULSIONS], en: "Speaking abnormally or having fits?", hi: "असामान्य बोलना या दौरे?", match: {en: ["speaking abnormally", "fits", "convulsions mother"], hi: ["दौरे", "असामान्य बोलना"]}}
       - {id: B4, kind: blank, en: "No milk, or feels milk is less?", hi: "दूध नहीं या कम लगता है?"}
       - {id: B5, kind: blank, en: "Cracked nipples / painful or engorged breast?", hi: "फटे निप्पल / स्तन में दर्द या सूजन?"}
   - id: C
     title: {en: "C. Examine baby", hi: "C. बच्चे की जाँच"}
     items:
       - {id: C1, kind: blank, en: "Eyes swollen or with pus?", hi: "आँखों में सूजन या मवाद?"}
-      - {id: C2, kind: number, path: vitals.weight_kg, unit: kg, en: "Weight", hi: "वज़न"}
-      - {id: C3, kind: temp_f, path: vitals.temp_c, en: "Temperature", hi: "तापमान"}
-      - {id: C4, kind: sign, codes: [NB_JAUNDICE], en: "Yellowness in eyes or skin (jaundice)?", hi: "आँखों या त्वचा में पीलापन (पीलिया)?"}
-      - {id: C5, kind: vaccine, match: "^bcg", en: "Has the baby received BCG?", hi: "क्या बच्चे को BCG लगा?"}
-      - {id: C6, kind: vaccine, match: "^opv", en: "Has the baby received OPV?", hi: "क्या बच्चे को OPV मिला?"}
-      - {id: C7, kind: vaccine, match: "^hep", en: "Has the baby received Hep B (0)?", hi: "क्या बच्चे को हेपेटाइटिस B (0) लगा?"}
+      - {id: C2, kind: number, path: vitals.weight_kg, unit: kg, en: "Weight", hi: "वज़न", match: {en: ["weight", "baby weight", "wt"], hi: ["वज़न", "वजन"]}}
+      - {id: C3, kind: temp_f, path: vitals.temp_c, en: "Temperature", hi: "तापमान", match: {en: ["temperature", "baby temperature", "temp"], hi: ["तापमान"]}}
+      - {id: C4, kind: sign, codes: [NB_JAUNDICE], en: "Yellowness in eyes or skin (jaundice)?", hi: "आँखों या त्वचा में पीलापन (पीलिया)?", match: {en: ["jaundice", "yellowness", "yellow"], hi: ["पीलिया", "पीलापन"]}}
+      - {id: C5, kind: vaccine, rx: "^bcg", en: "Has the baby received BCG?", hi: "क्या बच्चे को BCG लगा?", match: {en: ["bcg"], hi: ["बीसीजी"]}}
+      - {id: C6, kind: vaccine, rx: "^opv", en: "Has the baby received OPV?", hi: "क्या बच्चे को OPV मिला?", match: {en: ["opv", "polio"], hi: ["ओपीवी", "पोलियो"]}}
+      - {id: C7, kind: vaccine, rx: "^hep", en: "Has the baby received Hep B (0)?", hi: "क्या बच्चे को हेपेटाइटिस B (0) लगा?", match: {en: ["hep b", "hepatitis b", "hepb"], hi: ["हेपेटाइटिस"]}}
   - id: D
     title: {en: "D. Referral", hi: "D. रेफ़रल"}
     items:
-      - {id: D1, kind: referral, en: "Baby referred? (date, reason, place)", hi: "क्या बच्चे को रेफ़र किया? (तारीख, कारण, जगह)"}
+      - {id: D1, kind: referral, en: "Baby referred? (date, reason, place)", hi: "क्या बच्चे को रेफ़र किया? (तारीख, कारण, जगह)", match: {en: ["baby referred", "referred", "referral"], hi: ["रेफ़र", "रेफर"]}}
       - {id: D2, kind: blank, en: "Mother referred? (date, reason, place)", hi: "क्या माँ को रेफ़र किया? (तारीख, कारण, जगह)"}
   - id: E
     title: {en: "E. Signs of sepsis", hi: "E. सेप्सिस के लक्षण"}
     items:
       - {id: E1, kind: blank, en: "All limbs limp", hi: "सारे हाथ-पैर ढीले"}
-      - {id: E2, kind: sign, codes: [NB_NOT_FEEDING], en: "Feeding less / stopped", hi: "दूध कम पीना / बंद"}
+      - {id: E2, kind: sign, codes: [NB_NOT_FEEDING], en: "Feeding less / stopped", hi: "दूध कम पीना / बंद", match: {en: ["feeding less", "feeding stopped"], hi: ["दूध कम पीना"]}}
       - {id: E3, kind: blank, en: "Cry weak / stopped", hi: "रोना कमज़ोर / बंद"}
       - {id: E4, kind: blank, en: "Distended abdomen or vomits often", hi: "पेट फूलना या बार-बार उल्टी"}
-      - {id: E5, kind: sign, codes: [NB_COLD, NB_FEVER], en: "Cold to touch, or fever above 99 °F", hi: "छूने पर ठंडा, या 99 °F से ज़्यादा बुखार"}
-      - {id: E6, kind: sign, codes: [NB_CHEST_INDRAWING], en: "Chest in-drawing", hi: "छाती धँसना"}
-      - {id: E7, kind: sign, codes: [NB_FAST_BREATHING], en: "Breathing more than 60 per minute", hi: "एक मिनट में 60 से ज़्यादा साँस"}
-      - {id: E8, kind: sign, codes: [NB_CORD_INFECTION], en: "Pus on umbilicus", hi: "नाभि पर मवाद"}
+      - {id: E5, kind: sign, codes: [NB_COLD, NB_FEVER], en: "Cold to touch, or fever above 99 °F", hi: "छूने पर ठंडा, या 99 °F से ज़्यादा बुखार", match: {en: ["cold to touch", "fever above 99"], hi: ["छूने पर ठंडा"]}}
+      - {id: E6, kind: sign, codes: [NB_CHEST_INDRAWING], en: "Chest in-drawing", hi: "छाती धँसना", match: {en: ["chest in drawing", "chest indrawing"], hi: ["छाती धँसना", "छाती धंसना"]}}
+      - {id: E7, kind: sign, codes: [NB_FAST_BREATHING], en: "Breathing more than 60 per minute", hi: "एक मिनट में 60 से ज़्यादा साँस", match: {en: ["breathing more than 60", "fast breathing"], hi: ["तेज़ साँस", "60 से ज़्यादा साँस"]}}
+      - {id: E8, kind: sign, codes: [NB_CORD_INFECTION], en: "Pus on umbilicus", hi: "नाभि पर मवाद", match: {en: ["pus on umbilicus", "umbilicus", "cord"], hi: ["नाभि"]}}
