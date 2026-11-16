@@ -108,6 +108,7 @@ def meta(request: Request) -> dict:
     v = load_yaml(RULES_DIR / "validation.yaml")
     llm = llm_from_env()
     return {"stt": stt, "extractor": llm.name if llm else "rule-based-v0",
+            "extractor_cloud": bool(llm and llm.cloud), "extractor_provider": llm.provider if llm else None,
             "danger_signs": v["danger_signs"],
             "vaccines": [d["vaccine"] for d in load_yaml(RULES_DIR / "uip.yaml")["doses"]],
             "rules_status": {n: load_yaml(RULES_DIR / f"{n}.yaml")["status"] for n in ("hbnc", "hbyc", "uip")},

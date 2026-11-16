@@ -1,6 +1,6 @@
 /* Service worker: keeps the app shell so the app can open with no connection.
    Network first (so a new version always wins when online), cache as fallback. API calls are never cached. */
-const CACHE = "aura-shell-v4";
+const CACHE = "aura-shell-v5";
 const SHELL = ["./", "index.html", "style.css", "i18n.js", "audio.js", "outbox.js", "app.js",
                "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 

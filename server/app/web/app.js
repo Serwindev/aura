@@ -166,7 +166,8 @@ async function viewHome() {
       <div class="card"><p>${esc(d.transcript.slice(0, 90))}${d.transcript.length > 90 ? "…" : ""}</p>
       <button class="wide" data-open-note="${esc(d.id)}">${esc(t("open_draft"))}</button></div>`).join("") : ""}
     ${S.tasks.length ? `<div class="chips" role="group" aria-label="${esc(t("group_by"))}"><button class="chip" data-home-group="status" aria-pressed="${!byArea}">${esc(t("group_status"))}</button><button class="chip" data-home-group="area" aria-pressed="${byArea}">${esc(t("group_area"))}</button></div>` : ""}
-    ${groups.length ? groups.map(([g, list]) => `<h2>${esc(g)} (${list.length})</h2>` + list.map((x) => taskCard(x, byArea)).join("")).join("") : `<div class="card empty">${esc(t("no_tasks"))}</div>`}`;
+    ${groups.length ? groups.map(([g, list]) => `<h2>${esc(g)} (${list.length})</h2>` + list.map((x) => taskCard(x, byArea)).join("")).join("") : `<div class="card empty">${esc(t("no_tasks"))}</div>`}
+    <button class="primary record-fab" data-nav="record">${ICONS.mic}<span>${esc(t("record_fab"))}</span></button>`;
 }
 
 /* One visit, one card: vaccines due together for a child are given together. */
@@ -646,16 +647,46 @@ async function viewForm() {
   let f;
   try { f = await api(`/notes/${S.note.id}/form?lang=${S.lang}`); } catch (e) { return fail(e); }
   if (S.view !== "form") return;
+  S.formText = formText(f);
   VIEW().innerHTML = `
     <h1>${esc(f.title)}</h1>
     <div class="banner">${esc(t("form_hint"))}</div>
+    <p class="small">${esc(t("form_copy_hint"))}</p>
     <p class="small muted">${esc(f.filled)} / ${esc(f.total)} ${esc(t("form_filled"))}</p>
+    <div class="row"><button data-copy-form="1">${esc(t("copy_all"))}</button><button data-share-form="1">${esc(t("share_form"))}</button></div>
     ${f.sections.map((s) => `<section class="card"><span class="field-label">${esc(s.title)}</span>
       <ul class="plain">${s.rows.map((r) => `<li class="form-row"><span>${esc(r.question)}</span>
-        ${r.value !== null ? `<strong>${esc(r.value)}</strong>` : `<span class="muted small">${esc(r.captured ? t("form_not_said") : t("form_fill_self"))}</span>`}
+        ${r.value !== null ? `<strong>${esc(r.value)}</strong><button class="copy-btn" data-copy="${esc(r.value)}" aria-label="${esc(t("copy") + ": " + r.question)}">${esc(t("copy"))}</button>` : `<span class="muted small">${esc(r.captured ? t("form_not_said") : t("form_fill_self"))}</span>`}
         ${r.note ? `<span class="small muted" style="flex-basis:100%">${esc(r.note)}</span>` : ""}</li>`).join("")}</ul></section>`).join("")}
     <p class="small muted">${esc(t("form_source"))}</p>
     <button class="primary wide" data-nav="saved">${esc(t("back"))}</button>`;
+}
+
+/* Only answered rows, in form order: what she would type into the official app or register. */
+function formText(f) {
+  const lines = [f.title];
+  for (const s of f.sections) {
+    const rows = s.rows.filter((r) => r.value !== null);
+    if (rows.length) lines.push("", s.title, ...rows.map((r) => `${r.question}: ${r.value}`));
+  }
+  return lines.join("\n");
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); }
+  catch { // no clipboard API (e.g. plain http on the LAN): old-style copy
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+  }
+  toast(t("copied"));
+}
+
+async function shareForm() {
+  if (navigator.share) {
+    try { await navigator.share({ title: "A.U.R.A.", text: S.formText }); return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  copyText(S.formText); // no share sheet: copy instead
 }
 
 /* ---- reports ---- */
@@ -810,7 +841,7 @@ async function viewSettings() {
       <p class="small muted">${esc(t("audio_policy"))}</p>
       <p class="small muted">${esc(t("outbox_policy"))}</p>
       ${S.meta && S.meta.stt.provider === "sarvam" ? `<p class="small">${esc(t("stt_cloud"))}</p>` : ""}
-      ${S.meta && S.meta.extractor.startsWith("llm:") ? `<p class="small">${esc(t("llm_cloud"))}</p>` : ""}
+      ${S.meta && S.meta.extractor_cloud ? `<p class="small">${esc(t("llm_cloud").replace("{p}", S.meta.extractor_provider))}</p>` : ""}
       <span class="field-label">${esc(t("never"))}</span><p class="small">${esc(t("never_list"))}</p>
       <p class="small"><strong>${esc(t("perms"))}</strong></p>
       <div class="row"><button id="export">${esc(t("export_data"))}</button><button class="danger" id="delete">${esc(t("delete_data"))}</button></div>
@@ -818,7 +849,7 @@ async function viewSettings() {
     <h2>${esc(t("about"))}</h2>
     <div class="card small">
       <p>${esc(t("speech"))}: <strong>${esc(m.stt.provider)}</strong> (${esc(m.stt.languages.join(", ") || "-")})</p>
-      <p>${esc(t("extractor"))}: ${esc(m.extractor.startsWith("llm:") ? t("extractor_llm").replace("{m}", m.extractor.split(":")[1]) : t("extractor_v"))}</p>
+      <p>${esc(t("extractor"))}: ${esc(m.extractor.startsWith("llm:") ? t("extractor_llm").replace("{m}", m.extractor.slice(4)) : t("extractor_v"))}</p>
       <p><span class="tag sim">SIMULATED</span> ${esc(t("sim_items"))}</p>
       <p>${esc(t("advisory"))}</p><p>${esc(t("no_gov"))}</p><p>${esc(t("synthetic_only"))}</p>
     </div>
@@ -854,6 +885,9 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   const d = b.dataset;
+  if (d.copy !== undefined) return copyText(d.copy);
+  if (d.copyForm) return copyText(S.formText);
+  if (d.shareForm) return shareForm();
   if (d.nav) return go(d.nav, { task: null });
   if (d.uiLang) return setUiLang(d.uiLang);
   if (d.noteLang) { S.noteLang = d.noteLang; return viewRecord(); }

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import statistics
 import sys
@@ -144,16 +145,19 @@ def main() -> None:
     ap.add_argument("--notes", default=str(ROOT / "eval" / "data" / "notes.yaml"))
     ap.add_argument("--audio-dir", default=None, help="score speech: <dir>/<note id>.wav")
     ap.add_argument("--stt", default=None, help="sarvam | vosk (with --audio-dir)")
-    ap.add_argument("--llm", default=None, help="LLM extractor model, e.g. claude-haiku-5-5 (spends API credit)")
-    ap.add_argument("--effort", default="low", help="LLM effort: low | medium | high")
+    ap.add_argument("--llm", default=None,
+                    help="free LLM provider: ollama | groq | gemini | openai_compat (model etc. from server/.env)")
     args = ap.parse_args()
     llm = None
     if args.llm:
         from app.core.settings import load_dotenv
-        from app.extraction.llm import LlmExtractor
+        from app.extraction.llm import from_env as llm_from_env
 
         load_dotenv()
-        llm = LlmExtractor(model=args.llm, effort=args.effort)
+        os.environ["LLM_PROVIDER"] = args.llm
+        llm = llm_from_env()
+        if llm is None:
+            raise SystemExit(f"--llm {args.llm}: set LLM_MODEL (and LLM_BASE_URL/LLM_API_KEY if needed) in server/.env")
     stt = None
     if args.audio_dir:
         from app.core.settings import load_dotenv
@@ -216,9 +220,9 @@ def main() -> None:
     summary = {
         "date": date.today().isoformat(), "set": set_name, "notes": len(notes),
         "extractor": llm.name if llm else "rule-based-v0", "stt": stt_name,
-        "llm": ({"model": llm.model, "effort": llm.effort, "calls": len(llm.usage), "fallbacks": fallbacks,
-                 "cost_usd": llm.cost_usd(), "cost_usd_per_note": (llm.cost_usd() or 0) / len(notes),
-                 "tokens": {k: sum(u[k] for u in llm.usage) for k in ("input", "output", "cache_read", "cache_write")},
+        "llm": ({"provider": llm.provider, "model": llm.model, "cloud": llm.cloud, "calls": len(llm.usage),
+                 "fallbacks": fallbacks,
+                 "tokens": {k: sum(u[k] for u in llm.usage) for k in ("input", "output")},
                  "call_seconds_p50": statistics.median([u["seconds"] for u in llm.usage]) if llm.usage else None}
                 if llm else None),
         "audio": ({"source": "AI voice (Sarvam bulbul:v3 TTS), not field speech",
@@ -244,7 +248,7 @@ def main() -> None:
           f"unsupported={summary['unsupported_value_rate']:.3f} p50={lat[len(lat)//2]:.1f}ms"
           + (f" WER={summary['audio']['wer_raw']:.3f} stt_p50={summary['audio']['stt_ms']['p50']:.0f}ms"
              if summary["audio"] else "")
-          + (f" llm={llm.model} cost=${summary['llm']['cost_usd'] or 0:.4f} fallbacks={fallbacks}" if llm else "")
+          + (f" llm={llm.provider}/{llm.model} fallbacks={fallbacks}" if llm else "")
           + f" -> {out}")
 
 
@@ -289,8 +293,8 @@ def render(s: dict, rows: list[dict]) -> str:
         f"| Text pipeline latency p50 / p95 (extract + validate + names) | {s['latency_ms_text_pipeline']['p50']:.1f} / {s['latency_ms_text_pipeline']['p95']:.1f} ms |",
         f"| Mean error flags per note (shown to the ASHA for review) | {s['mean_error_flags_per_note']:.2f} |",
         speech_row,
-        (f"| LLM `{s['llm']['model']}` (effort {s['llm']['effort']}): cost total / per note · call time p50 · "
-         f"fallbacks to rule-based | ${s['llm']['cost_usd'] or 0:.4f} / ${s['llm']['cost_usd_per_note']:.5f} · "
+        (f"| LLM `{s['llm']['provider']}/{s['llm']['model']}`: tokens in/out · call time p50 · "
+         f"fallbacks to rule-based | {s['llm']['tokens']['input']}/{s['llm']['tokens']['output']} · "
          f"{(s['llm']['call_seconds_p50'] or 0):.1f} s · {s['llm']['fallbacks']}/{s['notes']} |"
          if s.get("llm") else "| LLM extractor | not part of this run (rule-based) |"),
         "",

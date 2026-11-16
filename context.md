@@ -121,7 +121,7 @@ Team ranked about 10th of ~70 at EnVision '26 and was selected by LICET for SFIC
 
 ### 6.3 Conclusions that drive the design
 1. Do not promise "sync to government portals." Promise "data ready in the exact shape each system needs" and a staged path to official integration.
-2. Do not build JS-injection, scraping, or Android-accessibility autofill into government apps: brittle, probably against terms, security-sensitive, and it would put ASHA credentials at risk. (Team "Approach 1: JavaScript workarounds" is rejected.)
+2. Do not build JS-injection, scraping, or Android-accessibility autofill into government apps: brittle, probably against terms, security-sensitive, and it would put ASHA credentials at risk. (Team "Approach 1: JavaScript workarounds" is rejected.) **[D] 2026-11-16: superseded for autofill by D-34** — autofill is allowed if it does not break the app's terms or government rules; JS injection, scraping and credential storage stay out. See `docs/decisions/003-autofill.md`.
 3. Pursue official access through NHM/state PMU (questions in `plan.md` §6.3).
 
 ---

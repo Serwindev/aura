@@ -5,7 +5,6 @@ description = "A.U.R.A. server: voice note -> verified structured record (synthe
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
-    "anthropic>=2.8.0",
     "cryptography>=50.0.2",
     "fastapi>=0.162.2",
     "fpdf2>=2.9.0",

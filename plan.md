@@ -216,7 +216,7 @@ Each rule: `id`, `programme`, `trigger` (e.g. delivery_date + place), `due` (off
 | **2 Official API** | NHM/state-approved integration (Co-WIN had protected third-party APIs [S24]) | **SIMULATED, labelled** | Only through an NHM partnership. |
 | **3 ABDM** | ABHA verification (M1) then M2/M3 if ever needed | **Roadmap** | 6–9 months + security audit [S10]. |
 
-**Do not build:** JS injection, scraping, Accessibility autofill, or storage of government credentials.
+**Do not build:** JS injection, scraping, or storage of government credentials. Autofill is allowed under the conditions in `docs/decisions/003-autofill.md` (D-34, 2026-11-16).
 
 ### 7.1 Questions for UP NHM / PMU (T-012)
 1. Which apps accept partner data (API, bulk upload, CSV/Excel), under what approval and data-sharing agreement?

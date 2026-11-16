@@ -4,7 +4,6 @@ The point: whatever the model proposes, the validator and the fallback keep the 
 from __future__ import annotations
 
 from datetime import date
-from types import SimpleNamespace
 
 import pytest
 
@@ -17,21 +16,34 @@ NOTE = "Visited Sunita Devi baby today, newborn visit day 7. Weight is 2.8 kg, n
 PEOPLE = load_people()
 
 
-class FakeMessages:
-    def __init__(self, result=None, exc=None, stop="end_turn"):
-        self.result, self.exc, self.stop, self.calls = result, exc, stop, []
+class FakeResp:
+    def __init__(self, status, payload):
+        self.status_code, self.payload = status, payload
 
-    def parse(self, **kw):
-        self.calls.append(kw)
+    def json(self):
+        return self.payload
+
+
+class FakeHttp:
+    """Stands in for httpx.Client: returns an OpenAI-compatible chat completion."""
+    def __init__(self, result=None, exc=None, status=200, finish="stop", content=None, refusal=None):
+        self.result, self.exc, self.status, self.finish = result, exc, status, finish
+        self.content, self.refusal, self.calls = content, refusal, []
+
+    def post(self, url, json=None, headers=None):
+        self.calls.append({"url": url, "json": json, "headers": headers})
         if self.exc:
             raise self.exc
-        usage = SimpleNamespace(input_tokens=100, output_tokens=50, cache_read_input_tokens=1000,
-                                cache_creation_input_tokens=0)
-        return SimpleNamespace(parsed_output=self.result, stop_reason=self.stop, usage=usage)
+        content = self.content if self.content is not None else (
+            self.result.model_dump_json(exclude_none=True) if self.result is not None else "not json")
+        msg = {"role": "assistant", "content": content, "refusal": self.refusal}
+        return FakeResp(self.status, {"choices": [{"message": msg, "finish_reason": self.finish}],
+                                      "usage": {"prompt_tokens": 100, "completion_tokens": 50}})
 
 
 def fake(result=None, **kw) -> L.LlmExtractor:
-    return L.LlmExtractor(model="claude-haiku-5-5", client=SimpleNamespace(messages=FakeMessages(result, **kw)))
+    return L.LlmExtractor(provider="ollama", model="qwen2.5:3b", base_url="http://localhost:11434/v1",
+                          client=FakeHttp(result, **kw))
 
 
 def good() -> L.Proposal:
@@ -50,7 +62,7 @@ def test_good_proposal_becomes_validated_record():
     ex = fake(good())
     res = process_text(NOTE, DAY, PEOPLE, llm=ex)
     r = res.validation.record
-    assert res.extractor == "llm:claude-haiku-5-5:llm-v1"
+    assert res.extractor == "llm:ollama/qwen2.5:3b (llm-v2)"
     assert (r.visit_type, r.visit_index.hbnc_day, r.vitals.weight_kg) == ("HBNC", 7, 2.8)
     assert r.visit_date == DAY
     assert r.beneficiary.matched_id == "c01"  # set by code, never by the model
@@ -63,15 +75,22 @@ def test_good_proposal_becomes_validated_record():
 
 def test_request_shape():
     ex = fake(good())
+    ex.api_key = "test-key"
     ex.extract(NOTE, DAY)
-    kw = ex.client.messages.calls[0]
-    assert kw["output_format"] is L.Proposal
-    assert kw["output_config"] == {"effort": "low"}
-    assert "Recorded on: 2026-11-09" in kw["messages"][0]["content"]
-    assert NOTE in kw["messages"][0]["content"]
-    sys_text = kw["system"][0]["text"]
-    assert NOTE not in sys_text and "NB_FEVER" in sys_text and "Penta-2" in sys_text  # stable, cacheable
-    assert kw["system"][0]["cache_control"] == {"type": "ephemeral"}
+    call = ex.client.calls[0]
+    assert call["url"] == "http://localhost:11434/v1/chat/completions"
+    assert call["headers"] == {"Authorization": "Bearer test-key"}
+    body = call["json"]
+    assert body["response_format"] == {"type": "json_object"} and body["temperature"] == 0
+    assert "Recorded on: 2026-11-09" in body["messages"][1]["content"] and NOTE in body["messages"][1]["content"]
+    sys_text = body["messages"][0]["content"]
+    assert NOTE not in sys_text and "NB_FEVER" in sys_text and "Penta-2" in sys_text  # stable prompt
+    assert '"beneficiary_mention"' in sys_text  # the JSON schema travels in the prompt
+
+
+def test_fenced_json_is_accepted():
+    ex = fake(content="```json\n" + good().model_dump_json(exclude_none=True) + "\n```")
+    assert ex.extract(NOTE, DAY)["vitals"]["weight_kg"] == 2.8
 
 
 def test_invented_quote_is_cleared_and_flagged():
@@ -119,8 +138,9 @@ def test_nothing_said_stays_null():
     assert all(getattr(v, f) is None for f in ("weight_kg", "temp_c", "bp_sys", "hb_g_dl"))
 
 
-@pytest.mark.parametrize("kw", [{"exc": ConnectionError("down")}, {"stop": "refusal"}, {"stop": "max_tokens"},
-                                {"result": None}])
+@pytest.mark.parametrize("kw", [{"exc": ConnectionError("down")}, {"status": 429}, {"status": 500},
+                                {"refusal": "no"}, {"finish": "length"}, {"content": "not json"},
+                                {"content": '{"visit_type": {"value": "WRONG", "quote": "x"}}'}])
 def test_llm_failure_falls_back_to_rule_based(kw):
     ex = fake(**({"result": good()} | kw))
     res = process_text(NOTE, DAY, PEOPLE, llm=ex)
@@ -129,14 +149,26 @@ def test_llm_failure_falls_back_to_rule_based(kw):
 
 
 def test_env_switch(monkeypatch):
-    monkeypatch.delenv("LLM_PROVIDER", raising=False)
+    for k in ("LLM_PROVIDER", "LLM_MODEL", "LLM_BASE_URL", "LLM_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
     assert L.from_env() is None
     monkeypatch.setenv("LLM_PROVIDER", "mock")
     assert L.from_env() is None
-    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
-    monkeypatch.setenv("LLM_MODEL", "claude-sonnet-5-5")
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")  # removed: Claude is no longer an option
+    assert L.from_env() is None
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
     ex = L.from_env()
-    assert ex.model == "claude-sonnet-5-5" and ex.effort == "low"
+    assert (ex.model, ex.cloud) == ("qwen2.5:3b", False)
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    assert L.from_env() is None  # no model set for a cloud preset -> rule-based
+    monkeypatch.setenv("LLM_MODEL", "some-free-model")
+    monkeypatch.setenv("LLM_API_KEY", "k")
+    ex = L.from_env()
+    assert ex.cloud and ex.base_url.startswith("https://api.groq.com") and ex.api_key == "k"
+    monkeypatch.setenv("LLM_PROVIDER", "openai_compat")
+    assert L.from_env() is None  # needs LLM_BASE_URL
+    monkeypatch.setenv("LLM_BASE_URL", "http://127.0.0.1:8080/v1")
+    assert L.from_env().cloud is False
 
 
 def test_default_pipeline_stays_rule_based(monkeypatch):
@@ -144,9 +176,7 @@ def test_default_pipeline_stays_rule_based(monkeypatch):
     assert process_text(NOTE, DAY, PEOPLE).extractor == "rule-based-v0"
 
 
-def test_cost_is_reported():
+def test_usage_is_reported():
     ex = fake(good())
     ex.extract(NOTE, DAY)
-    # 100 in * 0.10 + 50 out * 0.50 + 1000 cache-read * 0.01 per million
-    assert ex.cost_usd() == pytest.approx((100 * 0.10 + 50 * 0.50 + 1000 * 0.01) / 1e6)
-    assert ex.usage[0]["output"] == 50
+    assert (ex.usage[0]["input"], ex.usage[0]["output"]) == (100, 50)
