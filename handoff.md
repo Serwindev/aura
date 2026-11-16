@@ -327,3 +327,11 @@ aura/
 - Found + fixed (commit 7cd1759): a newborn visit could be linked to an adult (the mother) with no warning, which hides the child forms. Review now warns and offers "Add <name>'s baby" with the mother preselected. Also: "Saved visit" heading and Today tab when reopening.
 - Docs: `docs/PROJECT_OVERVIEW.md` rewritten in plain language (v1.12); new `docs/overview.html` (mind map, steps, screens, forms, promises, status), also published as a private artifact.
 - Note: realme asks for an on-screen "Install" confirmation for every adb install.
+
+### 2026-11-16 — Autofill checked on the phone; demo video
+- Human: deadline **18 Nov 2026**; "Go ahead with your testing and I need a demo video to send to my team".
+- Found + fixed (commit 65ffa6a): the practice app form showed no autofill suggestion. Causes: the first focused field was the PIN (never filled, so no dropdown); labels set at runtime are dropped from what Android shows the autofill service; Spinners had no autofill options. Fix: fields carry their label as content description, Spinners expose Yes/No, the column takes first focus; count-only debug log (`AuraAutofill: fields= answers= matched=`, never content).
+- Verified on realme RMX5120 / Android 16: practice app form `matched=7` of 7 answers → "A.U.R.A.: fill 7 fields (check each one)" → date 16-11-2026, day, Yes filled, PIN empty. Practice website in Chrome: same 7/7, date + day + Yes/No dropdowns filled, User ID and Password empty.
+- Limitation to remember: a real native app whose labels are plain text (not hint/description) may not match; web pages pass labels through, so they match.
+- Demo video: `exports/AURA_demo_2026-11-16.mp4` (git-ignored; 2:08, silent, English captions, made-up "Rekha Devi's baby"). Story: Today → typed Hindi note (agent cannot speak; caption says typed) → review with quotes → Forms also ask → confirm → View form → RCH still-missing (Girl, 2.9 kg) → save → practice website autofill → stops before Submit → Today. Recorded with the phone's own screen recorder (adb `screenrecord` is blocked on this realme: "Permission denied"); sound switched off. Scripts in the session scratchpad (not kept).
+- Not verified: autofill in a real (non-practice) app.

@@ -43,3 +43,4 @@ eval/results/latest/
 
 # prototype runtime data (database, audio, certs, secrets)
 server/data/
+exports/
