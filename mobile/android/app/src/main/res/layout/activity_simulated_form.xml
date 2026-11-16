@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SIMULATED government-style HBNC entry screen (autofill demo). Not a government app; keeps and sends nothing. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="16dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:background="#FFF3CD" android:padding="12dp" android:textColor="#5C4400" android:textStyle="bold"
+            android:text="@string/sim_form_banner" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:textSize="20sp" android:textStyle="bold" android:text="@string/sim_form_title" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp"
+            android:text="@string/sim_form_help" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Beneficiary ID (type yourself)" android:labelFor="@+id/beneficiary_id" />
+        <EditText android:id="@+id/beneficiary_id" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Beneficiary ID (type yourself)" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Date of visit" android:labelFor="@+id/visit_date" />
+        <EditText android:id="@+id/visit_date" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Date of visit" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Visit day" android:labelFor="@+id/visit_day" />
+        <EditText android:id="@+id/visit_day" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Visit day" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Baby weight" android:labelFor="@+id/baby_weight" />
+        <EditText android:id="@+id/baby_weight" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Baby weight" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Baby temperature" android:labelFor="@+id/baby_temp" />
+        <EditText android:id="@+id/baby_temp" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Baby temperature" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Baby feeding properly?" android:labelFor="@+id/feeding_ok" />
+        <EditText android:id="@+id/feeding_ok" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Baby feeding properly?" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Jaundice?" android:labelFor="@+id/jaundice" />
+        <EditText android:id="@+id/jaundice" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Jaundice?" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="BCG given?" android:labelFor="@+id/bcg" />
+        <EditText android:id="@+id/bcg" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="BCG given?" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="OPV given?" android:labelFor="@+id/opv" />
+        <EditText android:id="@+id/opv" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="OPV given?" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Hep B (0) given?" android:labelFor="@+id/hepb" />
+        <EditText android:id="@+id/hepb" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Hep B (0) given?" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Baby referred?" android:labelFor="@+id/referred" />
+        <EditText android:id="@+id/referred" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Baby referred?" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Remarks" android:labelFor="@+id/remarks" />
+        <EditText android:id="@+id/remarks" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textMultiLine" android:hint="Remarks" android:importantForAutofill="yes" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Login PIN (A.U.R.A. never fills this)" android:labelFor="@+id/login_pin" />
+        <EditText android:id="@+id/login_pin" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberPassword" android:hint="Login PIN (A.U.R.A. never fills this)" android:importantForAutofill="yes" />
+        <Button android:id="@+id/submit" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:text="@string/sim_form_submit" />
+    </LinearLayout>
+</ScrollView>

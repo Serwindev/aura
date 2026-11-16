@@ -1,0 +1,19 @@
+{
+  "name": "aura-mobile",
+  "private": true,
+  "version": "1.8.0",
+  "description": "A.U.R.A. Android app: the mobile web app bundled in a native shell (Capacitor) + Android Autofill service",
+  "license": "MIT",
+  "scripts": {
+    "sync": "node copy-web.mjs && npx cap sync android",
+    "build": "node copy-web.mjs && npx cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/share": "^7.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.10"
+  }
+}

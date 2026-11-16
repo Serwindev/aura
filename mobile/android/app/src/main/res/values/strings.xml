@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">A.U.R.A.</string>
+    <string name="title_activity_main">A.U.R.A.</string>
+    <string name="package_name">org.aura.asha</string>
+    <string name="custom_url_scheme">org.aura.asha</string>
+    <string name="autofill_service_label">A.U.R.A. visit autofill</string>
+    <string name="autofill_dataset_label">A.U.R.A. visit: fill %1$d answers (check each one)</string>
+    <string name="sim_form_activity">SIMULATED form</string>
+    <string name="sim_form_banner">SIMULATED: a test screen in the A.U.R.A. app, not a government app. Nothing here is saved or sent.</string>
+    <string name="sim_form_title">HBNC home visit entry (test)</string>
+    <string name="sim_form_help">Tap any field and pick \"A.U.R.A. visit\". Check every answer. Fill the rest yourself, then press Submit yourself.</string>
+    <string name="sim_form_submit">Submit (test only)</string>
+    <string name="sim_form_submitted">SIMULATED: nothing was sent. Screen cleared.</string>
+</resources>

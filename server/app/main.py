@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -16,6 +17,8 @@ from .db.models import make_session_factory
 from .services import RequestError, purge_expired_audio
 from .stt.base import NotConfigured
 from .stt.providers import VoskStt, get_stt
+
+APP_ORIGINS = ("http://localhost",)  # Android app (Capacitor, androidScheme "http")
 
 WEB_DIR = Path(__file__).parent / "web"
 
@@ -80,6 +83,11 @@ def create_app(settings: Settings | None = None, stt=None, warm_stt: bool = True
         response.headers["Cache-Control"] = "no-store" if request.url.path.startswith("/v1") else "no-cache"
         return response
 
+    # The Android app (mobile/, Capacitor) serves its pages from http://localhost inside the APK and calls this API
+    # cross-origin. Only that origin is allowed; the login token travels in the Authorization header, not cookies.
+    app.add_middleware(CORSMiddleware, allow_origins=list(APP_ORIGINS), allow_credentials=False,
+                       allow_methods=["GET", "POST", "PATCH", "DELETE"],
+                       allow_headers=["Authorization", "Content-Type"])
     app.include_router(router)
     app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
     return app

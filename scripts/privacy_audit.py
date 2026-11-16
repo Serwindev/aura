@@ -19,6 +19,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "server" / "app" / "web"
 SERVER = ROOT / "server" / "app"
+MANIFEST = ROOT / "mobile" / "android" / "app" / "src" / "main" / "AndroidManifest.xml"
+# Android app permissions allowed by the privacy contract (microphone + network). Anything else needs a decision.
+ALLOWED_ANDROID_PERMS = {"android.permission.INTERNET", "android.permission.RECORD_AUDIO",
+                         "android.permission.MODIFY_AUDIO_SETTINGS"}
 
 # Browser APIs the contract forbids (or that would need a new decision first)
 FORBIDDEN_WEB = {
@@ -104,11 +108,12 @@ def scan() -> dict:
             rows.append((f"Outside host {h}", "FAIL", "not on the allow-list: " + ", ".join(sorted(where))))
             findings.append(f"undeclared outside host {h} in {sorted(where)}")
     py_text = {p: read(p) for p in py_files}
+    rows.extend(android_rows(findings))
     for svc, (rx, note) in SDK_SERVICES.items():
         used = [rel(p) for p, s in py_text.items() if re.search(rx, s)]
         rows.append((f"Outside service {svc}", "PASS" if used else "INFO", note if used else "not used"))
     web_hosts = sorted({h for s in web_text.values() for h in re.findall(r"https?://([a-zA-Z0-9.-]+)", s)
-                        if h not in ("www.w3.org",)})
+                        if h not in ("www.w3.org", "localhost", "127.0.0.1")})  # localhost = our own server (USB)
     rows.append(("Phone talks only to our own server", "PASS" if not web_hosts else "FAIL",
                  "no outside URLs in the web app" if not web_hosts else ", ".join(web_hosts)))
     if web_hosts:
@@ -153,6 +158,36 @@ def scan() -> dict:
     return {"rows": rows, "findings": findings, "files": len(web_files) + len(py_files)}
 
 
+def android_rows(findings: list[str]) -> list[tuple[str, str, str]]:
+    """The native Android app (mobile/): permissions, autofill service binding, no cloud backup."""
+    if not MANIFEST.exists():
+        return [("Android app manifest", "INFO", "no Android app in this tree")]
+    m = read(MANIFEST)
+    rows = []
+    perms = set(re.findall(r'uses-permission\s+android:name="([^"]+)"', m))
+    extra = sorted(perms - ALLOWED_ANDROID_PERMS)
+    rows.append(("Android app asks only for microphone + network", "PASS" if not extra else "FAIL",
+                 ", ".join(sorted(perms)) if not extra else "not allowed: " + ", ".join(extra)))
+    if extra:
+        findings.append(f"Android permissions outside the contract: {extra}")
+    bound = 'android:permission="android.permission.BIND_AUTOFILL_SERVICE"' in m
+    rows.append(("Autofill service can only be bound by Android (she turns it on in Android settings)",
+                 "PASS" if bound else "FAIL", "BIND_AUTOFILL_SERVICE" if bound else "service not protected"))
+    if not bound and "AutofillService" in m:
+        findings.append("autofill service not protected by BIND_AUTOFILL_SERVICE")
+    no_backup = 'android:allowBackup="false"' in m
+    rows.append(("Android app data excluded from cloud backup", "PASS" if no_backup else "FAIL",
+                 "allowBackup=false" if no_backup else "allowBackup is on"))
+    if not no_backup:
+        findings.append("Android app allows backup of health data")
+    acc = "BIND_ACCESSIBILITY_SERVICE" in m
+    rows.append(("No Accessibility service (reads other apps' screens)", "PASS" if not acc else "FAIL",
+                 "none" if not acc else "Accessibility service declared: needs a decision (D-34 step 4)"))
+    if acc:
+        findings.append("Accessibility service declared without a decision")
+    return rows
+
+
 def render(res: dict) -> str:
     out = [f"# Privacy audit — {date.today().isoformat()} — **{'PASS' if not res['findings'] else 'FAIL'}**", "",
            "> Static scan of our own code against the privacy contract (`CLAUDE.md`). It shows what the app",
@@ -167,6 +202,7 @@ def render(res: dict) -> str:
             "| Note text (transcript) | our server; → Groq/Gemini (or another cloud server) only if `LLM_PROVIDER` points there; `ollama` stays on the laptop | with the note (Delete my data) |",
             "| Unsent note (audio/text) | this phone only (IndexedDB) until sent | when sent, deleted by her, or Delete my data |",
             "| Login token, language, last task list | this phone (localStorage) | logout (token) / Delete my data (task list) |",
+            "| Answers ready to autofill (Android app) | this phone (app-private storage, not backed up) | replaced by the next visit, after 12 h, or Delete my data |",
             "| Phone number, name, ASHA ID | our server | Delete my data removes notes; account row stays for login |",
             "", "Only synthetic data is used in this prototype."]
     if res["findings"]:

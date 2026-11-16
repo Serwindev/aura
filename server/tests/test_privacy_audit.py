@@ -24,3 +24,13 @@ def test_audit_catches_a_planted_violation(tmp_path, monkeypatch):
     monkeypatch.setattr(audit, "WEB", web)
     found = " ".join(audit.scan()["findings"])
     assert "location" in found and "tracker.example.org" in found
+
+
+def test_audit_catches_an_extra_android_permission(tmp_path, monkeypatch):
+    m = tmp_path / "AndroidManifest.xml"
+    m.write_text('<manifest><application android:allowBackup="false"></application>'
+                 '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
+                 '<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /></manifest>')
+    monkeypatch.setattr(audit, "MANIFEST", m)
+    found = " ".join(audit.scan()["findings"])
+    assert "ACCESS_FINE_LOCATION" in found

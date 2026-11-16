@@ -21,7 +21,7 @@ async function api(path, { method = "GET", json, form, blob } = {}) {
   if (json !== undefined) headers["Content-Type"] = "application/json";
   let res;
   try {
-    res = await fetch("/v1" + path, { method, headers, body: json !== undefined ? JSON.stringify(json) : form });
+    res = await fetch(serverBase() + "/v1" + path, { method, headers, body: json !== undefined ? JSON.stringify(json) : form });
   } catch {
     throw new ApiError(0, { error: { message: t("conn_error"), code: "OFFLINE" } });
   }
@@ -74,6 +74,7 @@ function go(view, data = {}) {
 function logout() {
   stopRecorder();
   S.token = S.user = null;
+  if (NATIVE) nativeCall("AuraAutofill", "clearVisit").catch(() => {}); // answers ready to autofill belong to her session
   store.del("aura.token");
   go("login");
 }
@@ -85,10 +86,12 @@ function viewLogin() {
     <h1>A.U.R.A.</h1><p class="muted">${esc(t("tagline"))}</p>
     <div class="chips" style="margin:12px 0">${langChips("ui")}</div>
     <div class="banner">${esc(t("synthetic_only"))}</div>
+    ${NATIVE ? serverCard() : ""}
     <form id="f-phone" class="card">
       <label class="field"><span>${esc(t("phone"))}</span><input name="phone" inputmode="numeric" autocomplete="off" maxlength="10" required></label>
       <button class="primary wide">${esc(t("send_code"))}</button>
     </form><div id="otp-area"></div>`;
+  bindServerCard();
   $("#f-phone").onsubmit = async (e) => {
     e.preventDefault();
     const phone = e.target.phone.value;
@@ -648,12 +651,18 @@ async function viewForm() {
   try { f = await api(`/notes/${S.note.id}/form?lang=${S.lang}`); } catch (e) { return fail(e); }
   if (S.view !== "form") return;
   S.formText = formText(f);
+  S.formData = f;
   VIEW().innerHTML = `
     <h1>${esc(f.title)}</h1>
     <div class="banner">${esc(t("form_hint"))}</div>
     <p class="small">${esc(t("form_copy_hint"))}</p>
     <p class="small muted">${esc(f.filled)} / ${esc(f.total)} ${esc(t("form_filled"))}</p>
     <div class="row"><button data-copy-form="1">${esc(t("copy_all"))}</button><button data-share-form="1">${esc(t("share_form"))}</button></div>
+    ${NATIVE ? `<section class="card"><div class="task-head"><strong>${esc(t("af_title"))}</strong></div>
+      <p class="small">${esc(t("af_hint"))}</p>
+      <button class="primary wide" data-autofill="1">${esc(t("af_ready"))}</button>
+      <div class="row" style="margin-top:8px"><button data-af-settings="1">${esc(t("af_enable"))}</button><button data-af-test="1">${esc(t("af_test"))} <span class="tag sim">SIMULATED</span></button></div>
+      <p class="small muted" id="af-status"></p></section>` : ""}
     ${f.sections.map((s) => `<section class="card"><span class="field-label">${esc(s.title)}</span>
       <ul class="plain">${s.rows.map((r) => `<li class="form-row"><span>${esc(r.question)}</span>
         ${r.value !== null ? `<strong>${esc(r.value)}</strong><button class="copy-btn" data-copy="${esc(r.value)}" aria-label="${esc(t("copy") + ": " + r.question)}">${esc(t("copy"))}</button>` : `<span class="muted small">${esc(r.captured ? t("form_not_said") : t("form_fill_self"))}</span>`}
@@ -683,6 +692,9 @@ async function copyText(text) {
 }
 
 async function shareForm() {
+  if (NATIVE) {
+    try { await nativeShareText(S.formText); return; } catch { /* fall back to copy */ }
+  }
   if (navigator.share) {
     try { await navigator.share({ title: "A.U.R.A.", text: S.formText }); return; } catch (e) { if (e.name === "AbortError") return; }
   }
@@ -733,6 +745,7 @@ async function viewReports() {
 async function download(path, filename) {
   try {
     const blob = await api(path, { blob: true });
+    if (NATIVE) { await nativeShareFile(blob, filename); return; }
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = filename;
@@ -842,10 +855,12 @@ async function viewSettings() {
       <p class="small muted">${esc(t("outbox_policy"))}</p>
       ${S.meta && S.meta.stt.provider === "sarvam" ? `<p class="small">${esc(t("stt_cloud"))}</p>` : ""}
       ${S.meta && S.meta.extractor_cloud ? `<p class="small">${esc(t("llm_cloud").replace("{p}", S.meta.extractor_provider))}</p>` : ""}
+      ${NATIVE ? `<p class="small">${esc(t("af_privacy"))}</p>` : ""}
       <span class="field-label">${esc(t("never"))}</span><p class="small">${esc(t("never_list"))}</p>
       <p class="small"><strong>${esc(t("perms"))}</strong></p>
       <div class="row"><button id="export">${esc(t("export_data"))}</button><button class="danger" id="delete">${esc(t("delete_data"))}</button></div>
     </div>
+    ${NATIVE ? `<h2>${esc(t("server_title"))}</h2>${serverCard()}` : ""}
     <h2>${esc(t("about"))}</h2>
     <div class="card small">
       <p>${esc(t("speech"))}: <strong>${esc(m.stt.provider)}</strong> (${esc(m.stt.languages.join(", ") || "-")})</p>
@@ -854,6 +869,7 @@ async function viewSettings() {
       <p>${esc(t("advisory"))}</p><p>${esc(t("no_gov"))}</p><p>${esc(t("synthetic_only"))}</p>
     </div>
     <button class="wide" id="logout">${esc(t("logout"))}</button>`;
+  bindServerCard();
   $("#f-profile").onsubmit = async (e) => {
     e.preventDefault();
     try { S.user = await api("/me", { method: "PATCH", json: { name: e.target.name.value, asha_id: e.target.asha_id.value } }); toast(t("saved")); } catch (err) { fail(err); }
@@ -863,6 +879,7 @@ async function viewSettings() {
     if (!confirm(t("delete_q"))) return;
     try {
       await api("/privacy/data", { method: "DELETE" });
+      if (NATIVE) nativeCall("AuraAutofill", "clearVisit").catch(() => {});
       await Outbox.clear(owner()).catch(() => {});
       store.del("aura.cache.home." + owner());
       S.people = null; toast(t("deleted")); viewSettings();
@@ -888,6 +905,9 @@ document.addEventListener("click", (e) => {
   if (d.copy !== undefined) return copyText(d.copy);
   if (d.copyForm) return copyText(S.formText);
   if (d.shareForm) return shareForm();
+  if (d.autofill) return autofillReady();
+  if (d.afSettings) return nativeCall("AuraAutofill", "openSettings").catch(fail);
+  if (d.afTest) return nativeCall("AuraAutofill", "openTestForm").catch(fail);
   if (d.nav) return go(d.nav, { task: null });
   if (d.uiLang) return setUiLang(d.uiLang);
   if (d.noteLang) { S.noteLang = d.noteLang; return viewRecord(); }
@@ -945,12 +965,42 @@ document.addEventListener("change", (e) => {
   }
 });
 
+/* ---- Android app only: server address and autofill ---- */
+function serverCard() {
+  return `<form id="f-server" class="card"><label class="field"><span>${esc(t("server_addr"))}</span>
+    <input name="server" inputmode="url" autocomplete="off" value="${esc(serverBase())}"></label>
+    <p class="small muted">${esc(t("server_hint"))}</p><button class="wide">${esc(t("save"))}</button></form>`;
+}
+
+function bindServerCard() {
+  const f = $("#f-server");
+  if (!f) return;
+  f.onsubmit = (e) => {
+    e.preventDefault();
+    const v = normaliseServer(f.server.value);
+    if (!v) { toast(t("server_bad")); return; }
+    store.set("aura.server", v);
+    location.reload();
+  };
+}
+
+async function autofillReady() {
+  const f = S.formData;
+  if (!f || !S.note) return;
+  try {
+    const r = await nativeCall("AuraAutofill", "setVisit", autofillPayload(f, S.note.id));
+    const st = $("#af-status");
+    if (st) st.textContent = (r.serviceEnabled ? t("af_set") : t("af_set_off")).replace("{n}", r.fields);
+    toast(t("af_set").replace("{n}", r.fields));
+  } catch (e) { fail(e); }
+}
+
 /* ---- start ---- */
 (async function start() {
   document.documentElement.lang = S.lang;
   /* App shell for opening with no connection. Browsers allow this only on localhost or a trusted HTTPS
      certificate; with the self-signed demo certificate registration fails and the app simply works online. */
-  if ("serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if (!NATIVE && "serviceWorker" in navigator && window.isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
   try {
     S.meta = await api("/meta");
     store.set("aura.cache.meta", JSON.stringify(S.meta));
@@ -959,7 +1009,9 @@ document.addEventListener("change", (e) => {
     S.meta = JSON.parse(store.get("aura.cache.meta") || "null");
     S.user = JSON.parse(store.get("aura.cache.user") || "null");
     if (S.token && S.meta && S.user) { go("home"); scheduleFlush(); return; }
-    busy(false); toast(t("conn_error")); return;
+    busy(false); toast(t("conn_error"));
+    if (NATIVE) go("login"); // she can fix the server address there
+    return;
   }
   if (S.token) {
     try {

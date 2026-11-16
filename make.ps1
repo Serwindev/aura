@@ -63,6 +63,37 @@ Phone over USB (Android + Chrome):
         Remove-Item (Join-Path $root 'server\data\audio\*') -ErrorAction SilentlyContinue
         Write-Host 'Demo database and audio cleared'
     }
-    'app' { Write-Host 'Flutter app is phase 4; the v1 web app is served by: .\make.ps1 server'; exit 1 }
+    'apk' {
+        # Android app (mobile/, Capacitor): bundles server/app/web into a debug APK. Needs Node + Android SDK.
+        $jbr = 'C:\Program Files\Android\Android Studio\jbr'
+        if (Test-Path $jbr) { $env:JAVA_HOME = $jbr }
+        Push-Location (Join-Path $root 'mobile')
+        try {
+            if (-not (Test-Path 'node_modules')) { & npm ci; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
+            & node copy-web.mjs; & npx cap sync android; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Push-Location 'android'
+            try { & .\gradlew.bat testDebugUnitTest assembleDebug; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } } finally { Pop-Location }
+            Write-Host "APK: mobile\android\app\build\outputs\apk\debug\app-debug.apk"
+        } finally { Pop-Location }
+    }
+    'apk-run' {
+        # Install the APK on a phone on USB, forward port 8000, and start the server. The app talks to
+        # http://localhost:8000 = this laptop (change it on the login screen or in Settings for Wi-Fi).
+        $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+        $apk = Join-Path $root 'mobile\android\app\build\outputs\apk\debug\app-debug.apk'
+        if (-not (Test-Path $apk)) { Write-Host 'No APK yet: run .\make.ps1 apk first'; exit 1 }
+        & $adb install -r $apk; if ($LASTEXITCODE -ne 0) { Write-Host 'Phone not found: enable USB debugging and allow this laptop'; exit 1 }
+        & $adb reverse tcp:8000 tcp:8000
+        Write-Host 'Installed. Open "A.U.R.A." on the phone. Server starting on http://localhost:8000 ...'
+        Invoke-InServer @('run', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '127.0.0.1', '--port', '8000')
+    }
+    'apk-wifi' {
+        # Server for the Android app over Wi-Fi (plain http, synthetic demo data only). In the app set the
+        # server to this laptop's Wi-Fi address, e.g. 192.168.1.5:8000. Allow Windows Firewall if asked.
+        Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
+            ForEach-Object { Write-Host ("App server address: {0}:8000" -f $_.IPAddress) }
+        Invoke-InServer @('run', 'uvicorn', 'app.main:app_factory', '--factory', '--host', '0.0.0.0', '--port', '8000')
+    }
+    'app' { Write-Host 'Android app: .\make.ps1 apk (build) then .\make.ps1 apk-run (install on a USB phone)'; exit 1 }
     default        { Write-Host "unknown target: $Target"; exit 1 }
 }

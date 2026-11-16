@@ -17,7 +17,7 @@ server:
 	@echo "not built yet (phase 3: FastAPI server)"; exit 1
 
 app:
-	@echo "not built yet (phase 4: Flutter app)"; exit 1
+	cd mobile && npm ci && node copy-web.mjs && npx cap sync android && cd android && ./gradlew testDebugUnitTest assembleDebug
 
 eval:
 	uv run --project server python eval/harness.py --notes eval/data/notes.yaml --out eval/results/latest/dev

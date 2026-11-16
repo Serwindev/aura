@@ -1,0 +1,7 @@
+{
+  "appId": "org.aura.asha",
+  "appName": "A.U.R.A.",
+  "webDir": "www",
+  "server": { "androidScheme": "http", "hostname": "localhost" },
+  "android": { "allowMixedContent": false, "captureInput": false }
+}

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Demo build: the app talks only to the A.U.R.A. server the ASHA/demo lead sets (laptop over USB = localhost,
+     or the laptop's Wi-Fi address). Plain http is allowed for that demo server; data is synthetic only.
+     A field build must use HTTPS with a real certificate and set cleartextTrafficPermitted="false". -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
