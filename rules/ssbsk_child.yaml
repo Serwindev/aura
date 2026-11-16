@@ -1,0 +1,22 @@
+# SSBSK 2026 young-child schedule (integrates HBYC) — ADVISORY ONLY. OFF by default (D-32), see ssbsk_newborn.yaml.
+programme: HBYC                   # notes are still recorded as HBYC visits
+schedule: ssbsk2026
+version: 1
+status: draft
+source: "[S36] SSBSK Operational Guidelines 2026, p. 19 and p. 36: visits at 3, 6, 9, 12, 18, 24, 30, 36 months; context.md §8"
+applies_to: [newborn, child]
+anchor: dob
+grace_days: 30                    # [U] placeholder, as hbyc.yaml
+expire_on_next: true
+visits:
+  - {id: ssbsk_m3, month: 3}
+  - {id: ssbsk_m6, month: 6}
+  - {id: ssbsk_m9, month: 9}
+  - {id: ssbsk_m12, month: 12}
+  - {id: ssbsk_m18, month: 18}
+  - {id: ssbsk_m24, month: 24}
+  - {id: ssbsk_m30, month: 30}
+  - {id: ssbsk_m36, month: 36}
+reason:
+  en: "SSBSK {month}-month home visit (born {anchor})"
+  hi: "SSBSK {month} माह का गृह भ्रमण (जन्म {anchor})"

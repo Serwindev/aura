@@ -29,7 +29,9 @@ def claim_sheet(people: list[Person], inputs, today: date, year: int, month: int
                 template: dict | None = None) -> dict:
     tpl = template or load_template()
     rates = tpl["rates"]
-    tasks = engine.compute_tasks(inputs.beneficiaries, inputs.visits, inputs.doses, today)
+    # Always the 2014/2018 schedules: the claim sheet follows the national HBNC/HBYC incentive rules, and SSBSK
+    # incentive amounts are not published yet [S36 p. 60] (D-32).
+    tasks = engine.compute_tasks(inputs.beneficiaries, inputs.visits, inputs.doses, today, engine.load_ruleset())
     by_person = {p.id: p for p in people}
     rows: list[dict] = []
 

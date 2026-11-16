@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from ..core.config import RULES_DIR, load_yaml
+from ..core.config import RULES_DIR, SCHEDULES, load_yaml, schedule_or_default
 from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
 from ..extraction.llm import from_env as llm_from_env
@@ -80,7 +80,8 @@ def current_user(request: Request, authorization: str | None = Header(default=No
 
 
 def user_view(u: User) -> dict:
-    return {"id": u.id, "phone": u.phone, "asha_id": u.asha_id, "name": u.name, "lang": u.lang}
+    return {"id": u.id, "phone": u.phone, "asha_id": u.asha_id, "name": u.name, "lang": u.lang,
+            "schedule": schedule_or_default(u.schedule)}
 
 
 def own_note(db: Session, user: User, note_id: str) -> Note:
@@ -177,6 +178,7 @@ class Profile(BaseModel):
     asha_id: str | None = None
     name: str | None = None
     lang: str | None = None
+    schedule: str | None = None
 
 
 @router.get("/me")
@@ -190,6 +192,10 @@ def update_me(body: Profile, user: User = Depends(current_user), db: Session = D
         if body.lang not in ("hi", "en"):
             raise RequestError(422, "BAD_LANGUAGE", "Language must be hi or en")
         user.lang = body.lang
+    if body.schedule is not None:
+        if body.schedule not in SCHEDULES:
+            raise RequestError(422, "BAD_SCHEDULE", "Unknown visit schedule")
+        user.schedule = body.schedule
     if body.asha_id is not None:
         user.asha_id = body.asha_id.strip() or None
     if body.name is not None:
@@ -204,7 +210,7 @@ def person_view(p, lang: str, by_id: dict) -> dict:
     return {"id": p.id, "label": label(p, lang), "category": p.category, "own": p.id.startswith(OWN_PREFIX),
             "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place,
             "mother_id": p.mother_id, "mother_label": label(mother, lang) if mother else None,
-            "names": list(p.names), "area": p.area}
+            "names": list(p.names), "area": p.area, "at_risk": bool(p.at_risk)}
 
 
 @router.get("/beneficiaries")
@@ -224,6 +230,7 @@ class NewPerson(BaseModel):
     mother_name_en: str | None = None
     delivery_place: str | None = None
     area: str | None = None
+    at_risk: bool | None = None
 
 
 class PersonEdit(BaseModel):
@@ -232,6 +239,7 @@ class PersonEdit(BaseModel):
     dob: date | None = None
     delivery_place: str | None = None
     area: str | None = None
+    at_risk: bool | None = None
 
 
 def _one_person(db: Session, user: User, person_id: str) -> dict:

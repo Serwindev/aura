@@ -26,7 +26,7 @@
 | Outside host api.groq.com | PASS | note text only, when LLM_PROVIDER=groq; disclosed in Settings > Privacy (llm_cloud) |
 | Outside host api.sarvam.ai | PASS | speech-to-text when SARVAM_API_KEY is set; disclosed in Settings > Privacy (stt_cloud) |
 | Outside host generativelanguage.googleapis.com | PASS | note text only, when LLM_PROVIDER=gemini; disclosed in Settings > Privacy (llm_cloud) |
-| Android app asks only for microphone + network | PASS | android.permission.INTERNET, android.permission.MODIFY_AUDIO_SETTINGS, android.permission.RECORD_AUDIO |
+| Android app asks only for microphone, notifications + network (incl. plugins) | PASS | android.permission.INTERNET, android.permission.MODIFY_AUDIO_SETTINGS, android.permission.POST_NOTIFICATIONS, android.permission.RECEIVE_BOOT_COMPLETED, android.permission.RECORD_AUDIO, android.permission.WAKE_LOCK |
 | Autofill service can only be bound by Android (she turns it on in Android settings) | PASS | BIND_AUTOFILL_SERVICE |
 | Android app data excluded from cloud backup | PASS | allowBackup=false |
 | No Accessibility service (reads other apps' screens) | PASS | none |
@@ -45,6 +45,7 @@
 | Note text (transcript) | our server; → Groq/Gemini (or another cloud server) only if `LLM_PROVIDER` points there; `ollama` stays on the laptop | with the note (Delete my data) |
 | Unsent note (audio/text) | this phone only (IndexedDB) until sent | when sent, deleted by her, or Delete my data |
 | Login token, language, last task list | this phone (localStorage) | logout (token) / Delete my data (task list) |
+| Visit reminder (Android app, opt-in) | this phone only: a count of due visits, no names | turned off, logout or Delete my data |
 | Answers ready to autofill (Android app) | this phone (app-private storage, not backed up) | replaced by the next visit, after 12 h, or Delete my data |
 | Phone number, name, ASHA ID | our server | Delete my data removes notes; account row stays for login |
 

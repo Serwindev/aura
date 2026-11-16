@@ -32,6 +32,7 @@ class Person:
     label_hi: str | None = None
     label_en: str | None = None
     area: str | None = None  # ward or tola she groups visits by (no GPS)
+    at_risk: bool | None = None  # she marked an at-risk newborn (SSBSK schedule only)
 
 
 @dataclass

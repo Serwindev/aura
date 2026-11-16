@@ -3,5 +3,8 @@
   "appName": "A.U.R.A.",
   "webDir": "www",
   "server": { "androidScheme": "http", "hostname": "localhost" },
-  "android": { "allowMixedContent": false, "captureInput": false }
+  "android": { "allowMixedContent": false, "captureInput": false },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_aura", "iconColor": "#1F5C4A" }
+  }
 }

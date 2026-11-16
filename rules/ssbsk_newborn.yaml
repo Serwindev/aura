@@ -1,0 +1,34 @@
+# SSBSK 2026 newborn schedule (integrates HBNC) — ADVISORY ONLY. Not clinical guidance. OFF by default (D-32):
+# used only when the ASHA picks "SSBSK 2026" in Settings, because UP's adoption of SSBSK is not confirmed [U].
+programme: HBNC                   # notes are still recorded as HBNC visits, so they tick these tasks
+schedule: ssbsk2026
+version: 1
+status: draft
+source: "[S36] SSBSK Operational Guidelines 2026, p. 19 and p. 36 (schedule), p. 113 (at-risk criteria); context.md §8"
+applies_to: [newborn, child]
+anchor: dob
+day_numbering: birth_is_day_1     # [U] same assumption as hbnc.yaml; verify with an ANM (T-013)
+grace_days: 1                     # [U] placeholder, as hbnc.yaml
+expire_on_next: true
+visits:                           # healthy newborn: days 3, 7, 14, 42 (+ day 1 for home births)
+  - {id: ssbsk_d1, day: 1, only_if: {delivery_place: home}}
+  - {id: ssbsk_d3, day: 3}
+  - {id: ssbsk_d7, day: 7}
+  - {id: ssbsk_d14, day: 14}
+  - {id: ssbsk_d42, day: 42}
+visits_at_risk:                   # 'at-risk' newborn (she marks it on the person): 9 visits
+  - {id: ssbsk_d1, day: 1}
+  - {id: ssbsk_d3, day: 3}
+  - {id: ssbsk_d5, day: 5}
+  - {id: ssbsk_d7, day: 7}
+  - {id: ssbsk_d10, day: 10}
+  - {id: ssbsk_d14, day: 14}
+  - {id: ssbsk_d21, day: 21}
+  - {id: ssbsk_d28, day: 28}
+  - {id: ssbsk_d42, day: 42}
+reason:
+  en: "SSBSK newborn day {day} home visit (born {anchor})"
+  hi: "SSBSK नवजात दिन {day} का गृह भ्रमण (जन्म {anchor})"
+reason_at_risk:
+  en: "SSBSK at-risk newborn: day {day} home visit (born {anchor})"
+  hi: "SSBSK जोखिम वाला नवजात: दिन {day} का गृह भ्रमण (जन्म {anchor})"

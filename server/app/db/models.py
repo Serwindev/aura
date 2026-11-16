@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -39,6 +40,7 @@ class User(Base):
     asha_id: Mapped[str | None] = mapped_column(String, nullable=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
     lang: Mapped[str] = mapped_column(String, default="hi")
+    schedule: Mapped[str | None] = mapped_column(String, nullable=True)  # visit schedule (D-32); None = 2014 default
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
@@ -64,6 +66,7 @@ class Person(Base):
     label_hi: Mapped[str | None] = mapped_column(String, nullable=True)
     label_en: Mapped[str | None] = mapped_column(String, nullable=True)
     area: Mapped[str | None] = mapped_column(String, nullable=True)  # ward/tola/village she groups visits by (no GPS)
+    at_risk: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # she marked an 'at-risk' newborn (SSBSK)
 
 
 class Note(Base):
@@ -119,7 +122,7 @@ def make_session_factory(url: str) -> sessionmaker:
 
 
 # Columns added after v1.0. create_all() does not alter existing tables, so add them here (additive only).
-_LATER_COLUMNS = {"people": {"area": "VARCHAR"}}
+_LATER_COLUMNS = {"people": {"area": "VARCHAR", "at_risk": "BOOLEAN"}, "users": {"schedule": "VARCHAR"}}
 
 
 def _add_missing_columns(engine) -> None:

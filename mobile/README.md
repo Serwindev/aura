@@ -17,6 +17,8 @@ APK: `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. Needs Node 20+,
 | Share form text / report files (PDF, XLSX) | `@capacitor/share`, `AuraAutofillPlugin.shareFile` |
 | Autofill service + SIMULATED test form | `android/app/src/main/java/org/aura/asha/autofill/` |
 | Server address setting | `server/app/web/native.js`, login screen and Settings |
+| Back button (one screen back; Home → background) | `MainActivity.java` → `auraBack()` in `app.js` |
+| Visit reminder (opt-in, 8 am, count only) | `@capacitor/local-notifications`, `scheduleReminders()` in `app.js`, D-36 |
 
 ## Autofill demo (SIMULATED)
 1. Record and confirm an HBNC note → Saved → **View in form order** → **Get ready for autofill**.
@@ -24,3 +26,5 @@ APK: `mobile/android/app/build/outputs/apk/debug/app-debug.apk`. Needs Node 20+,
 3. **Open test form** (SIMULATED) → tap any field → pick "A.U.R.A. visit: fill N answers" → check each answer → Submit (does nothing).
 
 Only the SIMULATED test form is allow-listed. No government app is filled until its terms are checked (D-34 condition 1).
+
+Test checklist: `docs/android-test-checklist.md`.

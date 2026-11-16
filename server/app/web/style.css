@@ -24,6 +24,7 @@ p { margin: 8px 0; }
 .banner.ok { background: var(--soft); color: #164536; }
 .tag { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .03em; padding: 2px 7px; border-radius: 6px; background: #ece6d6; color: #55503f; }
 .tag.sim { background: #2b2b2b; color: #fff; }
+.tag.warn { background: #fde2c4; color: #6b3a00; }
 
 button, .btn {
   font: inherit; font-weight: 600; min-height: 52px; padding: 10px 16px; border-radius: 12px; cursor: pointer;

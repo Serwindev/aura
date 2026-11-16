@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
-from .core.config import REPO_ROOT, load_yaml
+from .core.config import REPO_ROOT, ValidationConfig, load_yaml
 from .extraction import rule_based
 from .extraction.llm import LlmExtractor, LlmUnavailable
 from .extraction.llm import from_env as llm_from_env
@@ -48,7 +48,8 @@ _UNSET = object()
 
 
 def process_transcript(transcript: Transcript, recorded_on: date, people: list[Person],
-                       llm: LlmExtractor | None | object = _UNSET) -> PipelineResult:
+                       llm: LlmExtractor | None | object = _UNSET,
+                       config: ValidationConfig | None = None) -> PipelineResult:
     """llm: an LlmExtractor, None for rule-based, or unset = from the environment (LLM_PROVIDER).
     If the LLM cannot give a proposal, the rule-based extractor is used and the note is never lost."""
     if llm is _UNSET:
@@ -66,7 +67,7 @@ def process_transcript(transcript: Transcript, recorded_on: date, people: list[P
     if raw is None:
         raw = rule_based.extract(transcript.text, recorded_on, people)
     t1 = time.perf_counter()
-    result = validate_extraction(raw, transcript.text, recorded_on)
+    result = validate_extraction(raw, transcript.text, recorded_on, config)
     t2 = time.perf_counter()
     match = resolve_beneficiary(transcript.text, people, result.record.visit_type)
     if match and match.matched_id:
@@ -78,17 +79,18 @@ def process_transcript(transcript: Transcript, recorded_on: date, people: list[P
 
 
 def process_text(text: str, recorded_on: date, people: list[Person],
-                 llm: LlmExtractor | None | object = _UNSET) -> PipelineResult:
-    return process_transcript(Transcript(text, "typed"), recorded_on, people, llm)
+                 llm: LlmExtractor | None | object = _UNSET, config: ValidationConfig | None = None) -> PipelineResult:
+    return process_transcript(Transcript(text, "typed"), recorded_on, people, llm, config)
 
 
 def process_audio(wav_bytes: bytes, recorded_on: date, people: list[Person], stt,
-                  language: str = "hi", llm: LlmExtractor | None | object = _UNSET) -> PipelineResult:
+                  language: str = "hi", llm: LlmExtractor | None | object = _UNSET,
+                  config: ValidationConfig | None = None) -> PipelineResult:
     t0 = time.perf_counter()
     # names in the register help the speech model spell them (Latin for English, Devanagari for Hindi)
     hints = sorted({n for p in people for n in p.names if n.isascii() == (language == "en")})
     tr = stt.transcribe(wav_bytes, language, hints=hints)
     stt_ms = (time.perf_counter() - t0) * 1000
-    res = process_transcript(tr, recorded_on, people, llm)
+    res = process_transcript(tr, recorded_on, people, llm, config)
     res.timings_ms["stt"] = stt_ms
     return res

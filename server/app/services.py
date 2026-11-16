@@ -18,10 +18,10 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .core.config import RULES_DIR, load_yaml, validation_config
+from .core.config import RULES_DIR, load_yaml, schedule_or_default, validation_config
 from .core.schema import VisitRecord
 from .core.settings import Settings
-from .db.models import AuditEvent, Note, Person, TaskAction, new_id, utcnow
+from .db.models import AuditEvent, Note, Person, TaskAction, User, new_id, utcnow
 from .extraction.dates_hi import add_months
 from .extraction.names import Person as NamePerson
 from .extraction.validate import Flag
@@ -59,7 +59,7 @@ def people_for(db: Session, owner_id: str) -> list[NamePerson]:
     rows = db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
     return [NamePerson(id=p.id, names=tuple(p.names or ()), category=p.category, mother_id=p.mother_id,
                        dob=p.dob, delivery_place=p.delivery_place, label_hi=p.label_hi,
-                       label_en=p.label_en, area=p.area) for p in rows]
+                       label_en=p.label_en, area=p.area, at_risk=p.at_risk) for p in rows]
 
 
 # ---- doses ---------------------------------------------------------------------------------
@@ -131,10 +131,11 @@ def create_note(db: Session, cfg: Settings, stt: Any, owner_id: str, *, text: st
     purge_expired_audio(db, cfg)
     people = people_for(db, owner_id)
     today = recorded_on or cfg.today()
+    vcfg = validation_config(schedule=user_schedule(db, owner_id))
     if wav is not None:
-        result = process_audio(wav, today, people, stt, language)
+        result = process_audio(wav, today, people, stt, language, config=vcfg)
     else:
-        result = process_text(text or "", today, people)
+        result = process_text(text or "", today, people, config=vcfg)
     if not result.transcript.text.strip():
         raise RequestError(422, "EMPTY_TRANSCRIPT", "No speech could be recognised in this audio")
     _apply_hint(result, people, hint)
@@ -194,8 +195,14 @@ def _get(d: dict, path: str) -> Any:
     return d
 
 
-def _check_record(rec: VisitRecord, people: list[NamePerson], today: date) -> list[dict]:
-    cfg = validation_config()
+def user_schedule(db: Session, owner_id: str) -> str:
+    """Her chosen visit schedule (D-32); the 2014/2018 guidelines unless she picked SSBSK 2026 in Settings."""
+    u = db.get(User, owner_id)
+    return schedule_or_default(u.schedule if u else None)
+
+
+def _check_record(rec: VisitRecord, people: list[NamePerson], today: date, schedule: str | None = None) -> list[dict]:
+    cfg = validation_config(schedule=schedule_or_default(schedule))
     errs: list[dict] = []
 
     def err(path: str, code: str, message: str) -> None:
@@ -240,7 +247,7 @@ def confirm_note(db: Session, cfg: Settings, note: Note, payload: dict) -> tuple
         details = [{"path": ".".join(str(p) for p in e["loc"]), "code": "SCHEMA_INVALID", "message": e["msg"]}
                    for e in exc.errors()]
         raise RequestError(422, "INVALID_RECORD", "Some fields are not valid", details) from exc
-    errors = _check_record(rec, people_for(db, note.owner_id), cfg.today())
+    errors = _check_record(rec, people_for(db, note.owner_id), cfg.today(), user_schedule(db, note.owner_id))
     if errors:
         raise RequestError(422, "CHECK_FIELDS", "Please check the highlighted fields", errors)
 
@@ -278,11 +285,15 @@ class EngineInputs:
     visits: list[engine.Visit]
     doses: list[engine.DoseGiven]
     seeded_visits: set[tuple[str, str, date]]
+    schedule: str = "hbnc2014"  # her visit schedule (D-32)
+
+    def rules(self) -> list[dict]:
+        return engine.load_ruleset(schedule=self.schedule)
 
 
 def engine_inputs(db: Session, owner_id: str) -> EngineInputs:
     people = people_for(db, owner_id)
-    bens = [engine.Beneficiary(p.id, p.category, p.dob, p.delivery_place) for p in people if p.dob]
+    bens = [engine.Beneficiary(p.id, p.category, p.dob, p.delivery_place, bool(p.at_risk)) for p in people if p.dob]
     visits, doses, seeded = [], [], set()
     table = dose_table()
     for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.status == "confirmed")).all():
@@ -297,7 +308,7 @@ def engine_inputs(db: Session, owner_id: str) -> EngineInputs:
             did = dose_id(s.get("detail"), table) if s["type"] == "VACCINE" else None
             if did:
                 doses.append(engine.DoseGiven(bid, did, when))
-    return EngineInputs(bens, visits, doses, seeded)
+    return EngineInputs(bens, visits, doses, seeded, user_schedule(db, owner_id))
 
 
 def list_tasks(db: Session, owner_id: str, today: date, lang: str) -> list[dict]:
@@ -306,7 +317,7 @@ def list_tasks(db: Session, owner_id: str, today: date, lang: str) -> list[dict]
     actions = {(a.beneficiary_id, a.rule_id): a for a in db.scalars(
         select(TaskAction).where(TaskAction.owner_id == owner_id)).all()}
     out = []
-    for t in engine.open_tasks(engine.compute_tasks(inp.beneficiaries, inp.visits, inp.doses, today)):
+    for t in engine.open_tasks(engine.compute_tasks(inp.beneficiaries, inp.visits, inp.doses, today, inp.rules())):
         act = actions.get((t.beneficiary_id, t.rule_id))
         if act and (act.action == "dismiss" or (act.until and act.until > today)):
             continue
@@ -525,7 +536,7 @@ def _check_person(category: str, dob: date | None, today: date, delivery_place: 
 def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, name_en: str | None, category: str,
                dob: date | None = None, mother_id: str | None = None, mother_name_hi: str | None = None,
                mother_name_en: str | None = None, delivery_place: str | None = None,
-               area: str | None = None) -> Person:
+               area: str | None = None, at_risk: bool | None = None) -> Person:
     """Register a person. A newborn/child may be linked to an existing mother or to a new one added here;
     an unnamed newborn is labelled "<mother>'s baby" (that is also how notes name them)."""
     name_hi, name_en = _clean(name_hi), _clean(name_en)
@@ -557,7 +568,8 @@ def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, 
             raise RequestError(409, "PERSON_EXISTS", "This person is already in your list", [{"id": p.id}])
     person = Person(owner_id=owner_id, id=OWN_PREFIX + new_id()[:8], names=names, category=category,
                     mother_id=mother.id if mother else None, dob=dob, delivery_place=delivery_place,
-                    label_hi=label_hi, label_en=label_en, area=area or (mother.area if mother else None))
+                    label_hi=label_hi, label_en=label_en, area=area or (mother.area if mother else None),
+                    at_risk=bool(at_risk) if category in ("newborn", "child") and at_risk is not None else None)
     db.add(person)
     db.add(AuditEvent(owner_id=owner_id, action="person_added", detail={"id": person.id, "category": category}))
     db.commit()
@@ -566,7 +578,7 @@ def add_person(db: Session, owner_id: str, today: date, *, name_hi: str | None, 
 
 def update_person(db: Session, owner_id: str, person_id: str, today: date, *, name_hi: str | None,
                   name_en: str | None, dob: date | None, delivery_place: str | None,
-                  area: str | None = None) -> Person:
+                  area: str | None = None, at_risk: bool | None = None) -> Person:
     p = db.get(Person, (owner_id, person_id))
     if p is None or not p.id.startswith(OWN_PREFIX):
         raise RequestError(404, "NOT_FOUND", "Only people you added can be edited")
@@ -579,6 +591,8 @@ def update_person(db: Session, owner_id: str, person_id: str, today: date, *, na
         p.label_hi, p.label_en = name_hi or name_en, name_en or name_hi
     if area is not None:  # "" clears it, None leaves it
         p.area = _clean_area(area)
+    if at_risk is not None and p.category in ("newborn", "child"):
+        p.at_risk = at_risk
     db.add(AuditEvent(owner_id=owner_id, action="person_updated", detail={"id": p.id}))
     db.commit()
     return p

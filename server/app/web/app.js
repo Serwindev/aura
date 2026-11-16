@@ -74,7 +74,7 @@ function go(view, data = {}) {
 function logout() {
   stopRecorder();
   S.token = S.user = null;
-  if (NATIVE) nativeCall("AuraAutofill", "clearVisit").catch(() => {}); // answers ready to autofill belong to her session
+  if (NATIVE) { nativeCall("AuraAutofill", "clearVisit").catch(() => {}); store.del("aura.reminders"); scheduleReminders([]); } // her session only
   store.del("aura.token");
   go("login");
 }
@@ -151,6 +151,7 @@ async function viewHome() {
   try { queued = await Outbox.list(owner()); } catch { /* no storage */ }
   if (S.view !== "home") return;
   S.tasks = mergeVaccines(tasks);
+  if (NATIVE && !offline) scheduleReminders(S.tasks);
   const byArea = store.get("aura.homeGroup") === "area";
   const ORDER = { overdue: 0, due: 1, due_soon: 2 };
   const groups = byArea
@@ -631,7 +632,7 @@ function viewSaved() {
   VIEW().className = "";
   const r = S.note.record;
   const signs = r.danger_signs.filter((x) => x.present);
-  const who = S.people.find((p) => p.id === r.beneficiary.matched_id)?.label;
+  const who = (S.people || []).find((p) => p.id === r.beneficiary.matched_id)?.label;
   VIEW().innerHTML = `
     <h1>${esc(t("saved_title"))}</h1>
     <div class="card"><p class="task-name">${esc(who)}</p><p>${esc(VISIT_TYPES[S.lang][r.visit_type])} · ${esc(fmtDate(r.visit_date))}</p></div>
@@ -771,8 +772,8 @@ async function viewPeople() {
   const own = list.filter((p) => p.own), demo = list.filter((p) => !p.own);
   const row = (p) => `<div class="card"><div class="task-head"><span class="task-name">${esc(p.label)}</span>
       ${p.own ? "" : '<span class="tag sim">SIMULATED</span>'}</div>
-      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}${p.area ? " · " + esc(p.area) : ""}</p>
-      ${p.own ? `<div class="task-actions"><button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
+      <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}${p.area ? " · " + esc(p.area) : ""}${p.at_risk ? ` <span class="tag warn">${esc(t("at_risk_tag"))}</span>` : ""}</p>
+      ${p.own ? `<div class="task-actions">${ssbskOn() && p.category === "newborn" ? `<button data-person-risk="${esc(p.id)}">${esc(p.at_risk ? t("at_risk_clear") : t("at_risk_mark"))}</button>` : ""}<button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
   VIEW().innerHTML = `
     <h1>${esc(t("people_title"))}</h1>
     <p class="muted">${esc(t("people_hint"))}</p>
@@ -793,7 +794,9 @@ async function viewPeople() {
       ${cat === "newborn" ? `
         <span class="field-label">${esc(t("birth_place"))}</span>
         <div class="chips"><label class="chip"><input type="radio" name="delivery_place" value="institution" checked> ${esc(t("place_institution"))}</label>
-        <label class="chip"><input type="radio" name="delivery_place" value="home"> ${esc(t("place_home"))}</label></div>` : ""}
+        <label class="chip"><input type="radio" name="delivery_place" value="home"> ${esc(t("place_home"))}</label></div>
+        ${ssbskOn() ? `<label class="chip" style="margin-top:8px"><input type="checkbox" name="at_risk"> ${esc(t("at_risk_label"))}</label>
+        <p class="small muted">${esc(t("at_risk_hint"))}</p>` : ""}` : ""}
       <label class="field"><span>${esc(t("area"))}</span><input name="area" list="areas" autocomplete="off" maxlength="40"></label>
       <datalist id="areas">${[...new Set(list.map((p) => p.area).filter(Boolean))].map((a) => `<option value="${esc(a)}">`).join("")}</datalist>
       <p class="small muted">${esc(t("two_scripts"))}</p>
@@ -809,6 +812,7 @@ async function viewPeople() {
     const body = { category: cat, name_hi: v("name_hi"), name_en: v("name_en"), area: v("area") };
     if (kid) Object.assign(body, { dob: v("dob"), mother_id: v("mother_id"), mother_name_hi: v("mother_name_hi"), mother_name_en: v("mother_name_en") });
     if (cat === "newborn") body.delivery_place = f.querySelector("input[name=delivery_place]:checked")?.value || null;
+    if (cat === "newborn" && f.at_risk) body.at_risk = f.at_risk.checked;
     try {
       await api("/beneficiaries", { method: "POST", json: body });
       S.people = null; S.newCat = null;
@@ -816,6 +820,26 @@ async function viewPeople() {
       viewPeople();
     } catch (err) { fail(err); }
   };
+}
+
+function ssbskOn() { return !!(S.user && S.user.schedule === "ssbsk2026"); }
+
+async function togglePersonRisk(id) {
+  const p = (S.people || []).find((x) => x.id === id);
+  if (!p) return;
+  try {
+    await api(`/beneficiaries/${encodeURIComponent(id)}`, { method: "PATCH",
+      json: { name_hi: null, name_en: null, dob: p.dob, delivery_place: p.delivery_place, at_risk: !p.at_risk } });
+    S.people = null; toast(t("saved")); viewPeople();
+  } catch (e) { fail(e); }
+}
+
+async function setSchedule(value) {
+  try {
+    S.user = await api("/me", { method: "PATCH", json: { schedule: value } });
+    store.set("aura.cache.user", JSON.stringify(S.user));
+    toast(t("saved")); viewSettings();
+  } catch (e) { fail(e); }
 }
 
 /* ---- settings ---- */
@@ -841,6 +865,13 @@ async function viewSettings() {
       <label class="field"><span>${esc(t("asha_id"))}</span><input name="asha_id" value="${esc(u.asha_id ?? "")}" autocomplete="off"></label>
       <button class="wide">${esc(t("save"))}</button>
     </form>
+    <h2>${esc(t("sched_title"))}</h2>
+    <section class="card">
+      <div class="chips" role="group" aria-label="${esc(t("sched_title"))}">
+        <button class="chip" data-schedule="hbnc2014" aria-pressed="${!ssbskOn()}">${esc(t("sched_2014"))}</button>
+        <button class="chip" data-schedule="ssbsk2026" aria-pressed="${ssbskOn()}">${esc(t("sched_ssbsk"))}</button></div>
+      <p class="small muted">${esc(ssbskOn() ? t("sched_ssbsk_hint") : t("sched_2014_hint"))}</p>
+    </section>
     <h2>${esc(t("privacy"))}</h2>
     <div class="card">
       <span class="field-label">${esc(t("stored"))}</span>
@@ -860,6 +891,8 @@ async function viewSettings() {
       <p class="small"><strong>${esc(t("perms"))}</strong></p>
       <div class="row"><button id="export">${esc(t("export_data"))}</button><button class="danger" id="delete">${esc(t("delete_data"))}</button></div>
     </div>
+    ${NATIVE ? `<h2>${esc(t("rem_title"))}</h2><section class="card"><p class="small">${esc(t("rem_hint"))}</p>
+      <button class="wide ${remindersOn() ? "" : "primary"}" id="rem-toggle">${esc(remindersOn() ? t("rem_disable") : t("rem_enable"))}</button></section>` : ""}
     ${NATIVE ? `<h2>${esc(t("server_title"))}</h2>${serverCard()}` : ""}
     <h2>${esc(t("about"))}</h2>
     <div class="card small">
@@ -870,6 +903,7 @@ async function viewSettings() {
     </div>
     <button class="wide" id="logout">${esc(t("logout"))}</button>`;
   bindServerCard();
+  if ($("#rem-toggle")) $("#rem-toggle").onclick = toggleReminders;
   $("#f-profile").onsubmit = async (e) => {
     e.preventDefault();
     try { S.user = await api("/me", { method: "PATCH", json: { name: e.target.name.value, asha_id: e.target.asha_id.value } }); toast(t("saved")); } catch (err) { fail(err); }
@@ -879,7 +913,7 @@ async function viewSettings() {
     if (!confirm(t("delete_q"))) return;
     try {
       await api("/privacy/data", { method: "DELETE" });
-      if (NATIVE) nativeCall("AuraAutofill", "clearVisit").catch(() => {});
+      if (NATIVE) { nativeCall("AuraAutofill", "clearVisit").catch(() => {}); scheduleReminders([]); }
       await Outbox.clear(owner()).catch(() => {});
       store.del("aura.cache.home." + owner());
       S.people = null; toast(t("deleted")); viewSettings();
@@ -906,6 +940,8 @@ document.addEventListener("click", (e) => {
   if (d.copyForm) return copyText(S.formText);
   if (d.shareForm) return shareForm();
   if (d.autofill) return autofillReady();
+  if (d.schedule) return setSchedule(d.schedule);
+  if (d.personRisk) return togglePersonRisk(d.personRisk);
   if (d.afSettings) return nativeCall("AuraAutofill", "openSettings").catch(fail);
   if (d.afTest) return nativeCall("AuraAutofill", "openTestForm").catch(fail);
   if (d.nav) return go(d.nav, { task: null });
@@ -982,6 +1018,67 @@ function bindServerCard() {
     store.set("aura.server", v);
     location.reload();
   };
+}
+
+/* Android back button (MainActivity calls this). Returns true when it handled the press. */
+const BACK_TO = { record: "home", review: "home", saved: "home", form: "saved", people: "home", reports: "home", settings: "home" };
+function auraBack() {
+  if (!$("#busy").hidden) return true; // a send is in progress: ignore
+  const to = BACK_TO[S.view];
+  if (!to) return false; // Home / Login: Android puts the app in the background
+  if (S.view === "review" && !confirm(t("back_review"))) return true;
+  if (S.view === "record" && S.recorder && S.recorder.samples > 0 && !confirm(t("back_recording"))) return true;
+  go(to);
+  return true;
+}
+
+/* Daily visit reminder (Android app, opt-in): a local notification at 8 am with only the NUMBER of visits due —
+   no names on the lock screen. Planned from the task list she last loaded; nothing is sent anywhere. */
+const REMINDER_IDS = [101, 102, 103];
+function remindersOn() { return store.get("aura.reminders") === "1"; }
+
+function localIso(d) { return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+
+function reminderPlan(tasks, now = new Date()) {
+  const first = new Date(now); first.setHours(8, 0, 0, 0);
+  if (first <= now) first.setDate(first.getDate() + 1);
+  const plan = [];
+  for (let i = 0; i < REMINDER_IDS.length; i++) {
+    const at = new Date(first); at.setDate(first.getDate() + i);
+    const day = localIso(at);
+    const n = (tasks || []).filter((x) => x.due_date && x.due_date <= day).length;
+    if (n > 0) plan.push({ id: REMINDER_IDS[i], at, n });
+  }
+  return plan;
+}
+
+async function scheduleReminders(tasks) {
+  if (!NATIVE) return;
+  try {
+    await nativeCall("LocalNotifications", "cancel", { notifications: REMINDER_IDS.map((id) => ({ id })) });
+    if (!remindersOn()) return;
+    const notifications = reminderPlan(tasks).map((r) => ({
+      id: r.id, title: "A.U.R.A.", body: t("rem_body").replace("{n}", r.n),
+      schedule: { at: r.at.toISOString(), allowWhileIdle: true },
+    }));
+    if (notifications.length) await nativeCall("LocalNotifications", "schedule", { notifications });
+  } catch { /* reminders are a convenience; never block the app */ }
+}
+
+async function toggleReminders() {
+  if (remindersOn()) {
+    store.del("aura.reminders");
+    await scheduleReminders([]);
+    toast(t("rem_off"));
+  } else {
+    let r;
+    try { r = await nativeCall("LocalNotifications", "requestPermissions"); } catch (e) { return fail(e); }
+    if (!r || r.display !== "granted") { toast(t("rem_denied")); return; }
+    store.set("aura.reminders", "1");
+    await scheduleReminders(S.tasks || []);
+    toast(t("rem_on"));
+  }
+  if (S.view === "settings") viewSettings();
 }
 
 async function autofillReady() {

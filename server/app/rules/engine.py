@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
-from ..core.config import RULES_DIR, load_yaml
+from ..core.config import DEFAULT_SCHEDULE, RULES_DIR, SCHEDULES, load_yaml, schedule_or_default
 from ..extraction.dates_hi import add_months
 
 OPEN_STATUSES = ("overdue", "due", "due_soon")
@@ -33,6 +33,7 @@ class Beneficiary:
     category: str  # pregnant | newborn | child | other
     dob: date | None = None
     delivery_place: str | None = None  # institution | home
+    at_risk: bool = False  # she marked the newborn 'at-risk' (SSBSK criteria); only the SSBSK schedule uses it
 
 
 @dataclass(frozen=True)
@@ -67,9 +68,9 @@ class Task:
     done_on: date | None = None
 
 
-def load_ruleset(rules_dir: Path = RULES_DIR) -> list[dict]:
+def load_ruleset(rules_dir: Path = RULES_DIR, schedule: str | None = DEFAULT_SCHEDULE) -> list[dict]:
     out = []
-    for name in ("hbnc.yaml", "hbyc.yaml", "uip.yaml", "anc.yaml"):
+    for name in (*SCHEDULES[schedule_or_default(schedule)], "uip.yaml", "anc.yaml"):
         rule = load_yaml(rules_dir / name)
         if rule.get("enabled", True):
             out.append(rule)
@@ -88,14 +89,16 @@ def _status(today: date, due: date, window_end: date, expire: date | None, soon_
     return "upcoming"
 
 
-def _fmt(rule: dict, lang: str, **kw) -> str:
-    return rule["reason"][lang].format(**kw)
+def _fmt(rule: dict, lang: str, at_risk: bool = False, **kw) -> str:
+    key = "reason_at_risk" if at_risk and "reason_at_risk" in rule else "reason"
+    return rule[key][lang].format(**kw)
 
 
 def _scheduled_visits(rule: dict, b: Beneficiary, visits: list[Visit], today: date,
                       soon_days: int) -> list[Task]:
     prog = rule["programme"]
-    defs = [v for v in rule["visits"]
+    risk = b.at_risk and "visits_at_risk" in rule
+    defs = [v for v in rule["visits_at_risk" if risk else "visits"]
             if all(getattr(b, k, None) == val for k, val in (v.get("only_if") or {}).items())]
     if prog == "HBNC":
         shift = 1 if rule.get("day_numbering", "birth_is_day_1") == "birth_is_day_1" else 0
@@ -115,7 +118,7 @@ def _scheduled_visits(rule: dict, b: Beneficiary, visits: list[Visit], today: da
         status = "done" if match else _status(today, due, window_end, expire, soon_days)
         kw = {key: d[key], "anchor": b.dob.isoformat()}
         tasks.append(Task(b.id, d["id"], prog, due, window_end, status, _RANK.get(status, 9),
-                          _fmt(rule, "en", **kw), _fmt(rule, "hi", **kw),
+                          _fmt(rule, "en", risk, **kw), _fmt(rule, "hi", risk, **kw),
                           rule["status"] != "clinician_reviewed",
                           match.visit_date if match else None))
     return tasks

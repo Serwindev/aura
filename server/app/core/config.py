@@ -31,18 +31,29 @@ class ValidationConfig:
         return by_type.get(fld) or self.ranges_default.get(fld)
 
 
+# Visit schedules she can choose in Settings (D-32). The 2014/2018 guidelines stay the default until UP's SSBSK
+# adoption is confirmed. Each entry = (newborn rule file, young-child rule file).
+SCHEDULES = {"hbnc2014": ("hbnc.yaml", "hbyc.yaml"), "ssbsk2026": ("ssbsk_newborn.yaml", "ssbsk_child.yaml")}
+DEFAULT_SCHEDULE = "hbnc2014"
+
+
+def schedule_or_default(schedule: str | None) -> str:
+    return schedule if schedule in SCHEDULES else DEFAULT_SCHEDULE
+
+
 @lru_cache
-def validation_config(rules_dir: Path = RULES_DIR) -> ValidationConfig:
+def validation_config(rules_dir: Path = RULES_DIR, schedule: str = DEFAULT_SCHEDULE) -> ValidationConfig:
     raw = load_yaml(rules_dir / "validation.yaml")
     codes = {c for group in raw["danger_signs"].values() for c in group}
-    hbnc = load_yaml(rules_dir / "hbnc.yaml")
-    hbyc = load_yaml(rules_dir / "hbyc.yaml")
+    nb_file, ch_file = SCHEDULES[schedule_or_default(schedule)]
+    hbnc = load_yaml(rules_dir / nb_file)
+    hbyc = load_yaml(rules_dir / ch_file)
     return ValidationConfig(
         status=raw["status"],
         ranges_default={k: tuple(v) for k, v in raw["ranges"]["default"].items()},
         ranges_by_type={t: {k: tuple(v) for k, v in r.items()}
                         for t, r in raw["ranges"].get("by_visit_type", {}).items()},
         danger_codes=frozenset(codes),
-        hbnc_days=frozenset(v["day"] for v in hbnc["visits"]),
+        hbnc_days=frozenset(v["day"] for v in [*hbnc["visits"], *hbnc.get("visits_at_risk", [])]),
         hbyc_months=frozenset(v["month"] for v in hbyc["visits"]),
     )

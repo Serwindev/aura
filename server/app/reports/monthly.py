@@ -132,7 +132,7 @@ def build(db: Session, owner_id: str, people: list, inputs, claim: dict, today: 
         })
     visits.sort(key=lambda v: (v["date"], v["person"]))
 
-    tasks = engine.compute_tasks(inputs.beneficiaries, inputs.visits, inputs.doses, today)
+    tasks = engine.compute_tasks(inputs.beneficiaries, inputs.visits, inputs.doses, today, inputs.rules())
     soon = [t for t in tasks if t.status in ("due", "due_soon", "upcoming") and 0 <= (t.due_date - today).days <= 7]
     open_rows = [{"person": ((by_id[t.beneficiary_id].label_hi if lang == "hi" else by_id[t.beneficiary_id].label_en)
                              or t.beneficiary_id) if t.beneficiary_id in by_id else t.beneficiary_id,

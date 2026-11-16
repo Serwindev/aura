@@ -22,7 +22,11 @@ SERVER = ROOT / "server" / "app"
 MANIFEST = ROOT / "mobile" / "android" / "app" / "src" / "main" / "AndroidManifest.xml"
 # Android app permissions allowed by the privacy contract (microphone + network). Anything else needs a decision.
 ALLOWED_ANDROID_PERMS = {"android.permission.INTERNET", "android.permission.RECORD_AUDIO",
-                         "android.permission.MODIFY_AUDIO_SETTINGS"}
+                         "android.permission.MODIFY_AUDIO_SETTINGS",
+                         # visit reminder (opt-in local notification, D-36): show it, keep it after a reboot
+                         "android.permission.POST_NOTIFICATIONS", "android.permission.RECEIVE_BOOT_COMPLETED",
+                         "android.permission.WAKE_LOCK"}
+PLUGIN_MANIFESTS = ROOT / "mobile" / "node_modules" / "@capacitor"  # plugins add permissions at build time
 
 # Browser APIs the contract forbids (or that would need a new decision first)
 FORBIDDEN_WEB = {
@@ -165,8 +169,11 @@ def android_rows(findings: list[str]) -> list[tuple[str, str, str]]:
     m = read(MANIFEST)
     rows = []
     perms = set(re.findall(r'uses-permission\s+android:name="([^"]+)"', m))
+    if MANIFEST == ROOT / "mobile" / "android" / "app" / "src" / "main" / "AndroidManifest.xml" and PLUGIN_MANIFESTS.exists():
+        for pm in PLUGIN_MANIFESTS.glob("*/android/src/main/AndroidManifest.xml"):
+            perms |= set(re.findall(r'uses-permission\s+android:name="([^"]+)"', read(pm)))
     extra = sorted(perms - ALLOWED_ANDROID_PERMS)
-    rows.append(("Android app asks only for microphone + network", "PASS" if not extra else "FAIL",
+    rows.append(("Android app asks only for microphone, notifications + network (incl. plugins)", "PASS" if not extra else "FAIL",
                  ", ".join(sorted(perms)) if not extra else "not allowed: " + ", ".join(extra)))
     if extra:
         findings.append(f"Android permissions outside the contract: {extra}")
@@ -202,6 +209,7 @@ def render(res: dict) -> str:
             "| Note text (transcript) | our server; → Groq/Gemini (or another cloud server) only if `LLM_PROVIDER` points there; `ollama` stays on the laptop | with the note (Delete my data) |",
             "| Unsent note (audio/text) | this phone only (IndexedDB) until sent | when sent, deleted by her, or Delete my data |",
             "| Login token, language, last task list | this phone (localStorage) | logout (token) / Delete my data (task list) |",
+            "| Visit reminder (Android app, opt-in) | this phone only: a count of due visits, no names | turned off, logout or Delete my data |",
             "| Answers ready to autofill (Android app) | this phone (app-private storage, not backed up) | replaced by the next visit, after 12 h, or Delete my data |",
             "| Phone number, name, ASHA ID | our server | Delete my data removes notes; account row stays for login |",
             "", "Only synthetic data is used in this prototype."]
