@@ -11,7 +11,7 @@ sections:
     items:
       - {id: date, kind: date, path: visit_date, en: "Date of visit", hi: "भ्रमण की तारीख", match: {en: ["date of visit", "visit date"], hi: ["भ्रमण की तारीख"]}}
       - {id: day, kind: day, path: visit_index.hbnc_day, en: "Visit (day of life)", hi: "भ्रमण (जीवन का दिन)", match: {en: ["visit day", "day of life"], hi: ["जीवन का दिन", "भ्रमण का दिन"]}}
-      - {id: avail, kind: blank, en: "Newborn available at home?", hi: "क्या नवजात घर पर है?"}
+      - {id: avail, kind: detail, detail: baby_alive, en: "Newborn available at home?", hi: "क्या नवजात घर पर है?"}
   - id: exam
     title: {en: "Examination", hi: "जाँच"}
     items:
@@ -23,21 +23,21 @@ sections:
       - {id: d_stim, kind: sign, codes: [NB_LETHARGIC], en: "Moves only when stimulated", hi: "छूने पर ही हिलता है", match: {en: ["moves only when stimulated", "lethargic"], hi: ["छूने पर ही हिलता", "सुस्त"]}}
       - {id: d_feed, kind: sign, codes: [NB_NOT_FEEDING], en: "Not able to feed", hi: "दूध नहीं पी पा रहा", match: {en: ["not able to feed", "unable to feed"], hi: ["दूध नहीं पी"]}}
       - {id: d_conv, kind: sign, codes: [NB_CONVULSIONS], en: "Convulsions", hi: "दौरे / झटके", match: {en: ["convulsion", "convulsions", "fits"], hi: ["दौरे", "झटके"]}}
-      - {id: d_breath, kind: blank, en: "Difficulty breathing", hi: "साँस लेने में कठिनाई"}
+      - {id: d_breath, kind: detail, detail: breathing_difficulty, en: "Difficulty breathing", hi: "साँस लेने में कठिनाई"}
       - {id: d_fast, kind: sign, codes: [NB_FAST_BREATHING], en: "Fast breathing (more than 60/min)", hi: "तेज़ साँस (60/मिनट से ज़्यादा)", match: {en: ["fast breathing"], hi: ["तेज़ साँस", "तेज साँस"]}}
       - {id: d_chest, kind: sign, codes: [NB_CHEST_INDRAWING], en: "Severe chest in-drawing", hi: "छाती का गंभीर धँसना", match: {en: ["chest in drawing", "chest indrawing"], hi: ["छाती", "धँसना"]}}
       - {id: d_yellow, kind: sign, codes: [NB_JAUNDICE], en: "Yellow palms and soles", hi: "पीली हथेलियाँ और तलवे", match: {en: ["yellow palms", "jaundice", "yellow"], hi: ["पीली हथेलियाँ", "पीलिया"]}}
-      - {id: d_blood, kind: blank, en: "Blood in stool", hi: "मल में खून"}
+      - {id: d_blood, kind: detail, detail: blood_stool, en: "Blood in stool", hi: "मल में खून"}
       - {id: d_hot, kind: sign, codes: [NB_FEVER], en: "Axillary temperature 37.5 °C or more", hi: "बगल का तापमान 37.5 °C या ज़्यादा", match: {en: ["37.5", "fever"], hi: ["बुखार"]}}
       - {id: d_cold, kind: sign, codes: [NB_COLD], en: "Axillary temperature below 36 °C", hi: "बगल का तापमान 36 °C से कम", match: {en: ["below 36", "hypothermia", "cold"], hi: ["36 °C से कम", "ठंडा"]}}
       - {id: referral, kind: referral, en: "Referral status", hi: "रेफ़रल की स्थिति", match: {en: ["referral status", "referral", "referred"], hi: ["रेफ़रल", "रेफ़र", "रेफर"]}}
   - id: care
     title: {en: "Feeding and care", hi: "स्तनपान और देखभाल"}
     items:
-      - {id: ebf, kind: blank, en: "Exclusive breastfeeding?", hi: "केवल स्तनपान?"}
-      - {id: bf_pain, kind: blank, en: "Breastfeeding pain / cracked nipple?", hi: "स्तनपान में दर्द / फटे निप्पल?"}
-      - {id: kmc, kind: blank, en: "KMC for low birth weight / preterm", hi: "कम वज़न / समय से पहले जन्मे बच्चे के लिए KMC"}
+      - {id: ebf, kind: detail, detail: exclusive_bf, en: "Exclusive breastfeeding?", hi: "केवल स्तनपान?"}
+      - {id: bf_pain, kind: detail, detail: nipple_problem, en: "Breastfeeding pain / cracked nipple?", hi: "स्तनपान में दर्द / फटे निप्पल?"}
+      - {id: kmc, kind: detail, detail: kmc, en: "KMC for low birth weight / preterm", hi: "कम वज़न / समय से पहले जन्मे बच्चे के लिए KMC"}
       - {id: pustules, kind: sign, codes: [NB_SKIN_PUSTULES], en: "Skin pustules", hi: "त्वचा पर फुंसियाँ", match: {en: ["skin pustules", "pustules"], hi: ["फुंसियाँ"]}}
-      - {id: eyes, kind: blank, en: "Eye discharge", hi: "आँख से स्राव"}
+      - {id: eyes, kind: detail, detail: eyes_pus, en: "Eye discharge", hi: "आँख से स्राव"}
       - {id: cord, kind: sign, codes: [NB_CORD_INFECTION], en: "Umbilical pus / bleeding", hi: "नाभि में मवाद / खून", match: {en: ["umbilical", "umbilicus", "cord"], hi: ["नाभि"]}}
       - {id: counsel, kind: service, types: [COUNSELLING], en: "Counselling done", hi: "परामर्श दिया", match: {en: ["counselling", "counseling"], hi: ["परामर्श"]}}

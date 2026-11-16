@@ -1,0 +1,206 @@
+# Extra details the official forms ask that a visit note does not usually contain (D-39).
+# scope: visit  → stored on the note (record.extras.<id>)
+#        person → stored on the person (sex, birth weight, RCH IDs): asked once, reused by every form
+# type: yesno | number | text | choice. For yesno "problem" questions (eyes pus…), Yes = the problem is present.
+# Voice: deterministic keyword rules (extraction/details.py). "topic" words find the clause; for problem questions
+# a "problem" word (or an "it is fine" word) must be there too; a negation word ("nahin", "no") flips the answer.
+# common_for: visit types whose review screen suggests it ("Forms also ask"). ADVISORY ONLY. status: draft.
+version: 1
+status: draft
+source: "Questions taken from the forms in rules/forms/*.yaml [S35][S36][S39]; voice words written by the team (not reviewed)"
+details:
+  baby_alive:
+    scope: visit
+    type: yesno
+    common_for: [HBNC]
+    en: "Baby alive and at home?"
+    hi: "बच्चा जीवित और घर पर?"
+    topic: {en: ["alive", "available", "at home"], hi: ["जीवित", "ज़िंदा", "जिंदा", "zinda", "jivit", "घर पर", "ghar par"]}
+    match: {en: ["baby alive", "alive", "available"], hi: ["जीवित"]}
+  exclusive_bf:
+    scope: visit
+    type: yesno
+    common_for: [HBNC]
+    en: "Only breastfed (exclusive breastfeeding)?"
+    hi: "सिर्फ़ माँ का दूध (केवल स्तनपान)?"
+    topic: {en: ["exclusive breastfeeding", "exclusively breastfed", "only breast milk", "only breastfed", "only breastfeeding"], hi: ["सिर्फ़ माँ का दूध", "सिर्फ माँ का दूध", "केवल माँ का दूध", "केवल स्तनपान", "sirf maa ka doodh", "sirf maa ka dudh", "keval stanpan", "ऊपर का दूध", "upar ka doodh"]}
+    invert_words: ["ऊपर का दूध", "upar ka doodh"]   # "upar ka doodh diya" (formula/top feed) = not exclusive
+    match: {en: ["exclusive breastfeeding", "exclusive", "only breast milk"], hi: ["केवल स्तनपान", "सिर्फ़ माँ का दूध"]}
+  kept_warm:
+    scope: visit
+    type: yesno
+    common_for: [HBNC]
+    en: "Baby kept warm?"
+    hi: "बच्चे को गर्म रखा?"
+    topic: {en: ["warm", "wrapped"], hi: ["गर्म", "गरम", "garam", "lapet", "लपेट", "ढक", "dhak"]}
+    match: {en: ["kept warm", "warm"], hi: ["गर्म"]}
+  eyes_pus:
+    scope: visit
+    type: yesno
+    common_for: [HBNC]
+    en: "Eyes swollen or with pus?"
+    hi: "आँखों में सूजन या मवाद?"
+    topic: {en: ["eye", "eyes"], hi: ["आँख", "आंख", "आँखों", "आंखों", "aankh", "ankh", "aankhon"]}
+    problem: {en: ["pus", "discharge", "swollen", "swelling", "sticky"], hi: ["मवाद", "सूजन", "कीचड़", "mawad", "mawad", "sujan", "soojan", "keechad", "kichad"]}
+    match: {en: ["eyes", "eye discharge", "eyes pus"], hi: ["आँख", "आंख"]}
+  nipple_problem:
+    scope: visit
+    type: yesno
+    common_for: [HBNC]
+    en: "Cracked nipples / painful or swollen breast?"
+    hi: "फटे निप्पल / स्तन में दर्द या सूजन?"
+    topic: {en: ["nipple", "nipples", "breast"], hi: ["निप्पल", "स्तन", "nipple", "stan"]}
+    problem: {en: ["cracked", "pain", "painful", "swollen", "engorged", "sore"], hi: ["फटे", "फटा", "दर्द", "सूजन", "fate", "fata", "dard", "sujan"]}
+    match: {en: ["cracked nipple", "nipple", "breast pain", "breastfeeding pain"], hi: ["निप्पल", "स्तन"]}
+  mother_temp_f:
+    scope: visit
+    type: number
+    unit: "°F"
+    range: [90, 110]
+    common_for: [HBNC, PNC]
+    en: "Mother's temperature (°F)"
+    hi: "माँ का तापमान (°F)"
+    topic: {en: ["mother temperature", "mother's temperature", "mothers temperature", "temperature of mother"], hi: ["माँ का तापमान", "मां का तापमान", "maa ka tapman", "maa ka taapmaan", "maa ka temperature", "mummy ka temperature"]}
+    match: {en: ["mother temperature", "mother s temperature", "mother temp"], hi: ["माँ का तापमान"]}
+  mother_meals:
+    scope: visit
+    type: number
+    range: [0, 10]
+    en: "Times the mother eats a full meal in 24 h"
+    hi: "माँ 24 घंटे में कितनी बार पूरा खाना खाती है"
+    topic: {en: ["meal", "meals"], hi: ["खाना", "भोजन", "khana", "bhojan"]}
+    match: {en: ["meals", "full meal"], hi: ["खाना", "भोजन"]}
+  urine_low:
+    scope: visit
+    type: yesno
+    en: "Cries all the time or passes urine less than 6 times a day?"
+    hi: "लगातार रोना या दिन में 6 बार से कम पेशाब?"
+    topic: {en: ["urine", "cries all the time", "crying all the time"], hi: ["पेशाब", "peshab", "susu", "सुसु", "लगातार रो", "lagatar ro"]}
+    problem: {en: ["less", "low", "all the time", "continuously"], hi: ["कम", "kam", "लगातार", "lagatar"]}
+    match: {en: ["urine", "crying incessantly"], hi: ["पेशाब"]}
+  milk_less:
+    scope: visit
+    type: yesno
+    en: "No milk, or mother feels milk is less?"
+    hi: "दूध नहीं या कम लगता है?"
+    topic: {en: ["milk"], hi: ["दूध", "doodh", "dudh"]}
+    problem: {en: ["less", "not enough", "no milk", "low"], hi: ["कम", "kam", "नहीं आ रहा", "nahi aa raha"]}
+    match: {en: ["milk is less", "no milk", "milk less"], hi: ["दूध कम"]}
+  mother_referred:
+    scope: visit
+    type: yesno
+    en: "Mother referred?"
+    hi: "माँ को रेफ़र किया?"
+    topic: {en: ["mother referred", "referred the mother", "mother to the hospital", "mother to phc", "mother to chc"], hi: ["माँ को रेफ़र", "माँ को रेफर", "मां को रेफर", "maa ko refer", "maa ko aspatal"]}
+    match: {en: ["mother referred"], hi: ["माँ को रेफ़र"]}
+  limbs_limp:
+    scope: visit
+    type: yesno
+    en: "All limbs limp?"
+    hi: "सारे हाथ-पैर ढीले?"
+    topic: {en: ["limp", "floppy"], hi: ["ढीले", "ढीला", "dheele", "dheela"]}
+    match: {en: ["limbs limp", "limp"], hi: ["ढीले"]}
+  cry_weak:
+    scope: visit
+    type: yesno
+    en: "Cry weak or stopped?"
+    hi: "रोना कमज़ोर या बंद?"
+    topic: {en: ["weak cry", "cry weak", "crying weakly", "cry is weak"], hi: ["रोना कमज़ोर", "रोना कमजोर", "kamzor ro", "rona kamzor", "dheere ro"]}
+    match: {en: ["cry weak", "weak cry"], hi: ["रोना कमज़ोर"]}
+  abdomen_vomit:
+    scope: visit
+    type: yesno
+    en: "Distended abdomen or vomits often?"
+    hi: "पेट फूलना या बार-बार उल्टी?"
+    topic: {en: ["distended", "vomits", "vomiting", "vomit"], hi: ["पेट फूल", "उल्टी", "pet phool", "pet ful", "ulti"]}
+    match: {en: ["distended abdomen", "vomits"], hi: ["पेट फूलना", "उल्टी"]}
+  breathing_difficulty:
+    scope: visit
+    type: yesno
+    common_for: [HBYC]
+    en: "Difficulty breathing?"
+    hi: "साँस लेने में कठिनाई?"
+    topic: {en: ["difficulty breathing", "breathing difficulty", "trouble breathing"], hi: ["साँस लेने में", "सांस लेने में", "saans lene mein", "saans lene me"]}
+    match: {en: ["difficulty breathing"], hi: ["साँस लेने में कठिनाई"]}
+  blood_stool:
+    scope: visit
+    type: yesno
+    common_for: [HBYC]
+    en: "Blood in stool?"
+    hi: "मल में खून?"
+    topic: {en: ["blood in stool", "blood in the stool", "bloody stool"], hi: ["मल में खून", "पॉटी में खून", "potty mein khoon", "latrine mein khoon", "tatti mein khoon"]}
+    match: {en: ["blood in stool"], hi: ["मल में खून"]}
+  kmc:
+    scope: visit
+    type: yesno
+    en: "Kangaroo mother care (KMC) given?"
+    hi: "कंगारू मदर केयर (KMC) दी?"
+    topic: {en: ["kmc", "kangaroo"], hi: ["कंगारू", "kangaroo"]}
+    match: {en: ["kmc", "kangaroo"], hi: ["कंगारू"]}
+  mother_uti:
+    scope: visit
+    type: yesno
+    en: "Mother: burning while passing urine?"
+    hi: "माँ: पेशाब में जलन?"
+    topic: {en: ["burning urine", "burning while passing urine", "burning urination"], hi: ["पेशाब में जलन", "peshab mein jalan", "peshab me jalan"]}
+    match: {en: ["urinary infection", "burning"], hi: ["पेशाब में जलन"]}
+  mother_abd_pain:
+    scope: visit
+    type: yesno
+    en: "Mother: abdominal pain?"
+    hi: "माँ: पेट में दर्द?"
+    topic: {en: ["abdominal pain", "stomach pain", "tummy pain"], hi: ["पेट में दर्द", "पेट दर्द", "pet mein dard", "pet dard"]}
+    match: {en: ["abdominal pain"], hi: ["पेट में दर्द"]}
+  deworming:
+    scope: visit
+    type: yesno
+    common_for: [HBYC]
+    en: "Deworming tablet given?"
+    hi: "कृमि की दवा दी?"
+    topic: {en: ["deworming", "albendazole", "worm tablet", "worm medicine"], hi: ["कृमि", "पेट के कीड़े", "albendazole", "keede ki dawa", "kide ki dawa"]}
+    match: {en: ["deworming"], hi: ["कृमि"]}
+  height_cm:
+    scope: visit
+    type: number
+    unit: cm
+    range: [30, 130]
+    common_for: [HBYC]
+    en: "Length / height (cm)"
+    hi: "लंबाई / ऊँचाई (सेमी)"
+    topic: {en: ["height", "length"], hi: ["लंबाई", "ऊँचाई", "ऊंचाई", "lambai", "unchai"]}
+    match: {en: ["height", "length"], hi: ["लंबाई", "ऊँचाई"]}
+  # ---- person details (saved on the person, asked once) ----
+  sex:
+    scope: person
+    type: choice
+    options:
+      male: {en: "Boy", hi: "लड़का", words: ["boy", "male", "son", "ladka", "beta", "लड़का", "बेटा"]}
+      female: {en: "Girl", hi: "लड़की", words: ["girl", "female", "daughter", "ladki", "beti", "bachchi", "लड़की", "बेटी", "बच्ची"]}
+    en: "Sex of the child"
+    hi: "बच्चे का लिंग"
+    topic: {en: ["boy", "girl", "male", "female", "son", "daughter"], hi: ["लड़का", "लड़की", "बेटा", "बेटी", "बच्ची", "ladka", "ladki", "beta", "beti", "bachchi"]}
+    match: {en: ["sex", "gender"], hi: ["लिंग"]}
+  birth_weight_kg:
+    scope: person
+    type: number
+    unit: kg
+    range: [0.4, 6]
+    en: "Birth weight (kg)"
+    hi: "जन्म के समय वज़न (किलो)"
+    topic: {en: ["birth weight", "weight at birth"], hi: ["जन्म के समय वज़न", "जन्म के समय वजन", "जन्म का वजन", "janm ke samay vajan", "janam ke samay vajan", "paida hua tab vajan"]}
+    match: {en: ["birth weight"], hi: ["जन्म के समय वज़न"]}
+  rch_id:
+    scope: person
+    type: text
+    en: "RCH ID of child"
+    hi: "बच्चे की RCH ID"
+    topic: {en: ["rch id", "rch number", "child rch"], hi: ["आरसीएच", "rch"]}
+    not_after: ["mother", "maa", "माँ", "मां"]
+    match: {en: ["rch id of child", "child rch id", "rch id"], hi: ["बच्चे की RCH ID"]}
+  mother_rch_id:
+    scope: person
+    type: text
+    en: "Mother's RCH ID"
+    hi: "माँ की RCH ID"
+    topic: {en: ["mother rch", "mother's rch", "mothers rch"], hi: ["माँ की rch", "मां की rch", "maa ki rch", "माँ की आरसीएच"]}
+    match: {en: ["mother s rch id", "mother rch id"], hi: ["माँ की RCH ID"]}

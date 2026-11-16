@@ -31,7 +31,8 @@ def test_not_mentioned_is_blank_never_no():
     rows = _rows(form_view(_rec(), "en"))
     for k in ("A5", "C4", "C5", "D1", "E2", "E6"):
         assert rows[k]["value"] is None, k
-    assert rows["A1"]["captured"] is False
+    # "baby alive?" is now an askable detail (D-39): blank and listed as missing, never "No"
+    assert rows["A1"]["value"] is None and rows["A1"]["missing"] is True and rows["A1"]["detail"] == "baby_alive"
 
 
 def test_signs_vaccines_and_referral():

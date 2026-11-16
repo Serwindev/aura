@@ -18,6 +18,8 @@ from datetime import date
 from functools import cache
 
 from .core.config import RULES_DIR, load_yaml
+from .extraction.details import catalog as detail_catalog
+from .extraction.details import display as detail_display
 
 # which official forms fit a visit type (first = default)
 FORMS_BY_VISIT = {
@@ -32,7 +34,8 @@ WORDS = {"en": {"yes": "Yes", "no": "No", "day": "Day", "month": "Month"},
 PLACE = {"institution": {"en": "Health facility", "hi": "स्वास्थ्य केंद्र"}, "home": {"en": "Home", "hi": "घर"}}
 INPUT_BY_KIND = {"date": "date", "day": "number", "month": "number", "number": "number", "temp_f": "number",
                  "sign": "yesno", "vaccine": "yesno", "service": "yesno", "referral": "yesno", "dose_date": "date",
-                 "person": "text", "blank": "text"}
+                 "person": "text", "blank": "text", "detail": "text"}
+PERSON_DETAIL = {"sex", "birth_weight_kg", "rch_id", "mother_rch_id"}  # person fields that are also askable details
 
 
 @cache
@@ -113,9 +116,15 @@ def _value(item: dict, rec: dict, lang: str, ctx: dict) -> tuple[str | None, str
             return _yes(False, lang)
         extra = [x for x in (rec.get("visit_date"), ref.get("reason"), ref.get("facility")) if x]
         return " · ".join([w["yes"], *extra]), "Yes"
+    if kind == "detail":
+        v = (rec.get("extras") or {}).get(item["detail"])
+        return detail_display(item["detail"], v, lang) if v is not None else (None, None)
     if kind == "person":
         p = ctx.get("person") or {}
         field = item["field"]
+        if field in PERSON_DETAIL:
+            v = p.get(field)
+            return detail_display(field, v, lang) if v not in (None, "") else (None, None)
         if field == "dob":
             return (p.get("dob"), dmy(p.get("dob"))) if p.get("dob") else (None, None)
         if field == "birth_place":
@@ -129,9 +138,23 @@ def _value(item: dict, rec: dict, lang: str, ctx: dict) -> tuple[str | None, str
     return None, None  # blank: the app does not capture this question
 
 
+def _asks(item: dict) -> str | None:
+    """The detail id this row can ask for (rules/forms/details.yaml), if any."""
+    if item["kind"] == "detail":
+        return item["detail"]
+    if item["kind"] == "person" and item.get("field") in PERSON_DETAIL:
+        return item["field"]
+    return None
+
+
 def _match_words(item: dict) -> list[str]:
-    m = item.get("match") or {}
+    m = item.get("match") or detail_catalog().get(_asks(item) or "", {}).get("match") or {}
     return [*m.get("en", []), *m.get("hi", [])]
+
+
+def _input(item: dict) -> str:
+    did = _asks(item)
+    return detail_catalog()[did]["type"] if did else INPUT_BY_KIND.get(item["kind"], "text")
 
 
 def form_view(rec: dict, lang: str, form_id: str | None = None, ctx: dict | None = None) -> dict | None:
@@ -147,11 +170,15 @@ def form_view(rec: dict, lang: str, form_id: str | None = None, ctx: dict | None
         rows = []
         for it in sec["items"]:
             value, fill = _value(it, rec, lang, ctx)
+            asks = _asks(it)
             rows.append({"id": it["id"], "question": it[lang], "label_en": it["en"], "value": value, "fill": fill,
-                         "input": INPUT_BY_KIND.get(it["kind"], "text"), "match": _match_words(it),
+                         "input": _input(it), "match": _match_words(it), "detail": asks,
+                         "missing": value is None and asks is not None,
                          "captured": it["kind"] != "blank", "note": it.get("note", {}).get(lang)})
         sections.append({"id": sec["id"], "title": sec["title"][lang], "rows": rows})
     filled = sum(1 for s in sections for r in s["rows"] if r["value"] is not None)
+    missing = [r["detail"] for s in sections for r in s["rows"] if r["missing"]]
     total = sum(len(s["rows"]) for s in sections)
     return {"form": form_id, "title": form["title"][lang], "short": form.get("short", {}).get(lang, form["title"][lang]),
-            "source": form["source"], "status": form["status"], "sections": sections, "filled": filled, "total": total}
+            "source": form["source"], "status": form["status"], "sections": sections, "filled": filled, "total": total,
+            "missing": list(dict.fromkeys(missing))}

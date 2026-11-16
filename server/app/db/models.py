@@ -67,6 +67,10 @@ class Person(Base):
     label_en: Mapped[str | None] = mapped_column(String, nullable=True)
     area: Mapped[str | None] = mapped_column(String, nullable=True)  # ward/tola/village she groups visits by (no GPS)
     at_risk: Mapped[bool | None] = mapped_column(Boolean, nullable=True)  # she marked an 'at-risk' newborn (SSBSK)
+    # form details kept on the person (asked once, reused by every form; D-39)
+    sex: Mapped[str | None] = mapped_column(String, nullable=True)  # male | female
+    birth_weight_kg: Mapped[float | None] = mapped_column(nullable=True)
+    rch_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class Note(Base):
@@ -122,7 +126,8 @@ def make_session_factory(url: str) -> sessionmaker:
 
 
 # Columns added after v1.0. create_all() does not alter existing tables, so add them here (additive only).
-_LATER_COLUMNS = {"people": {"area": "VARCHAR", "at_risk": "BOOLEAN"}, "users": {"schedule": "VARCHAR"}}
+_LATER_COLUMNS = {"people": {"area": "VARCHAR", "at_risk": "BOOLEAN", "sex": "VARCHAR", "birth_weight_kg": "FLOAT",
+                             "rch_id": "VARCHAR"}, "users": {"schedule": "VARCHAR"}}
 
 
 def _add_missing_columns(engine) -> None:

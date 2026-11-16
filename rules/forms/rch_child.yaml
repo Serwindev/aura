@@ -11,14 +11,14 @@ sections:
   - id: ch1
     title: {en: "CH-1 Child details", hi: "CH-1 बच्चे का विवरण"}
     items:
-      - {id: rch_id, kind: blank, en: "RCH ID of child", hi: "बच्चे की RCH ID"}
+      - {id: rch_id, kind: person, field: rch_id, en: "RCH ID of child", hi: "बच्चे की RCH ID"}
       - {id: name, kind: person, field: name, en: "Child name", hi: "बच्चे का नाम", match: {en: ["child name", "name of child", "child s name"], hi: ["बच्चे का नाम"]}}
-      - {id: sex, kind: blank, en: "Sex", hi: "लिंग"}
+      - {id: sex, kind: person, field: sex, en: "Sex", hi: "लिंग"}
       - {id: mother, kind: person, field: mother, en: "Mother's name", hi: "माँ का नाम", match: {en: ["mother name", "mother s name", "name of mother"], hi: ["माँ का नाम", "माता का नाम"]}}
-      - {id: mother_rch, kind: blank, en: "Mother's RCH ID", hi: "माँ की RCH ID"}
+      - {id: mother_rch, kind: person, field: mother_rch_id, en: "Mother's RCH ID", hi: "माँ की RCH ID"}
       - {id: address, kind: person, field: area, en: "Address (ward / tola)", hi: "पता (वार्ड / टोला)", match: {en: ["address", "ward", "tola", "village"], hi: ["पता", "वार्ड", "टोला"]}}
       - {id: dob, kind: person, field: dob, en: "Date of birth", hi: "जन्म तिथि", match: {en: ["date of birth", "dob", "birth date"], hi: ["जन्म तिथि", "जन्म की तारीख"]}}
-      - {id: bw, kind: blank, en: "Birth weight (kg)", hi: "जन्म के समय वज़न (किलो)"}
+      - {id: bw, kind: person, field: birth_weight_kg, en: "Birth weight (kg)", hi: "जन्म के समय वज़न (किलो)"}
       - {id: place, kind: person, field: birth_place, en: "Place of birth", hi: "जन्म का स्थान", match: {en: ["place of birth", "birth place", "place of delivery"], hi: ["जन्म का स्थान", "प्रसव का स्थान"]}}
   - id: ch2
     title: {en: "CH-2 Vaccines (date given)", hi: "CH-2 टीके (लगने की तारीख)"}
@@ -47,5 +47,5 @@ sections:
   - id: ch3
     title: {en: "CH-3 Feeding", hi: "CH-3 आहार"}
     items:
-      - {id: ebf6, kind: blank, en: "Exclusive breastfeeding up to 6 months", hi: "6 माह तक केवल स्तनपान"}
+      - {id: ebf6, kind: detail, detail: exclusive_bf, en: "Exclusive breastfeeding up to 6 months", hi: "6 माह तक केवल स्तनपान"}
       - {id: cf6, kind: blank, en: "Complementary feeding after 6 months", hi: "6 माह के बाद ऊपरी आहार"}

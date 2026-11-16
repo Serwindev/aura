@@ -85,4 +85,6 @@ class VisitRecord(_Strict):
     referral: Referral = Field(default_factory=Referral)
     next_due: list[NextDue] = Field(default_factory=list)
     note: str | None = None
+    # extra details the official forms ask (rules/forms/details.yaml, scope visit); Yes/No, number or text
+    extras: dict[str, bool | float | str] = Field(default_factory=dict)
     evidence: dict[str, Evidence] = Field(default_factory=dict)

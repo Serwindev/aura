@@ -23,6 +23,8 @@ from .core.schema import VisitRecord
 from .core.settings import Settings
 from .db.models import AuditEvent, Note, Person, TaskAction, User, new_id, utcnow
 from .extraction.dates_hi import add_months
+from .extraction.details import catalog as detail_catalog
+from .extraction.details import check_value, extract_details, ids_for
 from .extraction.names import Person as NamePerson
 from .extraction.names import resolve_beneficiary
 from .extraction.validate import Flag
@@ -30,6 +32,8 @@ from .pipeline import PipelineResult, load_people, process_audio, process_text
 from .rules import engine
 
 NEEDS_CHOICE = "NEEDS_CHOICE"
+VISIT_DETAILS = set(ids_for("visit"))
+PERSON_DETAILS = set(ids_for("person"))
 PROGRAMME_VISIT = {"HBNC": "HBNC", "HBYC": "HBYC", "UIP": "IMMUNIZATION"}
 SCALAR_PATHS = (
     "visit_type", "visit_date", "beneficiary.matched_id", "visit_index.anc_number",
@@ -60,7 +64,8 @@ def people_for(db: Session, owner_id: str) -> list[NamePerson]:
     rows = db.scalars(select(Person).where(Person.owner_id == owner_id)).all()
     return [NamePerson(id=p.id, names=tuple(p.names or ()), category=p.category, mother_id=p.mother_id,
                        dob=p.dob, delivery_place=p.delivery_place, label_hi=p.label_hi,
-                       label_en=p.label_en, area=p.area, at_risk=p.at_risk) for p in rows]
+                       label_en=p.label_en, area=p.area, at_risk=p.at_risk, sex=p.sex,
+                       birth_weight_kg=p.birth_weight_kg, rch_id=p.rch_id) for p in rows]
 
 
 # ---- doses ---------------------------------------------------------------------------------
@@ -183,8 +188,8 @@ def add_to_note(db: Session, cfg: Settings, stt: Any, note: Note, *, text: str |
     updated (so these are not counted as her manual corrections) and the clip's text is appended to the
     transcript. The added audio is never stored. Returns the changes so the phone can apply them on top
     of her own typed edits."""
-    if note.status != "draft":
-        raise RequestError(409, "NOT_A_DRAFT", "This note is already confirmed or discarded")
+    if note.status == "discarded":
+        raise RequestError(409, "NOT_A_DRAFT", "This note has been discarded")
     people = people_for(db, note.owner_id)
     vcfg = validation_config(schedule=user_schedule(db, note.owner_id))
     if wav is not None:
@@ -222,6 +227,14 @@ def add_to_note(db: Session, cfg: Settings, stt: Any, note: Note, *, text: str |
         scalars["beneficiary.matched_id"] = result.match.matched_id
         remap["beneficiary.matched_id"] = "beneficiary.matched_id"
         note.candidates = result.match.candidates
+    extras = draft.setdefault("extras", {})
+    for did, value in (new.get("extras") or {}).items():
+        key = f"extras.{did}"
+        if key in ev_new:
+            extras[did] = value
+            ev[key] = ev_new[key]
+            scalars[key] = value
+            remap[key] = key
     for lp in LIST_PATHS:
         cur = draft.setdefault(lp, [])
         for i, item in enumerate(new.get(lp) or []):
@@ -265,6 +278,84 @@ def add_to_note(db: Session, cfg: Settings, stt: Any, note: Note, *, text: str |
                       detail={"source": "audio" if wav is not None else "text", "paths": sorted(changed)}))
     db.commit()
     return {"added_text": added, "scalars": scalars, **lists}
+
+
+def propose_details(db: Session, stt: Any, note: Note, *, text: str | None, wav: bytes | None, language: str,
+                    wanted: list[str]) -> list[dict]:
+    """She speaks the details a form is missing. Returns proposals with their quotes; nothing is saved until she
+    taps Save (save_details). The clip's text is appended to the transcript so the quotes stay checkable."""
+    if note.status != "confirmed":
+        raise RequestError(409, "NOT_CONFIRMED", "Confirm the note first")
+    wanted = [w for w in wanted if w in VISIT_DETAILS or w in PERSON_DETAILS] or sorted(VISIT_DETAILS)
+    if wav is not None:
+        hints = sorted({n for p in people_for(db, note.owner_id) for n in p.names})
+        heard = stt.transcribe(wav, language, hints=hints).text.strip()
+    else:
+        heard = (text or "").strip()
+    if not heard:
+        raise RequestError(422, "EMPTY_TRANSCRIPT", "No speech could be recognised in this audio")
+    found = extract_details(heard, only=wanted)
+    note.transcript = f"{note.transcript}\n{heard}"
+    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="details_heard",
+                      detail={"ids": [d.id for d in found]}))
+    db.commit()
+    return [{"id": d.id, "value": d.value, "quote": d.quote, "scope": detail_catalog()[d.id]["scope"]} for d in found]
+
+
+def save_details(db: Session, note: Note, values: dict, quotes: dict | None = None) -> Note:
+    """Save form details she confirmed: visit details into the confirmed record (and its baseline), person
+    details onto the person (mother's RCH ID onto the mother). A quote is kept only if it is in the transcript."""
+    from .extraction.normalize import contains_quote
+
+    if note.status != "confirmed" or not note.confirmed:
+        raise RequestError(409, "NOT_CONFIRMED", "Confirm the note first")
+    errs = []
+    for did, value in values.items():
+        problem = check_value(did, value) if (did in VISIT_DETAILS or did in PERSON_DETAILS) else "Unknown detail"
+        if problem and value is not None:
+            errs.append({"path": did, "code": "BAD_DETAIL", "message": problem})
+    if errs:
+        raise RequestError(422, "CHECK_FIELDS", "Please check the highlighted fields", errs)
+    quotes = quotes or {}
+    rec = jsonable_encoder(note.confirmed)
+    base = jsonable_encoder(note.draft or {})
+    changed = []
+    for did in sorted(d for d in values if d in VISIT_DETAILS):
+        for r in (rec, base):
+            x = r.setdefault("extras", {})
+            if values[did] is None:
+                x.pop(did, None)
+            else:
+                x[did] = values[did]
+        key = f"extras.{did}"
+        q = quotes.get(did)
+        rec.setdefault("evidence", {}).pop(key, None)
+        if values[did] is not None and q and contains_quote(note.transcript, q):
+            rec["evidence"][key] = {"quote": q, "confidence": None}
+        changed.append(key)
+    person_vals = {d: values[d] for d in values if d in PERSON_DETAILS}
+    if person_vals:
+        pid = (rec.get("beneficiary") or {}).get("matched_id")
+        p = db.get(Person, (note.owner_id, pid)) if pid else None
+        if p is None:
+            raise RequestError(422, "NO_PERSON", "This note has no person to save these details on")
+        for did, v in person_vals.items():
+            if did == "mother_rch_id":
+                m = db.get(Person, (note.owner_id, p.mother_id)) if p.mother_id else None
+                if m is None:
+                    raise RequestError(422, "NO_MOTHER", "Add the mother in People first")
+                m.rch_id = v
+            elif did == "sex":
+                p.sex = v
+            elif did == "birth_weight_kg":
+                p.birth_weight_kg = v
+            elif did == "rch_id":
+                p.rch_id = v
+            changed.append(f"person.{did}")
+    note.confirmed, note.draft = rec, base
+    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="details_saved", detail={"paths": changed}))
+    db.commit()
+    return note
 
 
 def delete_audio(note: Note) -> bool:
@@ -329,14 +420,32 @@ def _check_record(rec: VisitRecord, people: list[NamePerson], today: date, sched
     for i, d in enumerate(rec.danger_signs):
         if d.code not in cfg.danger_codes:
             err(f"danger_signs[{i}]", "UNKNOWN_DANGER_SIGN", "Unknown danger sign")
+    for did, value in rec.extras.items():
+        problem = check_value(did, value) if did in VISIT_DETAILS else "Unknown detail"
+        if problem:
+            err(f"extras.{did}", "BAD_DETAIL", problem)
     return errs
 
 
-def confirm_note(db: Session, cfg: Settings, note: Note, payload: dict) -> tuple[Note, bool]:
-    """Human confirmation. Repeating a confirm returns the stored record unchanged."""
-    if note.status == "confirmed":
+def start_edit(db: Session, note: Note) -> Note:
+    """She opens a confirmed note to change it: the confirmed record becomes the baseline (with its quotes), so
+    the changes she makes now are what gets logged. The visit stays confirmed (tasks unchanged) until she
+    confirms again."""
+    if note.status != "confirmed" or not note.confirmed:
+        raise RequestError(409, "NOT_CONFIRMED", "Only a confirmed note can be edited")
+    note.draft = jsonable_encoder(note.confirmed)
+    note.flags = []
+    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="edit_started", detail={}))
+    db.commit()
+    return note
+
+
+def confirm_note(db: Session, cfg: Settings, note: Note, payload: dict, edit: bool = False) -> tuple[Note, bool]:
+    """Human confirmation. Repeating a confirm returns the stored record unchanged; edit=True replaces a
+    confirmed record with her edited one (re-validated the same way)."""
+    if note.status == "confirmed" and not edit:
         return note, False
-    if note.status != "draft":
+    if note.status == "discarded":
         raise RequestError(409, "NOT_A_DRAFT", "This note has been discarded")
     payload = dict(payload)
     payload["evidence"] = {}  # evidence is server-owned; never accepted from the client
@@ -366,11 +475,17 @@ def confirm_note(db: Session, cfg: Settings, note: Note, payload: dict) -> tuple
     for lp in LIST_PATHS:
         if (old.get(lp) or []) != (new.get(lp) or []):
             edited.append(lp)
+    old_x, new_x = old.get("extras") or {}, new.get("extras") or {}
+    edited += [f"extras.{k}" for k in sorted(set(old_x) | set(new_x)) if old_x.get(k) != new_x.get(k)]
+    evidence = {p: ev for p, ev in evidence.items() if p not in edited}
     new["evidence"] = evidence
+    was_confirmed = note.status == "confirmed"
+    if was_confirmed:
+        edited = sorted(set(note.edited_paths or []) | set(edited))
     note.confirmed, note.edited_paths, note.status = new, edited, "confirmed"
     note.confirmed_at = utcnow()
     audio_deleted = delete_audio(note)
-    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="confirmed",
+    db.add(AuditEvent(owner_id=note.owner_id, note_id=note.id, action="edited" if was_confirmed else "confirmed",
                       detail={"edited": edited, "audio_deleted": audio_deleted}))
     db.commit()
     return note, audio_deleted
@@ -442,7 +557,9 @@ def form_context(db: Session, owner_id: str, person_id: str | None, lang: str) -
         return {}, None
     mother = people.get(p.mother_id or "")
     person = {"name": label(p, lang), "mother": label(mother, lang) if mother else None,
-              "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place, "area": p.area}
+              "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place, "area": p.area,
+              "sex": p.sex, "birth_weight_kg": p.birth_weight_kg, "rch_id": p.rch_id,
+              "mother_rch_id": mother.rch_id if mother else None, "id": p.id, "mother_id": p.mother_id}
     table = dose_table()
     doses: dict[str, str] = {}
     for n in db.scalars(select(Note).where(Note.owner_id == owner_id, Note.status == "confirmed")).all():

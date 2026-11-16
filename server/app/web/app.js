@@ -139,10 +139,10 @@ async function setUiLang(lang) {
 async function viewHome() {
   VIEW().className = "";
   VIEW().innerHTML = `<h1>${esc(t("today_tasks"))}</h1><div class="empty"><div class="spinner" style="margin:auto"></div></div>`;
-  let tasks, drafts, offline = false, queued = [];
+  let tasks, drafts, recent = [], offline = false, queued = [];
   const cacheKey = "aura.cache.home." + owner();
   try {
-    [tasks, drafts] = await Promise.all([api("/tasks"), api("/notes?status=draft")]);
+    [tasks, drafts, recent] = await Promise.all([api("/tasks"), api("/notes?status=draft"), api("/notes?status=confirmed&limit=20")]);
     store.set(cacheKey, JSON.stringify({ tasks, drafts }));
   } catch (e) {
     const cached = JSON.parse(store.get(cacheKey) || "null");
@@ -172,6 +172,9 @@ async function viewHome() {
       <button class="wide" data-open-note="${esc(d.id)}">${esc(t("open_draft"))}</button></div>`).join("") : ""}
     ${S.tasks.length ? `<div class="chips" role="group" aria-label="${esc(t("group_by"))}"><button class="chip" data-home-group="status" aria-pressed="${!byArea}">${esc(t("group_status"))}</button><button class="chip" data-home-group="area" aria-pressed="${byArea}">${esc(t("group_area"))}</button></div>` : ""}
     ${groups.length ? groups.map(([g, list]) => `<h2>${esc(g)} (${list.length})</h2>` + list.map((x) => taskCard(x, byArea)).join("")).join("") : `<div class="card empty">${esc(t("no_tasks"))}</div>`}
+    ${offline ? "" : `<h2>${esc(t("recent_visits"))}</h2>` + (recent.length ? (S.homeVisitsAll ? recent : recent.slice(0, 5)).map(visitCard).join("")
+      + (!S.homeVisitsAll && recent.length > 5 ? `<button class="link" data-home-visits-all="1">${esc(t("more"))}</button>` : "")
+      : `<div class="card empty">${esc(t("no_visits"))}</div>`)}
     <button class="primary record-fab" data-nav="record">${ICONS.mic}<span>${esc(t("record_fab"))}</span></button>`;
 }
 
@@ -430,13 +433,76 @@ function outboxCard(x) {
 /* ---- review ---- */
 async function openNote(note) {
   if (!S.people) S.people = await api("/beneficiaries");
-  go("review", { note, draft: JSON.parse(JSON.stringify(note.record)), errors: {}, showAllVitals: false, addPerson: null });
+  if (note.status === "confirmed") return go("saved", { note, editing: false }); // a settled visit: view form, edit…
+  const draft = JSON.parse(JSON.stringify(note.record));
+  draft.extras = draft.extras || {};
+  go("review", { note, draft, errors: {}, showAllVitals: false, addPerson: null, editing: false });
+}
+
+/* Edit a confirmed note: same review screen (typing + voice); it stays confirmed until she confirms again. */
+async function editNote() {
+  try {
+    const n = await api(`/notes/${S.note.id}/edit`, { method: "POST" });
+    const draft = JSON.parse(JSON.stringify(n.record_for_edit || n.record));
+    draft.extras = draft.extras || {};
+    go("review", { note: { ...n, record: JSON.parse(JSON.stringify(draft)), new_names: [] }, draft, errors: {},
+                   showAllVitals: false, addPerson: null, editing: true });
+  } catch (e) { fail(e); }
+}
+
+/* One confirmed visit in a list (Home "Recent visits", a person's visits). */
+function visitCard(n) {
+  const r = n.record;
+  return `<div class="card"><div class="task-head"><span class="task-name">${esc(n.person_label || t("person"))}</span>
+    <span class="small muted">${esc(r.visit_date ? fmtDate(r.visit_date) : "")}</span></div>
+    <p class="small muted" style="margin:4px 0">${esc(VISIT_TYPES[S.lang][r.visit_type] || "")}</p>
+    <button class="wide" data-open-note="${esc(n.id)}">${esc(t("open_visit"))}</button></div>`;
+}
+
+/* ---- extra details the forms ask (rules/forms/details.yaml via /meta). She taps, types or says them. ---- */
+const DET = () => S.meta?.details || {};
+function detLabel(id) { return DET()[id]?.[S.lang] || id; }
+function detShown(id, v) {
+  const d = DET()[id];
+  if (!d || v === null || v === undefined) return "";
+  if (d.type === "yesno") return v ? t("yes") : t("no");
+  if (d.type === "choice") return d.options?.[v]?.[S.lang] || v;
+  return `${v}${d.unit ? " " + d.unit : ""}`;
+}
+/* One answer control. attr: "x" (review → record.extras) or "ans" (form view → answers to save). */
+function detControl(id, v, attr) {
+  const d = DET()[id];
+  if (!d) return "";
+  if (d.type === "yesno" || d.type === "choice") {
+    const opts = d.type === "yesno" ? [["1", t("yes"), v === true], ["0", t("no"), v === false]]
+      : Object.entries(d.options).map(([k, o]) => [k, o[S.lang], v === k]);
+    return `<span class="seg">${opts.map(([val, lbl, on]) => `<button type="button" data-${attr}="${esc(id)}" data-val="${esc(val)}" aria-pressed="${on}">${esc(lbl)}</button>`).join("")}</span>`;
+  }
+  const num = d.type === "number";
+  return `<input style="max-width:160px" ${num ? 'type="number" step="any" inputmode="decimal"' : 'type="text" inputmode="numeric" maxlength="40"'}
+    aria-label="${esc(detLabel(id))}" data-${attr}-in="${esc(id)}" ${num ? "data-num" : ""} value="${esc(v ?? "")}">${d.unit ? ` <span class="small muted">${esc(d.unit)}</span>` : ""}`;
+}
+function detValue(id, val) { return DET()[id]?.type === "yesno" ? val === "1" : val; }
+/* Review: details most forms for this visit type ask (optional; she can confirm without them). */
+function formsAskCard(d) {
+  const common = Object.entries(DET()).filter(([, x]) => x.scope === "visit" && (x.common_for || []).includes(d.visit_type)).map(([k]) => k);
+  const ids = [...new Set([...common, ...Object.keys(d.extras || {})])];
+  if (!ids.length) return "";
+  return `<section class="card" data-path="extras"><span class="field-label">${esc(t("forms_ask"))}</span>
+    <p class="small muted">${esc(t("forms_ask_hint"))}</p>
+    ${ids.map((id) => `<div class="item" data-path="extras.${esc(id)}" style="flex-wrap:wrap"><span class="item-name" style="flex:1 1 100%">${esc(detLabel(id))}</span>
+      ${detControl(id, d.extras?.[id] ?? null, "x")}
+      ${d.extras?.[id] !== undefined && d.extras?.[id] !== null ? `<button type="button" class="link" data-x="${esc(id)}" data-val="">${esc(t("clear_answer"))}</button>` : ""}
+      ${S.errors["extras." + id] ? `<span class="small" style="flex-basis:100%;color:var(--danger)">${esc(S.errors["extras." + id].message)}</span>` : ""}
+      <div style="flex-basis:100%">${evidenceBtn(`extras.${id}`)}</div></div>`).join("")}
+    <button class="wide" data-act="say-them">${ICONS.mic} ${esc(t("say_them"))}</button></section>`;
 }
 
 const VITALS_BY_TYPE = { HBNC: ["weight_kg", "temp_c"], HBYC: ["weight_kg", "temp_c"], IMMUNIZATION: [], ANC: ["weight_kg", "bp_sys", "bp_dia", "hb_g_dl"], PNC: ["temp_c", "bp_sys", "bp_dia"] };
 
 function flagText(f) { return FLAG_TEXT[S.lang][f.code] || f.message; }
 function fieldName(path) {
+  if (path.startsWith("extras.")) return detLabel(path.slice(7));
   const leaf = path.replace(/\[\d+\]$/, "").split(".").pop();
   const map = { matched_id: "person", mention: "person", services_given: "services", needed: "referral_needed" };
   const k = map[leaf] || leaf;
@@ -481,7 +547,7 @@ function viewReview() {
   const shown = S.showAllVitals ? Object.keys(d.vitals) : Object.keys(d.vitals).filter((k) => d.vitals[k] !== null || (VITALS_BY_TYPE[d.visit_type] || []).includes(k) || flagsFor(`vitals.${k}`).length || S.errors[`vitals.${k}`]);
   const danger = d.danger_signs.some((x) => x.present);
   VIEW().innerHTML = `
-    <h1>${esc(t("review_title"))}</h1>
+    <h1>${esc(t(S.editing ? "edit_title" : "review_title"))}</h1>
     <section class="card">
       <span class="field-label">${esc(t("heard"))} ${n.stt_provider ? `<span class="tag">${esc(n.stt_provider)}</span>` : ""}</span>
       <div class="transcript" id="transcript">${esc(n.transcript)}</div>
@@ -539,8 +605,10 @@ function viewReview() {
       ${d.next_due.map((x, i) => `<div class="item"><input style="flex:1 1 130px" aria-label="${esc(t("due_what"))}" data-list="next_due" data-i="${i}" data-key="what" value="${esc(x.what)}"><input style="flex:1 1 130px" type="date" aria-label="${esc(t("due_date"))}" data-list="next_due" data-i="${i}" data-key="date" value="${esc(x.date ?? "")}"><button class="icon-x" data-remove="next_due" data-i="${i}" aria-label="remove">✕</button><div style="flex-basis:100%">${evidenceBtn(`next_due[${i}]`)}</div></div>`).join("")}
       <button class="link" data-act="add-due">+ ${esc(t("add_due"))}</button>
     </section>
+    ${formsAskCard(d)}
     <div class="sticky"><button class="primary wide" id="confirm">${esc(t("confirm"))}</button></div>
-    <button class="danger wide" id="discard" style="margin-top:8px">${esc(t("discard"))}</button>`;
+    ${S.editing ? `<button class="wide" data-act="cancel-edit" style="margin-top:8px">${esc(t("cancel_edit"))}</button>`
+      : `<button class="danger wide" id="discard" style="margin-top:8px">${esc(t("discard"))}</button>`}`;
   if (n.has_audio) loadAudio(n.id);
   if (S.addPerson) bindPersonForm(S.addPerson.cat, personAddedFromReview);
   updateConfirm();
@@ -590,7 +658,7 @@ function voiceCard() {
     <button class="${on ? "danger" : "primary"} wide voice-btn" id="voice-add">${on ? ICONS.stop : ICONS.mic} ${esc(on ? t("voice_stop") : t("voice_add"))}</button>
     <div class="timer" id="timer" aria-live="off" style="text-align:center;min-height:0;margin:0"></div>
     <p class="small muted">${esc(t("voice_add_hint"))}</p>
-    <button class="link" id="voice-redo">${esc(t("voice_redo"))}</button></section>`;
+    ${S.editing ? "" : `<button class="link" id="voice-redo">${esc(t("voice_redo"))}</button>`}</section>`;
 }
 async function toggleVoiceAdd() {
   if (S.recorder) {
@@ -724,9 +792,11 @@ function scrollToPath(path) {
 async function confirmNote() {
   const b = $("#confirm");
   b.disabled = true;
+  for (const [k, v] of Object.entries(S.draft.extras || {})) if (v === null || v === "" || Number.isNaN(v)) delete S.draft.extras[k];
   try {
-    const done = await api(`/notes/${S.note.id}/confirm`, { method: "POST", json: { record: S.draft } });
-    go("saved", { note: done, task: null });
+    const done = await api(`/notes/${S.note.id}/confirm`, { method: "POST", json: { record: S.draft, edit: !!S.editing } });
+    if (S.editing) toast(t("edited_saved"));
+    go("saved", { note: done, task: null, editing: false });
   } catch (e) {
     if (e.details?.length) {
       S.errors = Object.fromEntries(e.details.map((x) => [x.path, x]));
@@ -742,13 +812,14 @@ function viewSaved() {
   VIEW().className = "";
   const r = S.note.record;
   const signs = r.danger_signs.filter((x) => x.present);
-  const who = (S.people || []).find((p) => p.id === r.beneficiary.matched_id)?.label;
+  const who = S.note.person_label || (S.people || []).find((p) => p.id === r.beneficiary.matched_id)?.label;
   VIEW().innerHTML = `
     <h1>${esc(t("saved_title"))}</h1>
     <div class="card"><p class="task-name">${esc(who)}</p><p>${esc(VISIT_TYPES[S.lang][r.visit_type])} · ${esc(fmtDate(r.visit_date))}</p></div>
     ${signs.length ? `<div class="banner danger" role="alert">${esc(t("danger_alert"))}<ul class="plain">${signs.map((x) => `<li>• ${esc(dangerLabel(x.code))}</li>`).join("")}</ul></div>` : ""}
     ${speakBtn("saved")}
-    ${["HBNC", "HBYC", "IMMUNIZATION", "PNC"].includes(r.visit_type) ? `<button class="wide" data-nav="form" style="margin-top:8px">${esc(t("form_view"))}</button>` : ""}
+    ${["HBNC", "HBYC", "IMMUNIZATION", "PNC"].includes(r.visit_type) ? `<button class="primary wide" data-nav="form" style="margin-top:8px">${esc(t("form_view"))}</button>` : ""}
+    <button class="wide" data-edit-note="1" style="margin-top:8px">${esc(t("edit_note"))}</button>
     <div class="banner ok">${esc(t("saved_only_here"))}${S.note.audio_deleted ? " " + esc(t("audio_deleted")) : ""}</div>
     <button class="primary wide" data-nav="home">${esc(t("go_home"))}</button>
     <button class="wide" data-nav="record" style="margin-top:10px">${esc(t("another"))}</button>`;
@@ -767,12 +838,16 @@ async function viewForm() {
   if (S.view !== "form") return;
   S.formText = formText(f);
   S.formData = f;
+  const key = `${S.note.id}:${f.form}`;
+  if (S.ansFor !== key) Object.assign(S, { ansFor: key, ans: {}, ansQuotes: {} });
+  queueMicrotask(renderMissing);
   VIEW().innerHTML = `
     <h1>${esc(f.title)}</h1>
     ${list.length > 1 ? `<span class="field-label">${esc(t("form_pick"))}</span><div class="chips">${list.map((x) => `<button class="chip" data-form-id="${esc(x.id)}" aria-pressed="${x.id === f.form}">${esc(x.short)}</button>`).join("")}</div>` : ""}
     <div class="banner">${esc(t("form_hint"))}</div>
     <p class="small">${esc(t("form_copy_hint"))}</p>
     <p class="small muted">${esc(f.filled)} / ${esc(f.total)} ${esc(t("form_filled"))}</p>
+    <div id="missing"></div>
     <div class="row"><button data-copy-form="1">${esc(t("copy_all"))}</button><button data-share-form="1">${esc(t("share_form"))}</button></div>
     ${NATIVE ? `<section class="card"><div class="task-head"><strong>${esc(t("af_title"))}</strong></div>
       <p class="small">${esc(t("af_hint"))}</p>
@@ -787,6 +862,70 @@ async function viewForm() {
         ${r.note ? `<span class="small muted" style="flex-basis:100%">${esc(r.note)}</span>` : ""}</li>`).join("")}</ul></section>`).join("")}
     <p class="small muted">${esc(t("form_source"))}</p>
     <button class="primary wide" data-nav="saved">${esc(t("back"))}</button>`;
+}
+
+/* Form view: what this form still asks that the app can ask her. She taps/types or says them; every
+   answer heard by voice shows its quote; nothing is saved until she taps Save. */
+function renderMissing() {
+  const box = $("#missing"), f = S.formData;
+  if (!box || !f) return;
+  const ids = (f.missing || []).filter((id) => DET()[id]);
+  if (!ids.length) { box.innerHTML = `<div class="banner ok small">${esc(t("nothing_missing"))}</div>`; return; }
+  const on = !!S.recorder;
+  box.innerHTML = `<section class="card"><span class="field-label">${esc(t("missing_title"))} (${ids.length})</span>
+    <p class="small muted">${esc(t("missing_hint"))}</p>
+    ${ids.map((id) => `<div class="item" style="flex-wrap:wrap"><span class="item-name" style="flex:1 1 100%">${esc(detLabel(id))}</span>
+      ${detControl(id, S.ans[id] ?? null, "ans")}
+      ${S.ans[id] !== undefined && S.ans[id] !== null ? `<button type="button" class="link" data-ans="${esc(id)}" data-val="">${esc(t("clear_answer"))}</button>` : ""}
+      ${S.ansQuotes[id] ? `<div class="small muted" style="flex-basis:100%">${esc(t("heard_quote"))}: “${esc(S.ansQuotes[id])}”</div>` : ""}</div>`).join("")}
+    <button class="${on ? "danger" : ""} wide voice-btn" id="fill-voice">${on ? ICONS.stop : ICONS.mic} ${esc(on ? t("stop_fill") : t("fill_by_voice"))}</button>
+    <div class="timer" id="timer" aria-live="off" style="text-align:center;min-height:0;margin:0"></div>
+    <button class="primary wide" data-save-answers="1" style="margin-top:8px">${esc(t("save_answers"))}</button></section>`;
+}
+async function toggleFillVoice() {
+  if (S.recorder) {
+    const rec = S.recorder;
+    S.recorder = null;
+    busy(true, t("listening"));
+    try {
+      const wav = await rec.stop();
+      const form = new FormData();
+      form.append("language", S.note.language || S.noteLang || S.lang);
+      form.append("wanted", (S.formData.missing || []).join(","));
+      form.append("audio", wav, "details.wav");
+      const r = await api(`/notes/${S.note.id}/details/voice`, { method: "POST", form });
+      for (const p of r.proposals) { S.ans[p.id] = p.value; S.ansQuotes[p.id] = p.quote; }
+      renderMissing();
+      toast(`${t("voice_updated")} ${r.proposals.map((p) => detLabel(p.id)).join(", ")}`);
+    } catch (e) {
+      renderMissing();
+      toast(retryable(e) ? t("voice_needs_net") : FLAG_TEXT[S.lang][e.code] || e.message);
+    } finally { busy(false); }
+    return;
+  }
+  const rec = new AuraAudio.Recorder((sec, level, limit) => {
+    const el = $("#timer");
+    if (el) el.textContent = `${Math.floor(sec / 60)}:${String(Math.floor(sec) % 60).padStart(2, "0")}`;
+    if (limit && S.recorder === rec) toggleFillVoice();
+  });
+  try { await rec.start(); } catch (e) { rec.release(); return toast(e.message === "insecure" ? t("insecure_mic") : t("no_mic")); }
+  S.recorder = rec;
+  renderMissing();
+}
+async function saveAnswers(b) {
+  const values = Object.fromEntries(Object.entries(S.ans).filter(([, v]) => v !== null && v !== undefined && !Number.isNaN(v)));
+  if (!Object.keys(values).length) return toast(t("missing_hint"));
+  b.disabled = true;
+  try {
+    S.note = await api(`/notes/${S.note.id}/details`, { method: "POST", json: { values, quotes: S.ansQuotes } });
+    S.people = await api("/beneficiaries").catch(() => S.people);
+    Object.assign(S, { ans: {}, ansQuotes: {} });
+    toast(t("details_saved"));
+    viewForm();
+  } catch (e) {
+    b.disabled = false;
+    toast(e.details?.length ? e.details.map((x) => `${detLabel(x.path)}: ${x.message}`).join("; ") : FLAG_TEXT[S.lang][e.code] || e.message);
+  }
 }
 
 /* Only answered rows, in form order: what she would type into the official app or register. */
@@ -932,7 +1071,11 @@ function bindPersonForm(cat, onAdded) {
 async function viewPeople() {
   VIEW().className = "";
   let list;
-  try { list = await api("/beneficiaries"); } catch (e) { return fail(e); }
+  let visits = [];
+  try {
+    [list, visits] = await Promise.all([api("/beneficiaries"),
+      S.personOpen ? api(`/notes?status=confirmed&beneficiary_id=${encodeURIComponent(S.personOpen)}`) : []]);
+  } catch (e) { return fail(e); }
   if (S.view !== "people") return;
   S.people = list;
   const cat = S.newCat || "newborn";
@@ -940,6 +1083,9 @@ async function viewPeople() {
   const row = (p) => `<div class="card"><div class="task-head"><span class="task-name">${esc(p.label)}</span>
       ${p.own ? "" : '<span class="tag sim">SIMULATED</span>'}</div>
       <p class="small muted" style="margin:4px 0 0">${esc(t("cat_" + p.category))}${p.dob ? " · " + esc(t("born")) + " " + esc(fmtDate(p.dob)) : ""}${p.mother_label ? " · " + esc(t("mother")) + ": " + esc(p.mother_label) : ""}${p.area ? " · " + esc(p.area) : ""}${p.at_risk ? ` <span class="tag warn">${esc(t("at_risk_tag"))}</span>` : ""}</p>
+      ${p.sex || p.birth_weight_kg || p.rch_id ? `<p class="small" style="margin:4px 0 0">${[p.sex ? detShown("sex", p.sex) : "", p.birth_weight_kg ? detLabel("birth_weight_kg") + ": " + p.birth_weight_kg : "", p.rch_id ? "RCH: " + p.rch_id : ""].filter(Boolean).map(esc).join(" · ")}</p>` : ""}
+      <div class="task-actions"><button data-person-visits="${esc(p.id)}" aria-expanded="${S.personOpen === p.id}">${esc(t("view_visits"))}</button></div>
+      ${S.personOpen === p.id ? `<div id="pv-${esc(p.id)}">${visits.length ? visits.map(visitCard).join("") : `<p class="small muted">${esc(t("no_visits"))}</p>`}</div>` : ""}
       ${p.own ? `<div class="task-actions">${ssbskOn() && p.category === "newborn" ? `<button data-person-risk="${esc(p.id)}">${esc(p.at_risk ? t("at_risk_clear") : t("at_risk_mark"))}</button>` : ""}<button data-person-del="${esc(p.id)}">${esc(t("delete"))}</button></div>` : ""}</div>`;
   VIEW().innerHTML = `
     <h1>${esc(t("people_title"))}</h1>
@@ -1074,6 +1220,12 @@ document.addEventListener("click", (e) => {
   if (d.afTest) return S.formData && nativeCall("AuraAutofill", "openTestForm", { form: practiceForm(S.formData) }).catch(fail);
   if (d.afPortal) return S.formData && nativeCall("AuraAutofill", "openBrowser", { url: `${serverBase()}/sim-portal/${S.formData.form}` }).catch(fail);
   if (d.formId) { S.formId = d.formId; return viewForm(); }
+  if (d.editNote) return editNote();
+  if (d.ans) { S.ans[d.ans] = d.val === "" ? null : detValue(d.ans, d.val); delete S.ansQuotes[d.ans]; return renderMissing(); }
+  if (b.id === "fill-voice") return toggleFillVoice();
+  if (d.saveAnswers) return saveAnswers(b);
+  if (d.personVisits) { S.personOpen = S.personOpen === d.personVisits ? null : d.personVisits; return viewPeople(); }
+  if (d.homeVisitsAll) { S.homeVisitsAll = true; return viewHome(); }
   if (d.nav) return go(d.nav, { task: null });
   if (d.uiLang) return setUiLang(d.uiLang);
   if (d.noteLang) { S.noteLang = d.noteLang; return viewRecord(); }
@@ -1116,6 +1268,13 @@ document.addEventListener("click", (e) => {
   if (d.act === "more-vitals") { S.showAllVitals = true; return viewReview(); }
   if (d.act === "add-service") { S.draft.services_given.push({ type: "VACCINE", detail: null }); return viewReview(); }
   if (d.act === "add-due") { S.draft.next_due.push({ what: "", date: null }); return viewReview(); }
+  if (d.act === "say-them") return toggleVoiceAdd();
+  if (d.act === "cancel-edit") return api(`/notes/${S.note.id}`).then((n) => go("saved", { note: n, editing: false })).catch(fail);
+  if (d.x) {
+    if (d.val === "") delete S.draft.extras[d.x]; else S.draft.extras[d.x] = detValue(d.x, d.val);
+    delete S.errors["extras." + d.x];
+    return viewReview();
+  }
 });
 
 /* After removing a list row the quote indexes no longer line up, so hide those quotes. */
@@ -1126,7 +1285,20 @@ function dropIndexedEvidence(list) {
 document.addEventListener("change", (e) => {
   const el = e.target;
   if (el.id === "add-danger" && el.value) { S.draft.danger_signs.push({ code: el.value, present: true }); return viewReview(); }
+  if (el.dataset.ansIn) {
+    const raw = el.value.trim();
+    S.ans[el.dataset.ansIn] = raw === "" ? null : el.dataset.num !== undefined ? Number(raw) : raw;
+    delete S.ansQuotes[el.dataset.ansIn];
+    return;
+  }
   if (S.view !== "review") return;
+  if (el.dataset.xIn) {
+    const raw = el.value.trim();
+    if (raw === "") delete S.draft.extras[el.dataset.xIn];
+    else S.draft.extras[el.dataset.xIn] = el.dataset.num !== undefined ? Number(raw) : raw;
+    delete S.errors["extras." + el.dataset.xIn];
+    return updateConfirm();
+  }
   if (el.dataset.bind === "beneficiary.matched_id" && el.value === "__new__") {
     el.value = S.draft.beneficiary.matched_id || "";
     S.addPerson = { cat: catForVisit(S.draft.visit_type), heard: "", pre: {} };

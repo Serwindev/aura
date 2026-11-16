@@ -1,6 +1,7 @@
 /* UI strings. Hindi is first-draft copy written without a native-speaker review (see handoff). */
 const STRINGS = {
   hi: {
+    recent_visits: "हाल के भ्रमण", no_visits: "अभी कोई पक्का भ्रमण नहीं", open_visit: "खोलें", edit_note: "नोट बदलें", edit_title: "भ्रमण बदलें", cancel_edit: "बदलाव रद्द करें", edited_saved: "बदलाव सहेजे गए", forms_ask: "फ़ॉर्म यह भी पूछते हैं", forms_ask_hint: "ज़रूरी नहीं — पर अभी भरने से बाद में फ़ॉर्म पूरे भरेंगे। टैप करें या बोलें।", say_them: "बोलकर भरें", missing_title: "इस फ़ॉर्म के लिए बाकी", missing_hint: "हाँ/नहीं टैप करें, लिखें या बोलें। सहेजने से पहले हर जवाब जाँचें।", fill_by_voice: "बाकी जवाब बोलकर भरें", stop_fill: "रोकें और सुनें", save_answers: "जवाब सहेजें", details_saved: "जवाब सहेजे गए", nothing_missing: "इस फ़ॉर्म के लिए कुछ बाकी नहीं जो ऐप पूछ सके", visits: "भ्रमण", person_details: "विवरण", view_visits: "भ्रमण देखें", clear_answer: "हटाएँ",
     tagline: "बोलकर नोट, एक बार जाँच, बार-बार काम",
     synthetic_only: "डेमो: केवल काल्पनिक जानकारी डालें। असली मरीज़ का नाम या आईडी न डालें।",
     phone: "मोबाइल नंबर", send_code: "कोड भेजें", code: "कोड", name: "आपका नाम", asha_id: "आशा आईडी", login: "लॉगिन करें",
@@ -89,6 +90,7 @@ const STRINGS = {
     area: "इलाका / टोला (अगर चाहें)", group_by: "काम कैसे दिखाएँ", group_status: "तारीख से", group_area: "इलाके से", no_area: "इलाका नहीं लिखा",
   },
   en: {
+    recent_visits: "Recent visits", no_visits: "No confirmed visits yet", open_visit: "Open", edit_note: "Edit note", edit_title: "Edit visit", cancel_edit: "Cancel edit", edited_saved: "Changes saved", forms_ask: "Forms also ask", forms_ask_hint: "Optional — filling these now makes the forms complete later. Tap or say them.", say_them: "Say them", missing_title: "Still missing for this form", missing_hint: "Tap Yes/No, type, or say them. Check every answer before saving.", fill_by_voice: "Fill missing by voice", stop_fill: "Stop and listen", save_answers: "Save answers", details_saved: "Answers saved", nothing_missing: "Nothing left that the app can ask for this form", visits: "Visits", person_details: "Details", view_visits: "Visits", clear_answer: "Clear",
     tagline: "Speak the note, check once, reuse it",
     synthetic_only: "Demo: enter made-up details only. No real patient names or IDs.",
     phone: "Mobile number", send_code: "Send code", code: "Code", name: "Your name", asha_id: "ASHA ID", login: "Log in",

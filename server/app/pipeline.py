@@ -13,7 +13,9 @@ from datetime import date
 from pathlib import Path
 
 from .core.config import REPO_ROOT, ValidationConfig, load_yaml
+from .core.schema import Evidence
 from .extraction import rule_based
+from .extraction.details import extract_details
 from .extraction.llm import LlmExtractor, LlmUnavailable
 from .extraction.llm import from_env as llm_from_env
 from .extraction.names import NameMatch, Person, resolve_beneficiary
@@ -68,6 +70,14 @@ def process_transcript(transcript: Transcript, recorded_on: date, people: list[P
         raw = rule_based.extract(transcript.text, recorded_on, people)
     t1 = time.perf_counter()
     result = validate_extraction(raw, transcript.text, recorded_on, config)
+    for d in extract_details(transcript.text):  # extra form details (D-39); visit scope only
+        result.record.extras[d.id] = d.value
+        result.record.evidence[f"extras.{d.id}"] = Evidence(quote=d.quote)
+        # "mother temperature 99" is the mother's, not the baby's: the baby's temperature yields
+        baby_t = result.record.evidence.get("vitals.temp_c")
+        if d.id == "mother_temp_f" and baby_t and (baby_t.quote in d.quote or d.quote in baby_t.quote):
+            result.record.vitals.temp_c = None
+            del result.record.evidence["vitals.temp_c"]
     t2 = time.perf_counter()
     match = resolve_beneficiary(transcript.text, people, result.record.visit_type)
     if match and match.matched_id:

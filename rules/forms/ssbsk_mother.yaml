@@ -10,15 +10,15 @@ sections:
     title: {en: "Visit", hi: "भ्रमण"}
     items:
       - {id: date, kind: date, path: visit_date, en: "Date of visit", hi: "भ्रमण की तारीख", match: {en: ["date of visit", "visit date"], hi: ["भ्रमण की तारीख"]}}
-      - {id: m_temp, kind: blank, en: "Mother's temperature (°F)", hi: "माँ का तापमान (°F)"}
+      - {id: m_temp, kind: detail, detail: mother_temp_f, en: "Mother's temperature (°F)", hi: "माँ का तापमान (°F)"}
   - id: danger
     title: {en: "Danger signs in the mother", hi: "माँ में ख़तरे के लक्षण"}
     items:
       - {id: m_fever, kind: sign, codes: [M_HIGH_FEVER], en: "Fever", hi: "बुखार", match: {en: ["fever"], hi: ["बुखार"]}}
       - {id: m_bleed, kind: sign, codes: [M_HEAVY_BLEEDING], en: "Severe anaemia / bleeding (5 or more pads a day)", hi: "गंभीर ख़ून की कमी / रक्तस्राव (दिन में 5 या ज़्यादा पैड)", match: {en: ["bleeding", "anaemia", "anemia", "pads"], hi: ["रक्तस्राव", "पैड"]}}
-      - {id: m_uti, kind: blank, en: "Urinary infection (fever above 102 °F, burning)", hi: "पेशाब में संक्रमण (102 °F से ज़्यादा बुखार, जलन)"}
+      - {id: m_uti, kind: detail, detail: mother_uti, en: "Urinary infection (fever above 102 °F, burning)", hi: "पेशाब में संक्रमण (102 °F से ज़्यादा बुखार, जलन)"}
       - {id: m_vag, kind: sign, codes: [M_FOUL_DISCHARGE], en: "Vaginal infection (foul discharge)", hi: "योनि संक्रमण (बदबूदार स्राव)", match: {en: ["vaginal infection", "foul discharge"], hi: ["बदबूदार स्राव", "योनि संक्रमण"]}}
-      - {id: m_abd, kind: blank, en: "Abdominal pain", hi: "पेट में दर्द"}
+      - {id: m_abd, kind: detail, detail: mother_abd_pain, en: "Abdominal pain", hi: "पेट में दर्द"}
       - {id: m_neuro, kind: sign, codes: [M_CONVULSIONS, M_SEVERE_HEADACHE], en: "Blurred vision / convulsions / speaking abnormally", hi: "धुंधला दिखना / दौरे / असामान्य बोलना", match: {en: ["blurred vision", "convulsions", "neurological"], hi: ["धुंधला", "दौरे"]}}
       - {id: m_oedema, kind: sign, codes: [M_SWELLING], en: "Swelling (oedema)", hi: "सूजन", match: {en: ["oedema", "edema", "swelling"], hi: ["सूजन"]}}
       - {id: m_breath, kind: sign, codes: [M_BREATHLESSNESS], en: "Difficulty breathing", hi: "साँस लेने में कठिनाई", match: {en: ["difficulty breathing", "breathless"], hi: ["साँस"]}}

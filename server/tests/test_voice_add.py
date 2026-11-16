@@ -118,6 +118,11 @@ def test_add_nothing_new_and_wrong_states(env):
     assert add(c, h, n["id"], "okay that is all").json()["error"]["code"] == "NOTHING_NEW"
     assert c.post(f"/v1/notes/{n['id']}/add", data={"language": "en"}, headers=h).status_code == 422  # no input
     c.post(f"/v1/notes/{n['id']}/confirm", json={"record": n["record"]}, headers=h)
-    assert add(c, h, n["id"], "temperature 38 degrees").status_code == 409
+    # while she edits a confirmed note, voice changes the edit baseline, not the confirmed record
+    assert add(c, h, n["id"], "temperature 38 degrees").status_code == 200
+    assert c.get(f"/v1/notes/{n['id']}", headers=h).json()["record"]["vitals"]["temp_c"] == 37
+    m = post_text(c, h, text="Visited Sunita Devi baby today, newborn visit day 7").json()
+    c.post(f"/v1/notes/{m['id']}/discard", headers=h)
+    assert add(c, h, m["id"], "temperature 38 degrees").status_code == 409
     other = login(c, phone="9000000009")
     assert add(c, other, n["id"], "temperature 38 degrees").status_code == 404

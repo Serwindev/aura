@@ -10,7 +10,8 @@ from html import escape
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
-from .forms import FORM_IDS, load_form
+from .extraction.details import catalog as detail_catalog
+from .forms import FORM_IDS, PERSON_DETAIL, load_form
 
 router = APIRouter(prefix="/sim-portal")
 
@@ -51,7 +52,18 @@ def _field(n: int, item: dict) -> str:
     fid = f"fld{n}"
     text = f'{item["en"]} / {item["hi"]}'
     kind = item["kind"]
-    if kind in ("sign", "vaccine", "service", "referral"):
+    did = item.get("detail") if kind == "detail" else item.get("field") if item.get("field") in PERSON_DETAIL else None
+    dtype = detail_catalog()[did]["type"] if did else None
+    if dtype == "choice":
+        opts = "".join(f"<option>{escape(o['en'])}</option>" for o in detail_catalog()[did]["options"].values())
+        ctrl = f'<select id="{fid}" name="{fid}"><option value="">-- Select --</option>{opts}</select>'
+    elif dtype == "yesno":
+        kind = "sign"
+    elif dtype == "number":
+        kind = "number"
+    if dtype == "choice":
+        pass
+    elif kind in ("sign", "vaccine", "service", "referral"):
         ctrl = (f'<select id="{fid}" name="{fid}"><option value="">-- Select --</option>'
                 '<option>Yes</option><option>No</option></select>')
     elif kind in ("date", "dose_date") or (kind == "person" and item.get("field") == "dob"):

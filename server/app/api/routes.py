@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from ..core.config import RULES_DIR, SCHEDULES, load_yaml, schedule_or_default
 from ..core.settings import Settings
 from ..db.models import AuditEvent, Note, Otp, TaskAction, User, utcnow
+from ..extraction.details import catalog as detail_catalog
 from ..extraction.llm import from_env as llm_from_env
 from ..extraction.names import new_names
 from ..forms import form_view, forms_for, load_form
@@ -40,9 +41,12 @@ from ..services import (
     list_tasks,
     load_demo,
     people_for,
+    propose_details,
     remove_demo,
+    save_details,
     seed_demo,
     set_task_action,
+    start_edit,
     update_person,
     wipe_owner_data,
 )
@@ -105,6 +109,8 @@ def note_view(n: Note, db: Session, lang: str, **extra) -> dict:
             "stt_confidence": n.stt_confidence, "record": n.confirmed or n.draft, "flags": n.flags,
             "candidates": [{"id": c, "label": label(people[c], lang)} for c in n.candidates if c in people],
             "has_audio": bool(n.audio_path), "edited_paths": n.edited_paths, "new_names": heard_new,
+            "person_label": label(people[pid], lang) if (pid := ((n.confirmed or n.draft or {}).get("beneficiary") or {})
+                                                         .get("matched_id")) in people else None,
             "created_at": n.created_at.isoformat() + "Z", **extra}
 
 
@@ -120,6 +126,10 @@ def meta(request: Request) -> dict:
             "danger_signs": v["danger_signs"],
             "vaccines": [d["vaccine"] for d in load_yaml(RULES_DIR / "uip.yaml")["doses"]],
             "rules_status": {n: load_yaml(RULES_DIR / f"{n}.yaml")["status"] for n in ("hbnc", "hbyc", "uip")},
+            "details": {k: {"scope": d["scope"], "type": d["type"], "en": d["en"], "hi": d["hi"],
+                            "unit": d.get("unit"), "common_for": d.get("common_for") or [],
+                            "options": {o: {"en": x["en"], "hi": x["hi"]} for o, x in (d.get("options") or {}).items()}}
+                        for k, d in detail_catalog().items()},
             "simulated": ["login_otp", "demo_history"], "data": "synthetic"}
 
 
@@ -217,7 +227,8 @@ def person_view(p, lang: str, by_id: dict) -> dict:
     return {"id": p.id, "label": label(p, lang), "category": p.category, "own": p.id.startswith(OWN_PREFIX),
             "dob": p.dob.isoformat() if p.dob else None, "delivery_place": p.delivery_place,
             "mother_id": p.mother_id, "mother_label": label(mother, lang) if mother else None,
-            "names": list(p.names), "area": p.area, "at_risk": bool(p.at_risk)}
+            "names": list(p.names), "area": p.area, "at_risk": bool(p.at_risk), "sex": p.sex,
+            "birth_weight_kg": p.birth_weight_kg, "rch_id": p.rch_id}
 
 
 @router.get("/beneficiaries")
@@ -340,11 +351,17 @@ def _recorded_on(raw: str | None, today: date) -> date:
 
 
 @router.get("/notes")
-def get_notes(status: str | None = None, user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
-    q = select(Note).where(Note.owner_id == user.id, Note.source != "seed").order_by(Note.created_at.desc()).limit(100)
+def get_notes(status: str | None = None, beneficiary_id: str | None = None, limit: int = 100,
+              user: User = Depends(current_user), db: Session = Depends(get_db)) -> list[dict]:
+    """Her notes, newest first. beneficiary_id: one person's confirmed visits (Home "Recent visits", People)."""
+    q = select(Note).where(Note.owner_id == user.id, Note.source != "seed")
     if status:
         q = q.where(Note.status == status)
-    return [note_view(n, db, user.lang) for n in db.scalars(q).all()]
+    order = Note.confirmed_at.desc() if status == "confirmed" else Note.created_at.desc()
+    notes = db.scalars(q.order_by(order, Note.created_at.desc()).limit(500)).all()
+    if beneficiary_id:
+        notes = [n for n in notes if ((n.confirmed or n.draft or {}).get("beneficiary") or {}).get("matched_id") == beneficiary_id]
+    return [note_view(n, db, user.lang) for n in notes[:max(1, min(limit, 100))]]
 
 
 @router.get("/notes/{note_id}")
@@ -399,6 +416,12 @@ def get_audio(note_id: str, user: User = Depends(current_user), db: Session = De
 
 class ConfirmBody(BaseModel):
     record: dict
+    edit: bool = False  # True: she edited a confirmed note and confirms it again
+
+
+class DetailsBody(BaseModel):
+    values: dict[str, bool | float | str | None]
+    quotes: dict[str, str] = {}
 
 
 @router.post("/notes/{note_id}/add")
@@ -414,13 +437,50 @@ def post_add(note_id: str, request: Request, audio: UploadFile | None = File(def
         changes = add_to_note(db, settings(request), stt, note, text=typed, wav=wav, language=language)
     except SttError as exc:
         raise RequestError(503, "STT_FAILED", str(exc)) from exc
-    return note_view(note, db, user.lang, changes=changes)
+    # while she edits a confirmed note, the voice change lands in the edit copy (draft), not the confirmed record
+    edit_copy = {"record": note.draft} if note.status == "confirmed" else {}
+    return note_view(note, db, user.lang, changes=changes, **edit_copy)
+
+
+@router.post("/notes/{note_id}/edit")
+def post_edit(note_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)) -> dict:
+    """Open a confirmed note for changes; it stays confirmed until she confirms again."""
+    note = start_edit(db, own_note(db, user, note_id))
+    return note_view(note, db, user.lang, record_for_edit=note.draft)
+
+
+@router.post("/notes/{note_id}/details/voice")
+def post_details_voice(note_id: str, request: Request, audio: UploadFile | None = File(default=None),
+                       text: str | None = Form(default=None), language: str = Form(default="hi"),
+                       wanted: str = Form(default=""), user: User = Depends(current_user),
+                       db: Session = Depends(get_db)) -> dict:
+    """She speaks the details a form is missing; returns proposals (with quotes) to check. Nothing is saved."""
+    if language not in ("hi", "en"):
+        raise RequestError(422, "BAD_LANGUAGE", "Language must be hi or en")
+    note = own_note(db, user, note_id)
+    typed, wav, stt = _note_input(request, audio, text)
+    try:
+        found = propose_details(db, stt, note, text=typed, wav=wav, language=language,
+                                wanted=[w for w in wanted.split(",") if w])
+    except SttError as exc:
+        raise RequestError(503, "STT_FAILED", str(exc)) from exc
+    if not found:
+        raise RequestError(422, "NOTHING_NEW", "Nothing for these questions was heard. Say the question and the answer, e.g. 'eyes no pus'")
+    return {"proposals": found}
+
+
+@router.post("/notes/{note_id}/details")
+def post_details(note_id: str, body: DetailsBody, user: User = Depends(current_user),
+                 db: Session = Depends(get_db)) -> dict:
+    """Save the form details she checked (visit details on the note, person details on the person)."""
+    note = save_details(db, own_note(db, user, note_id), body.values, body.quotes)
+    return note_view(note, db, user.lang)
 
 
 @router.post("/notes/{note_id}/confirm")
 def post_confirm(note_id: str, body: ConfirmBody, request: Request, user: User = Depends(current_user),
                  db: Session = Depends(get_db)) -> dict:
-    note, audio_deleted = confirm_note(db, settings(request), own_note(db, user, note_id), body.record)
+    note, audio_deleted = confirm_note(db, settings(request), own_note(db, user, note_id), body.record, body.edit)
     return note_view(note, db, user.lang, audio_deleted=audio_deleted)
 
 

@@ -15,7 +15,7 @@ sections:
     items:
       - {id: temp, kind: temp_f, path: vitals.temp_c, en: "Temperature (°F)", hi: "तापमान (°F)", match: {en: ["temperature", "temp"], hi: ["तापमान"]}}
       - {id: weight, kind: number, path: vitals.weight_kg, unit: kg, en: "Weight (kg)", hi: "वज़न (किलो)", match: {en: ["weight", "wt"], hi: ["वज़न", "वजन"]}}
-      - {id: height, kind: blank, en: "Length / height (cm)", hi: "लंबाई / ऊँचाई (सेमी)"}
+      - {id: height, kind: detail, detail: height_cm, en: "Length / height (cm)", hi: "लंबाई / ऊँचाई (सेमी)"}
       - {id: nutrition, kind: blank, en: "Underweight / SAM / MAM", hi: "कम वज़न / SAM / MAM"}
   - id: danger
     title: {en: "Danger signs", hi: "ख़तरे के लक्षण"}
@@ -28,14 +28,14 @@ sections:
       - {id: d_chest, kind: blank, en: "Severe chest in-drawing", hi: "छाती का गंभीर धँसना"}
       - {id: d_fever7, kind: blank, en: "Fever for more than 7 days", hi: "7 दिन से ज़्यादा बुखार"}
       - {id: d_diarr, kind: sign, codes: [CH_DIARRHOEA_DEHYDRATION], en: "Diarrhoea for 14 days or more / dehydration", hi: "14 दिन या ज़्यादा दस्त / पानी की कमी", match: {en: ["diarrhoea", "diarrhea", "dehydration"], hi: ["दस्त"]}}
-      - {id: d_blood, kind: blank, en: "Blood in stool", hi: "मल में खून"}
+      - {id: d_blood, kind: detail, detail: blood_stool, en: "Blood in stool", hi: "मल में खून"}
       - {id: referral, kind: referral, en: "Referral status", hi: "रेफ़रल की स्थिति", match: {en: ["referral status", "referral", "referred"], hi: ["रेफ़रल", "रेफ़र", "रेफर"]}}
   - id: care
     title: {en: "Feeding and care", hi: "आहार और देखभाल"}
     items:
       - {id: bf, kind: blank, en: "Breastfeeding continued?", hi: "स्तनपान जारी?"}
       - {id: cf, kind: blank, en: "Complementary feeding right for age?", hi: "उम्र के अनुसार ऊपरी आहार?"}
-      - {id: deworm, kind: blank, en: "Deworming (over 1 year)", hi: "कृमि मुक्ति (1 साल से ऊपर)"}
+      - {id: deworm, kind: detail, detail: deworming, en: "Deworming (over 1 year)", hi: "कृमि मुक्ति (1 साल से ऊपर)"}
       - {id: vita, kind: vaccine, rx: "^vit", en: "Vitamin A given", hi: "विटामिन A दिया", match: {en: ["vitamin a", "vit a"], hi: ["विटामिन"]}}
       - {id: ifa, kind: service, types: [IFA], en: "IFA syrup given", hi: "IFA सिरप दिया", match: {en: ["ifa", "iron syrup"], hi: ["आयरन", "सिरप"]}}
       - {id: ors, kind: service, types: [ORS], en: "ORS at home", hi: "घर में ORS", match: {en: ["ors"], hi: ["ओआरएस"]}}

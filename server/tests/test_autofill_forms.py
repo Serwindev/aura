@@ -26,8 +26,11 @@ def test_every_answerable_row_has_label_words_for_autofill(form_id):
     for sec in form["sections"]:
         for it in sec["items"]:
             assert it["kind"] in INPUT_BY_KIND, it["id"]
-            if it["kind"] != "blank":
-                assert isinstance(it.get("match"), dict) and it["match"].get("en"), f"{form_id}.{it['id']} has no match words"
+    ctx = {"person": {"name": "Test baby"}, "doses": {}}  # synthetic
+    view = form_view(_rec(), "en", form_id, ctx)
+    for row in (r for s in view["sections"] for r in s["rows"]):
+        if row["captured"]:  # answerable rows: own words, or the detail catalogue's words
+            assert row["match"], f"{form_id}.{row['id']} has no match words"
 
 
 def test_fill_values_are_bare_and_blank_stays_blank():

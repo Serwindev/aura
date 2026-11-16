@@ -1,4 +1,4 @@
-# Android app — test checklist (v1.11.0)
+# Android app — test checklist (v1.12.0)
 
 Synthetic data only. Tick each line and note anything that went wrong next to it. If the APK fails, use the web app instead (`.\make.ps1 phone-usb`).
 
@@ -56,6 +56,14 @@ Synthetic data only. Tick each line and note anything that went wrong next to it
 - [ ] RCH child form: mother's name, date of birth, place of birth and vaccine dates fill.
 - [ ] A.U.R.A.'s own screens never show the suggestion.
 - [ ] Optional, demo only: open a real app/website form, tap a field, see what fills. **Do not press Submit.**
+
+## Reopen, edit and form details v1.12
+- [ ] Home shows **Recent visits** → **Open** a confirmed visit → saved screen with View form · Edit note · Read aloud.
+- [ ] People → **Visits** on a person → their visits → Open.
+- [ ] **Edit note** → change the weight (or speak "weight 3 kg") → Confirm → "Changes saved"; Home tasks still right. **Cancel edit** leaves the visit unchanged.
+- [ ] New HBNC note: review shows **Forms also ask** (baby alive, only breastfed, kept warm, eyes, nipples, mother's temperature). Tap a few; **Say them**: "eyes have no pus, mother temperature 99" → answers appear with "Heard" quotes. Confirm works with some left blank.
+- [ ] View form → RCH child → **Still missing** lists sex, birth weight, RCH IDs… → **Fill missing by voice**: "it is a girl, birth weight 2700 grams" → answers + quotes → **Save answers** → rows now filled; another note for the same child shows them too.
+- [ ] Practice website: those rows are dropdowns / boxes and autofill fills them.
 
 ## Report back
 Phone model and Android version, plus every unticked line with a short note or a screenshot (synthetic data only).
